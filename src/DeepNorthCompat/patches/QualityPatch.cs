@@ -8,9 +8,16 @@ using HarmonyLib;
 
 namespace DeepNorthCompat
 {
+    using ItemStack = ResourceStack<ItemDrop.ItemData, QualityPatch.Source>;
+    using ItemNeed = ResourceNeed<QualityPatch.Source>;
+    using ItemAllocation = Allocation<ItemDrop.ItemData, QualityPatch.Source>;
+    using ItemIngredient = SelectedIngredient<ItemDrop.ItemData, QualityPatch.Source>;
+    using ItemPlan = IngredientPlan<ItemDrop.ItemData, QualityPatch.Source>;
+    using ItemReservation = IngredientReservation<ItemDrop.ItemData, QualityPatch.Source>;
+
     internal static class QualityPatch
     {
-        private sealed class Source
+        internal sealed class Source
         {
             internal readonly Inventory Inventory;
             internal readonly object? Container;
@@ -24,15 +31,19 @@ namespace DeepNorthCompat
             internal readonly int Quality;
             internal readonly int Multiplier;
             internal readonly string Prefab;
-            internal readonly IngredientPlan Plan;
-            internal readonly IngredientReservation Reservation;
-            internal List<ItemDrop.ItemData>? OutputBefore;
-            internal Dictionary<ItemDrop.ItemData, int>? OutputCounts;
+            internal readonly ItemPlan Plan;
+            internal readonly ItemReservation Reservation;
+            // The player's inventory before DoCrafting. Vanilla removes an item being upgraded
+            // before output, so a failed craft restores this rather than a later snapshot.
+            internal readonly List<ItemDrop.ItemData> PlayerItems;
+            internal readonly Dictionary<ItemDrop.ItemData, int> PlayerCounts;
             internal Craft(Player player, Piece.Requirement[] requirements, int quality, int multiplier,
-                string prefab, IngredientPlan plan)
+                string prefab, ItemPlan plan)
             {
                 Player = player; Requirements = requirements; Quality = quality; Multiplier = multiplier;
-                Prefab = prefab; Plan = plan; Reservation = new IngredientReservation(plan);
+                Prefab = prefab; Plan = plan; Reservation = new ItemReservation(plan);
+                PlayerItems = new List<ItemDrop.ItemData>(player.GetInventory().GetAllItems());
+                PlayerCounts = PlayerItems.ToDictionary(item => item, item => item.m_stack);
             }
         }
 
@@ -57,9 +68,7 @@ namespace DeepNorthCompat
         private static MethodInfo containerPrefab = null!;
         private static MethodInfo containerSave = null!;
         private static MethodInfo inventoryChanged = null!;
-        private static bool aaaInstalled;
-        private static bool active;
-        internal static void DisableIf(string name) { if (name == "Quality") active = false; }
+        private static bool previewFailed;
 
         internal static void Install(Assembly impact, Assembly crafty, bool hasAaa)
         {
@@ -98,7 +107,6 @@ namespace DeepNorthCompat
             craftUpgrade = AccessTools.Field(typeof(InventoryGui), "m_craftUpgradeItem");
             multiCrafting = AccessTools.Field(typeof(InventoryGui), "m_multiCrafting");
             inventoryChanged = Guard.Method(typeof(Inventory), "Changed", typeof(void), typeof(bool), typeof(bool));
-            aaaInstalled = hasAaa;
 
             var harmony = new Harmony(Plugin.Guid + ".Quality");
             var prepare = Guard.Hook(typeof(QualityPatch), nameof(Prepare), Priority.First);
@@ -113,9 +121,8 @@ namespace DeepNorthCompat
                 finalizer: Guard.Hook(typeof(QualityPatch), nameof(AddFailed)));
             if (hasAaa)
                 harmony.Patch(panelMultiplier, prefix: Guard.Hook(typeof(QualityPatch), nameof(PanelMultiplier)));
-            foreach (MethodInfo method in new[] { crafting, prototypeTier, namedTier, process, add }) Guard.Applied(method);
-            if (hasAaa) Guard.Applied(panelMultiplier);
-            active = true;
+            foreach (MethodInfo method in new[] { crafting, prototypeTier, namedTier, process, add }) Guard.Registered(method);
+            if (hasAaa) Guard.Registered(panelMultiplier);
         }
 
         private static FieldInfo RequiredConfig(Type type, string name, Type expected)
@@ -136,7 +143,7 @@ namespace DeepNorthCompat
                 new[] { containerPrefab.Invoke(source.Container, null), prefab, "" });
         }
 
-        private static List<ResourceStack> Snapshot(Player player)
+        private static List<ItemStack> Snapshot(Player player)
         {
             var sources = new List<Source> { new Source(player.GetInventory(), null) };
             var seen = new HashSet<Inventory> { player.GetInventory() };
@@ -144,32 +151,29 @@ namespace DeepNorthCompat
                 new object[] { player, ((ConfigEntry<float>)range.GetValue(null)).Value });
             foreach (object container in containers)
             {
-                var inventory = (Inventory?)containerInventory.Invoke(container, null);
-                // Drawers without a real inventory cannot expose qualities or exact stacks.
-                // Such an adapter is not installed in this pack. Block affected crafting if
-                // one is added; do not silently combine an opaque resource count with quality.
-                if (inventory == null) throw new NotSupportedException("CraftyBoxes adapter lacks an inventory: "
-                    + container.GetType().FullName);
-                if (seen.Add(inventory)) sources.Add(new Source(inventory, container));
+                // Drawer adapters have no inventory and cannot expose qualities or exact stacks,
+                // so quality crafts never draw from them.
+                if (containerInventory.Invoke(container, null) is Inventory inventory && seen.Add(inventory))
+                    sources.Add(new Source(inventory, container));
             }
-            var stacks = new List<ResourceStack>();
+            var stacks = new List<ItemStack>();
             foreach (Source source in sources)
                 for (int index = 0; index < source.Inventory.GetAllItems().Count; index++)
                 {
                     ItemDrop.ItemData item = source.Inventory.GetAllItems()[index];
                     if (item?.m_shared != null && item.m_stack > 0)
-                        stacks.Add(new ResourceStack(item, source, item.m_shared.m_name,
+                        stacks.Add(new ItemStack(item, source, item.m_shared.m_name,
                             item.m_quality, item.m_worldLevel, item.m_stack, source.Container != null, index));
                 }
             return stacks;
         }
 
-        private static ResourceNeed Need(Piece.Requirement requirement, int amount)
+        private static ItemNeed Need(Piece.Requirement requirement, int amount)
         {
             ItemDrop.ItemData item = requirement.m_resItem.m_itemData;
             string prefab = requirement.m_resItem.name;
-            return new ResourceNeed(item.m_shared.m_name, item.m_shared.m_maxQuality, amount,
-                source => Allowed((Source)source, prefab));
+            return new ItemNeed(item.m_shared.m_name, item.m_shared.m_maxQuality, amount,
+                source => Allowed(source, prefab));
         }
 
         private static bool Prepare(InventoryGui __instance, Player __0, out Scope __state)
@@ -178,7 +182,7 @@ namespace DeepNorthCompat
             current = null;
             try
             {
-                if (!active || !Enabled || !Pulling || __0 != Player.m_localPlayer || __0.NoCostCheat()
+                if (!Enabled || !Pulling || __0 != Player.m_localPlayer || __0.NoCostCheat()
                     || ZoneSystem.instance.GetGlobalKey(GlobalKeys.NoCraftCost)) return true;
                 var recipe = (Recipe?)craftRecipe.GetValue(__instance);
                 if (recipe == null || recipe.m_requireOnlyOneIngredient) return true;
@@ -190,8 +194,8 @@ namespace DeepNorthCompat
                 int quality = upgrade == null ? 1 : upgrade.m_quality + 1;
                 int multiplier = (bool)multiCrafting.GetValue(__instance) ? __instance.m_multiCraftAmount : 1;
                 var needs = requirements.Select(r => Need(r, checked(r.GetAmount(quality) * multiplier))).ToList();
-                IngredientPlan? plan = IngredientSelector.Select(Snapshot(__0), needs, Game.m_worldLevel, LeavingOne);
-                if (plan == null) return false; // Cancel before output; vanilla requirements still run if sufficient.
+                ItemPlan? plan = IngredientSelector.Select(Snapshot(__0), needs, Game.m_worldLevel, LeavingOne);
+                if (plan == null) return false; // Too few eligible ingredients: skip the craft before vanilla removes anything.
                 if (plan.Ingredients.GroupBy(i => new { i.Need.Name, i.Need.Count })
                     .Any(group => group.Select(i => i.Tier).Distinct().Count() > 1))
                     throw new NotSupportedException("Repeated identical recipe requirements need different tiers; "
@@ -221,8 +225,11 @@ namespace DeepNorthCompat
         private static bool FindTier(Inventory inventory, string name, int amount, out int tier)
         {
             tier = 0;
-            if (current == null || inventory != current.Player.GetInventory()) return false;
-            SelectedIngredient? ingredient = current.Plan.Ingredients.FirstOrDefault(i =>
+            // After commit, vanilla refreshes the panel inside DoCrafting; preview the remaining ingredients.
+            if (current == null || inventory != current.Player.GetInventory()
+                || current.Reservation.State == ReservationState.Committed
+                || current.Reservation.State == ReservationState.RolledBack) return false;
+            ItemIngredient? ingredient = current.Plan.Ingredients.FirstOrDefault(i =>
                 i.Need.Name == name && i.Need.Count == amount);
             if (ingredient == null) return false;
             tier = ingredient.Tier;
@@ -231,7 +238,6 @@ namespace DeepNorthCompat
 
         private static bool NamedTier(Inventory __0, string __1, int __3, ref int __result)
         {
-            if (!active) return true;
             if (!FindTier(__0, __1, __3, out int tier)) return true;
             __result = tier;
             return false;
@@ -239,64 +245,70 @@ namespace DeepNorthCompat
 
         private static bool PrototypeTier(Inventory __0, ItemDrop.ItemData __1, int __2, ref int __result)
         {
-            if (!active || __1 == null) return true;
+            if (__1 == null) return true;
             if (FindTier(__0, __1.m_shared.m_name, __2, out int tier)) { __result = tier; return false; }
             if (!Enabled || !Pulling || Player.m_localPlayer == null || __0 != Player.m_localPlayer.GetInventory()) return true;
             try
             {
-                string prefab = __1.m_dropPrefab != null ? __1.m_dropPrefab.name
-                    : ObjectDB.instance.m_items.First(p => p.GetComponent<ItemDrop>()?.m_itemData.m_shared.m_name
-                        == __1.m_shared.m_name).name;
-                var need = new ResourceNeed(__1.m_shared.m_name, __1.m_shared.m_maxQuality, __2,
-                    source => Allowed((Source)source, prefab));
-                IngredientPlan? preview = IngredientSelector.Select(Snapshot(Player.m_localPlayer),
+                // CraftyBoxes assigns requirement drop prefabs; ObjectDB covers a recipe it has not checked yet.
+                UnityEngine.GameObject? dropPrefab = __1.m_dropPrefab != null ? __1.m_dropPrefab
+                    : ObjectDB.instance != null ? ObjectDB.instance.GetItemPrefab(__1.m_shared) : null;
+                if (dropPrefab == null) return true;
+                string prefab = dropPrefab.name;
+                var need = new ItemNeed(__1.m_shared.m_name, __1.m_shared.m_maxQuality, __2,
+                    source => Allowed(source, prefab));
+                ItemPlan? preview = IngredientSelector.Select(Snapshot(Player.m_localPlayer),
                     new[] { need }, Game.m_worldLevel, LeavingOne);
                 __result = preview?.Ingredients.FirstOrDefault()?.Tier ?? 0;
                 return false;
             }
             catch (Exception exception)
             {
-                CompatibilityInstaller.Warning("Quality preview unavailable; affected craft will be blocked. " + exception.Message);
+                if (!previewFailed)
+                    CompatibilityInstaller.Warning("Quality preview failed; the crafting panel shows no quality bonus "
+                        + "while this persists. Later preview failures are not logged. " + exception);
+                previewFailed = true;
                 __result = 0;
                 return false;
             }
         }
 
-        private static int Count(ResourceStack stack)
+        private static int Count(ItemStack stack)
         {
-            var item = (ItemDrop.ItemData)stack.Id;
-            var source = (Source)stack.Source;
+            ItemDrop.ItemData item = stack.Id;
+            Source source = stack.Source;
             return source.Inventory.ContainsItem(item) && item.m_quality == stack.Quality
                 && item.m_worldLevel == stack.WorldLevel && item.m_shared.m_name == stack.Name ? item.m_stack : 0;
         }
 
-        private static bool Remove(Allocation allocation)
+        private static bool Remove(ItemAllocation allocation)
         {
-            var source = (Source)allocation.Stack.Source;
-            return source.Inventory.RemoveItem((ItemDrop.ItemData)allocation.Stack.Id, allocation.Count);
+            // Remove like CraftyBoxes' VanillaContainer: by index or stack size. MultiUserChest
+            // refuses Inventory.RemoveItem(ItemData) for a chest another client owns.
+            Source source = allocation.Stack.Source;
+            ItemDrop.ItemData item = allocation.Stack.Id;
+            int index = source.Inventory.GetAllItems().IndexOf(item);
+            if (index < 0 || item.m_stack < allocation.Count) return false;
+            if (item.m_stack == allocation.Count) return source.Inventory.RemoveItem(index);
+            item.m_stack -= allocation.Count;
+            return true;
         }
 
         private static bool Valid(Craft craft)
         {
-            foreach (SelectedIngredient ingredient in craft.Plan.Ingredients)
-            {
-                foreach (var group in ingredient.Allocations.GroupBy(a => a.Stack.Source))
-                {
-                    var source = (Source)group.Key;
-                    if (!ingredient.Need.AllowsSource(source)) return false;
-                }
-            }
+            if (craft.Plan.Ingredients.Any(ingredient => ingredient.Allocations
+                .Any(allocation => !ingredient.Need.AllowsSource(allocation.Stack.Source)))) return false;
             if (LeavingOne)
                 foreach (var group in craft.Plan.Allocations.Where(a => a.Stack.Container)
                     .GroupBy(a => new { a.Stack.Source, a.Stack.Name }))
-                    if (((Source)group.Key.Source).Inventory.CountItems(group.Key.Name) <= group.Sum(a => a.Count)) return false;
+                    if (group.Key.Source.Inventory.CountItems(group.Key.Name) <= group.Sum(a => a.Count)) return false;
             return true;
         }
 
-        private static void Restore(ResourceStack stack, int count)
+        private static void Restore(ItemStack stack, int count)
         {
-            var source = (Source)stack.Source;
-            var item = (ItemDrop.ItemData)stack.Id;
+            Source source = stack.Source;
+            ItemDrop.ItemData item = stack.Id;
             if (!source.Inventory.ContainsItem(item))
                 source.Inventory.GetAllItems().Insert(Math.Min(stack.Index, source.Inventory.GetAllItems().Count), item);
             item.m_stack = count;
@@ -304,23 +316,21 @@ namespace DeepNorthCompat
 
         private static void Save(Craft craft)
         {
-            foreach (Source source in craft.Plan.Allocations.Select(a => (Source)a.Stack.Source).Distinct())
-                if (source.Container != null) containerSave.Invoke(source.Container, null);
-                else inventoryChanged.Invoke(source.Inventory, new object[] { false, false });
+            foreach (object container in craft.Plan.Allocations.Select(a => a.Stack.Source.Container)
+                .OfType<object>().Distinct())
+                containerSave.Invoke(container, null);
+            // Output and rollback change the player's inventory even when every ingredient came from chests.
+            inventoryChanged.Invoke(craft.Player.GetInventory(), new object[] { false, false });
         }
 
         private static void Rollback(Craft craft)
         {
-            // AddItem can fail after partially filling output stacks. This craft uses
-            // dropIfFullInv=false, so restoring the pre-add inventory also removes partial output.
-            if (craft.OutputBefore != null)
-            {
-                List<ItemDrop.ItemData> items = craft.Player.GetInventory().GetAllItems();
-                items.Clear(); items.AddRange(craft.OutputBefore);
-                foreach (var entry in craft.OutputCounts!) entry.Key.m_stack = entry.Value;
-                craft.OutputBefore = null; craft.OutputCounts = null;
-            }
             craft.Reservation.Rollback(Restore);
+            // Restoring the player's pre-craft inventory also removes partial output and returns
+            // an item being upgraded.
+            List<ItemDrop.ItemData> items = craft.Player.GetInventory().GetAllItems();
+            items.Clear(); items.AddRange(craft.PlayerItems);
+            foreach (var entry in craft.PlayerCounts) entry.Key.m_stack = entry.Value;
             Save(craft);
         }
 
@@ -329,20 +339,20 @@ namespace DeepNorthCompat
         {
             __state = null;
             Craft? craft = current;
-            if (!active || craft == null || __instance != craft.Player.GetInventory() || __0 != craft.Prefab
+            if (craft == null || __instance != craft.Player.GetInventory() || __0 != craft.Prefab
                 || craft.Reservation.State != ReservationState.Planned) return true;
             __state = craft;
             try
             {
                 if (!Pulling || !Valid(craft) || !craft.Reservation.Reserve(Count, Remove, Restore))
                 {
+                    Rollback(craft);
                     __result = null;
-                    Save(craft);
                     CompatibilityInstaller.Warning("Quality: ingredients changed; output cancelled without consumption.");
                     return false;
                 }
-                craft.OutputBefore = new List<ItemDrop.ItemData>(__instance.GetAllItems());
-                craft.OutputCounts = craft.OutputBefore.ToDictionary(item => item, item => item.m_stack);
+                // AddItem can fail after partially filling output stacks. Without a ground drop,
+                // rollback removes all partial output.
                 __9 = false;
                 return true;
             }
@@ -357,14 +367,10 @@ namespace DeepNorthCompat
 
         private static void Added(ItemDrop.ItemData? __result, Craft? __state)
         {
-            if (__state == null) return;
-            if (__result == null) Rollback(__state);
-            else
-            {
-                __state.Reservation.Complete(true, Restore);
-                __state.OutputBefore = null; __state.OutputCounts = null;
-                Save(__state);
-            }
+            if (__state?.Reservation.State != ReservationState.Reserved) return;
+            if (__result == null) { Rollback(__state); return; }
+            __state.Reservation.Complete(true, Restore);
+            Save(__state);
         }
 
         private static Exception? AddFailed(Exception? __exception, Craft? __state)
@@ -376,7 +382,7 @@ namespace DeepNorthCompat
         private static bool Consume(Piece.Requirement[] __0, int __1, Inventory __2, int __4, int __5)
         {
             Craft? craft = current;
-            if (!active || craft == null || __0 != craft.Requirements || __1 != craft.Quality || __2 != craft.Player.GetInventory()
+            if (craft == null || __0 != craft.Requirements || __1 != craft.Quality || __2 != craft.Player.GetInventory()
                 || __4 >= 0 || __5 != craft.Multiplier) return true;
             if (craft.Reservation.State == ReservationState.Committed) return false;
             // The vanilla upgrader can spend ingredients after a failed upgrade with no output.
@@ -391,8 +397,7 @@ namespace DeepNorthCompat
 
         private static bool PanelMultiplier(ref int __result)
         {
-            if (!active || !aaaInstalled) return true;
-            // AAA 2.1.10 disables native multicraft and queues individual crafts. Holding Alt
+            // Patched only when AAA is installed. AAA 2.1.10 disables native multicraft and queues individual crafts. Holding Alt
             // or LStick must not make ImpactfulSkills preview a native batch tier in that UI.
             __result = 1;
             return false;

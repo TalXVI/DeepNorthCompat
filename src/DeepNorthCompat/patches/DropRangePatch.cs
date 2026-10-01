@@ -9,6 +9,10 @@ namespace DeepNorthCompat
 {
     public static class DropRangePatch
     {
+        // Parser -> whether its transpiler ran and matched. Null until Harmony runs it, which
+        // a startup optimizer can defer until after Awake.
+        private static readonly Dictionary<MethodBase, bool?> parsers = new Dictionary<MethodBase, bool?>();
+
         internal static void Install(Assembly assembly, string name)
         {
             Type closure = Guard.Type(assembly, "CreatureManager.Creature+DropList+SerializedDrops+<>c");
@@ -17,13 +21,28 @@ namespace DeepNorthCompat
             // Config binding occurs at FejdStartup and drops are assigned at ZNetScene startup.
             // Both occur after BepInEx has run this plugin's Awake.
             var harmony = new Harmony(Plugin.Guid + ".Drops." + name);
+            parsers[parser] = null;
             harmony.Patch(parser, transpiler: Guard.Hook(typeof(DropRangePatch), nameof(FixMaximum)));
-            Guard.Applied(parser);
+            Guard.Registered(parser);
         }
 
-        public static IEnumerable<CodeInstruction> FixMaximum(IEnumerable<CodeInstruction> instructions)
+        internal static void Verify()
         {
-            List<CodeInstruction> code = instructions.Select(i => new CodeInstruction(i)).ToList();
+            foreach (KeyValuePair<MethodBase, bool?> parser in parsers)
+            {
+                if (parser.Value == true) CompatibilityInstaller.Info($"Verified: {Guard.Name(parser.Key)}");
+                else if (parser.Value == null)
+                    CompatibilityInstaller.Error($"{Guard.Name(parser.Key)}: transpiler did not run; parser unchanged.");
+            }
+        }
+
+        // Returns the original IL on a mismatch instead of throwing: a deferred patch batch may
+        // apply this after Awake, where an exception would abort every other mod's patches.
+        public static IEnumerable<CodeInstruction> FixMaximum(IEnumerable<CodeInstruction> instructions,
+            MethodBase original)
+        {
+            List<CodeInstruction> source = instructions.ToList();
+            List<CodeInstruction> code = source.Select(i => new CodeInstruction(i)).ToList();
             MethodInfo parse = typeof(int).GetMethod("TryParse", new[] { typeof(string), typeof(int).MakeByRefType() })!;
             List<int> calls = Enumerable.Range(0, code.Count).Where(i => code[i].Calls(parse)).ToList();
 
@@ -31,12 +50,16 @@ namespace DeepNorthCompat
                 || code[i - 2].opcode != OpCodes.Ldelem_Ref
                 || code[i - 3].opcode != OpCodes.Ldc_I4_0))
             {
-                throw new NotSupportedException("CreatureManager range defect no longer matches; parser unchanged.");
+                CompatibilityInstaller.Error($"Drops: CreatureManager range defect no longer matches in "
+                    + $"{original.DeclaringType?.Assembly.GetName().Name}; parser unchanged.");
+                if (parsers.ContainsKey(original)) parsers[original] = false;
+                return source;
             }
 
             // Change only the second array index. Keep minimum, single-value branch, default
             // fallback, chance, one-per-player and level multiplier exactly as upstream.
             code[calls[1] - 3].opcode = OpCodes.Ldc_I4_1;
+            if (parsers.ContainsKey(original)) parsers[original] = true;
             return code;
         }
     }

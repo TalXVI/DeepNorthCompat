@@ -10,8 +10,6 @@ namespace DeepNorthCompat
     {
         private static FieldInfo enabled = null!;
         private static FieldInfo reduction = null!;
-        private static bool active;
-        internal static void DisableIf(string name) { if (name == "Bow") active = false; }
 
         internal static void Install(Assembly impact)
         {
@@ -33,13 +31,11 @@ namespace DeepNorthCompat
             var harmony = new Harmony(Plugin.Guid + ".Bow");
             harmony.Patch(calculation, prefix: Guard.Hook(typeof(BowPatch), nameof(Coefficient)));
             harmony.Patch(report, postfix: Guard.Hook(typeof(BowPatch), nameof(Report)));
-            Guard.Applied(calculation); Guard.Applied(report);
-            active = true;
+            Guard.Registered(calculation); Guard.Registered(report);
         }
 
         private static bool Coefficient(ref float __result)
         {
-            if (!active) return true;
             __result = BowCalculation.Reduction(((ConfigEntry<float>)reduction.GetValue(null)).Value,
                 ((ConfigEntry<bool>)enabled.GetValue(null)).Value && Player.m_localPlayer != null);
             return false;
@@ -47,7 +43,7 @@ namespace DeepNorthCompat
 
         private static void Report(ItemDrop.ItemData __0, ref string __1)
         {
-            if (!active || !((ConfigEntry<bool>)enabled.GetValue(null)).Value
+            if (!((ConfigEntry<bool>)enabled.GetValue(null)).Value
                 || Player.m_localPlayer == null
                 || !__1.Contains("item_staminahold")) return;
 

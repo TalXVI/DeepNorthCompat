@@ -24,30 +24,33 @@ internal static class ConfigValidation
         Shortcut(lab, "Azumatt.HearthBelow.cfg", "4 - Dig Controls", "Dig Controls Modifier", KeyCode.LeftShift);
     }
 
-    private static ConfigFile Open(string lab, string file)
+    // Binds one entry from the pack's config and fails if that rewrote the file.
+    private static T Read<T>(string lab, string file, string section, string key, T fallback)
     {
-        return new ConfigFile(Path.Combine(lab, "BepInEx", "config", file), false) { SaveOnConfigSet = false };
+        string path = Path.Combine(lab, "BepInEx", "config", file);
+        byte[] before = File.ReadAllBytes(path);
+        T value = new ConfigFile(path, false) { SaveOnConfigSet = false }.Bind(section, key, fallback).Value;
+        if (!before.SequenceEqual(File.ReadAllBytes(path)))
+            throw new Exception(file + " was rewritten");
+        return value;
     }
 
     private static void Shortcut(string lab, string file, string section, string key, params KeyCode[] keys)
     {
-        byte[] before = File.ReadAllBytes(Path.Combine(lab, "BepInEx", "config", file));
-        KeyboardShortcut value = Open(lab, file).Bind(section, key, KeyboardShortcut.Empty).Value;
+        KeyboardShortcut value = Read(lab, file, section, key, KeyboardShortcut.Empty);
         if (value.MainKey != keys[0] || !value.Modifiers.SequenceEqual(keys.Skip(1)))
             throw new Exception(file + ": " + key + " parsed incorrectly: " + value);
-        if (!before.SequenceEqual(File.ReadAllBytes(Path.Combine(lab, "BepInEx", "config", file))))
-            throw new Exception(file + " was rewritten");
     }
 
     private static void Key(string lab, string file, string section, string key, KeyCode expected)
     {
-        if (Open(lab, file).Bind(section, key, KeyCode.None).Value != expected)
+        if (Read(lab, file, section, key, KeyCode.None) != expected)
             throw new Exception(file + ": " + key + " parsed incorrectly");
     }
 
     private static void Boolean(string lab, string file, string section, string key, bool expected)
     {
-        if (Open(lab, file).Bind(section, key, !expected).Value != expected)
+        if (Read(lab, file, section, key, !expected) != expected)
             throw new Exception(file + ": " + key + " parsed incorrectly");
     }
 }

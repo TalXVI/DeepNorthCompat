@@ -46,12 +46,12 @@ internal static class Program
         action(); passed++; SysConsole.WriteLine("PASS " + name);
     }
 
-    private static ResourceStack Stack(string source, int count, int quality = 1, string name = "fish", int world = 0)
-        => new ResourceStack(new object(), source, name, quality, world, count, source != "player");
+    private static ResourceStack<object, string> Stack(string source, int count, int quality = 1, string name = "fish", int world = 0)
+        => new ResourceStack<object, string>(new object(), source, name, quality, world, count, source != "player");
 
-    private static IngredientPlan? Select(ResourceStack[] stacks, int amount, bool leaveOne = false,
-        Func<object, bool>? allowed = null)
-        => IngredientSelector.Select(stacks, new[] { new ResourceNeed("fish", 5, amount, allowed ?? (_ => true)) }, 0, leaveOne);
+    private static IngredientPlan<object, string>? Select(ResourceStack<object, string>[] stacks, int amount, bool leaveOne = false,
+        Func<string, bool>? allowed = null)
+        => IngredientSelector.Select(stacks, new[] { new ResourceNeed<string>("fish", 5, amount, allowed ?? (_ => true)) }, 0, leaveOne);
 
     private static void Run()
     {
@@ -88,7 +88,7 @@ internal static class Program
         foreach (var entry in cases)
             Test(entry.Item1, () =>
             {
-                IngredientPlan plan = Select(entry.Item2, entry.Item3) ?? throw new Exception("missing plan");
+                IngredientPlan<object, string> plan = Select(entry.Item2, entry.Item3) ?? throw new Exception("missing plan");
                 Check(plan.Ingredients.Single().Tier == entry.Item4, "tier");
                 Check(plan.Allocations.Sum(a => a.Count) == entry.Item3, "quantity");
                 if (entry.Item4 > 0) Check(plan.Allocations.All(a => a.Stack.Quality == entry.Item4), "consumed quality");
@@ -98,7 +98,7 @@ internal static class Program
         Test("container eligibility and private/range policy supplied by CraftyBoxes", () =>
         {
             var stacks = new[] { Stack("player", 1, 1), Stack("excluded", 100, 5), Stack("eligible", 11, 3) };
-            IngredientPlan plan = Select(stacks, 12, allowed: source => !Equals(source, "excluded"))!;
+            IngredientPlan<object, string> plan = Select(stacks, 12, allowed: source => !Equals(source, "excluded"))!;
             Check(plan.Ingredients.Single().Tier == 0 && plan.Allocations.All(a => !Equals(a.Stack.Source, "excluded")), "restriction");
             Check(Select(stacks, 13, allowed: source => !Equals(source, "excluded")) == null, "restriction boundary");
         });
@@ -116,18 +116,18 @@ internal static class Program
         Test("multiple distinct requirements consume correct quantities", () =>
         {
             var stacks = new[] { Stack("player", 12, 3), Stack("chest1", 5, name: "linen") };
-            var needs = new[] { new ResourceNeed("fish", 5, 12, _ => true), new ResourceNeed("linen", 1, 5, _ => true) };
-            IngredientPlan plan = IngredientSelector.Select(stacks, needs, 0, false)!;
+            var needs = new[] { new ResourceNeed<string>("fish", 5, 12, _ => true), new ResourceNeed<string>("linen", 1, 5, _ => true) };
+            IngredientPlan<object, string> plan = IngredientSelector.Select(stacks, needs, 0, false)!;
             Check(plan.Ingredients[0].Tier == 3 && plan.Ingredients[1].Tier == 0, "qualities");
             Commit(plan, stacks);
         });
         Test("AAA sequential batch reselects for each craft", () =>
         {
             var first = new[] { Stack("player", 12, 1), Stack("chest1", 24, 3) };
-            IngredientPlan plan1 = Select(first, 12)!;
+            IngredientPlan<object, string> plan1 = Select(first, 12)!;
             Check(plan1.Ingredients.Single().Tier == 1, "first");
             var counts = Commit(plan1, first);
-            var second = first.Select(s => new ResourceStack(s.Id, s.Source, s.Name, s.Quality, s.WorldLevel, counts[s.Id], s.Container)).ToArray();
+            var second = first.Select(s => new ResourceStack<object, string>(s.Id, s.Source, s.Name, s.Quality, s.WorldLevel, counts[s.Id], s.Container)).ToArray();
             Check(Select(second, 12)!.Ingredients.Single().Tier == 3, "second");
             Commit(Select(second, 12)!, second);
         });
@@ -135,7 +135,7 @@ internal static class Program
         {
             var stacks = new[] { Stack("player", 4, 3), Stack("chest1", 8, 3) };
             var counts = stacks.ToDictionary(s => s.Id, s => s.Count);
-            var reservation = new IngredientReservation(Select(stacks, 12)!);
+            var reservation = new IngredientReservation<object, string>(Select(stacks, 12)!);
             Check(reservation.Reserve(s => counts[s.Id], a => { counts[a.Stack.Id] -= a.Count; return true; },
                 (s, count) => counts[s.Id] = count), "reserve");
             reservation.Complete(false, (s, count) => counts[s.Id] = count);
@@ -145,7 +145,7 @@ internal static class Program
         {
             var stacks = new[] { Stack("player", 4, 3), Stack("chest1", 8, 3) };
             var counts = stacks.ToDictionary(s => s.Id, s => s.Count);
-            var reservation = new IngredientReservation(Select(stacks, 12)!);
+            var reservation = new IngredientReservation<object, string>(Select(stacks, 12)!);
             try
             {
                 reservation.Reserve(s => counts[s.Id], a =>
@@ -162,26 +162,29 @@ internal static class Program
         Test("changed inputs cancel before any removal", () =>
         {
             var stacks = new[] { Stack("player", 12, 3) };
-            var reservation = new IngredientReservation(Select(stacks, 12)!);
+            var reservation = new IngredientReservation<object, string>(Select(stacks, 12)!);
             bool removed = false;
             Check(!reservation.Reserve(_ => 11, _ => { removed = true; return true; }, (_, __) => { }), "changed input");
             Check(!removed, "no partial consumption");
         });
         Test("future parser shape rejected without mutation", () =>
         {
+            var errors = new List<string>();
+            CompatibilityInstaller.Install(_ => null, _ => { }, _ => { }, errors.Add);
             var code = new[] { new CodeInstruction(OpCodes.Nop) };
-            try { DropRangePatch.FixMaximum(code).ToList(); throw new Exception("missing guard"); }
-            catch (NotSupportedException) { }
+            List<CodeInstruction> result = DropRangePatch.FixMaximum(code, MethodBase.GetCurrentMethod()!).ToList();
+            Check(result.Count == 1 && result[0].opcode == OpCodes.Nop, "original IL returned");
             Check(code[0].opcode == OpCodes.Nop, "unchanged");
+            Check(errors.Count == 1, "rejection reported");
         });
 
         OfflineIntegration();
     }
 
-    private static Dictionary<object, int> Commit(IngredientPlan plan, ResourceStack[] stacks)
+    private static Dictionary<object, int> Commit(IngredientPlan<object, string> plan, ResourceStack<object, string>[] stacks)
     {
         var counts = stacks.ToDictionary(s => s.Id, s => s.Count);
-        var reservation = new IngredientReservation(plan);
+        var reservation = new IngredientReservation<object, string>(plan);
         Check(reservation.Reserve(s => counts[s.Id], a => { counts[a.Stack.Id] -= a.Count; return true; },
             (s, count) => counts[s.Id] = count), "reservation");
         reservation.Complete(true, (s, count) => counts[s.Id] = count);
@@ -232,7 +235,7 @@ internal static class Program
         {
             BepInEx.BepInPlugin identity = typeof(Plugin).GetCustomAttribute<BepInEx.BepInPlugin>()!;
             Check(identity.GUID == "DeepNorthCompat" && identity.Name == "DeepNorthCompat"
-                && identity.Version.ToString() == "1.0.0"
+                && identity.Version.ToString() == "1.0.1"
                 && typeof(Plugin).Assembly.GetName().Name == "DeepNorthCompat", "plugin identity");
             Check(typeof(BepInEx.BaseUnityPlugin).IsAssignableFrom(typeof(Plugin)), "BepInEx entry point");
             var dependencies = typeof(Plugin).GetCustomAttributes<BepInEx.BepInDependency>().ToArray();
@@ -241,15 +244,48 @@ internal static class Program
             Check(!typeof(Plugin).Assembly.GetReferencedAssemblies().Any(reference =>
                 assemblies.Values.Any(vendor => reference.Name == vendor.GetName().Name)), "hard vendor reference");
         });
+        Test("deferred patching reports a parser transpiler that never ran", () =>
+        {
+            // Models StartupAccelerator, which skips Harmony wrapper updates during plugin
+            // loading and applies them in one batch after every Awake has run.
+            var defer = new Harmony("DeepNorthCompat.Tests.Defer");
+            defer.Patch(AccessTools.Method(AccessTools.TypeByName("HarmonyLib.PatchFunctions"), "UpdateWrapper"),
+                prefix: new HarmonyMethod(AccessTools.Method(typeof(Program), nameof(SkipUpdate))));
+            var errors = new List<string>();
+            try
+            {
+                deferring = true;
+                CompatibilityInstaller.Install(guid => guid.StartsWith("marlthon.") ? assemblies[guid] : null,
+                    _ => { }, _ => { }, errors.Add);
+                deferring = false;
+                CompatibilityInstaller.Verify();
+            }
+            finally
+            {
+                deferring = false;
+                defer.UnpatchSelf();
+                new Harmony("DeepNorthCompat.Drops.SeaAnimals").UnpatchSelf();
+                new Harmony("DeepNorthCompat.Drops.AirAnimals").UnpatchSelf();
+            }
+            Check(errors.Count == 2 && errors.All(e => e.Contains("did not run")), string.Join(Environment.NewLine, errors));
+        });
         Test("installed BepInEx/Harmony load and every compatibility patch installs", () =>
         {
             var errors = new List<string>();
             var applied = new List<string>();
+            var verified = new List<string>();
             CompatibilityInstaller.Install(guid => assemblies.TryGetValue(guid, out Assembly assembly) ? assembly : null,
-                message => { SysConsole.WriteLine(message); if (message.StartsWith("Applied:")) applied.Add(message); },
+                message =>
+                {
+                    SysConsole.WriteLine(message);
+                    if (message.StartsWith("Registered:")) applied.Add(message);
+                    if (message.StartsWith("Verified:")) verified.Add(message);
+                },
                 SysConsole.WriteLine, error => errors.Add(error));
+            CompatibilityInstaller.Verify();
             Check(errors.Count == 0, string.Join(Environment.NewLine, errors));
             Check(applied.Count == 10, "expected Harmony target count");
+            Check(verified.Count == 2, "expected parser transpiler count");
         });
 
         foreach (string guid in new[] { "marlthon.SeaAnimals", "marlthon.AirAnimals" })
@@ -286,7 +322,7 @@ internal static class Program
             for (int trial = 0; trial < 250; trial++)
             {
                 var items = new List<ItemDrop.ItemData>();
-                var stacks = new List<ResourceStack>();
+                var stacks = new List<ResourceStack<object, string>>();
                 for (int quality = 1; quality <= 5; quality++)
                 {
                     int count = random.Next(0, 16);
@@ -337,6 +373,15 @@ internal static class Program
         foreach (string owner in Harmony.GetAllPatchedMethods().SelectMany(m => Harmony.GetPatchInfo(m)!.Owners)
             .Where(id => id.StartsWith("DeepNorthCompat.")).Distinct().ToArray())
             new Harmony(owner).UnpatchSelf();
+    }
+
+    private static bool deferring;
+
+    private static bool SkipUpdate(ref MethodInfo? __result)
+    {
+        if (!deferring) return true;
+        __result = null;
+        return false;
     }
 
     private static bool AnimationHash(string __0, ref int __result)

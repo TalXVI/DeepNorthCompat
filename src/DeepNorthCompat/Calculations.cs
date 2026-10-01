@@ -22,10 +22,10 @@ namespace DeepNorthCompat
         }
     }
 
-    public sealed class ResourceStack
+    public sealed class ResourceStack<TItem, TSource> where TItem : notnull where TSource : notnull
     {
-        public readonly object Id;
-        public readonly object Source;
+        public readonly TItem Id;
+        public readonly TSource Source;
         public readonly string Name;
         public readonly int Quality;
         public readonly int WorldLevel;
@@ -33,7 +33,7 @@ namespace DeepNorthCompat
         public readonly bool Container;
         public readonly int Index;
 
-        public ResourceStack(object id, object source, string name, int quality, int worldLevel,
+        public ResourceStack(TItem id, TSource source, string name, int quality, int worldLevel,
             int count, bool container, int index = 0)
         {
             Id = id; Source = source; Name = name; Quality = quality;
@@ -41,60 +41,60 @@ namespace DeepNorthCompat
         }
     }
 
-    public sealed class ResourceNeed
+    public sealed class ResourceNeed<TSource>
     {
         public readonly string Name;
         public readonly int MaximumQuality;
         public readonly int Count;
-        public readonly Func<object, bool> AllowsSource;
+        public readonly Func<TSource, bool> AllowsSource;
 
-        public ResourceNeed(string name, int maximumQuality, int count, Func<object, bool> allowsSource)
+        public ResourceNeed(string name, int maximumQuality, int count, Func<TSource, bool> allowsSource)
         {
             Name = name; MaximumQuality = maximumQuality; Count = count; AllowsSource = allowsSource;
         }
     }
 
-    public sealed class Allocation
+    public sealed class Allocation<TItem, TSource> where TItem : notnull where TSource : notnull
     {
-        public readonly ResourceStack Stack;
+        public readonly ResourceStack<TItem, TSource> Stack;
         public readonly int Count;
-        public Allocation(ResourceStack stack, int count) { Stack = stack; Count = count; }
+        public Allocation(ResourceStack<TItem, TSource> stack, int count) { Stack = stack; Count = count; }
     }
 
-    public sealed class SelectedIngredient
+    public sealed class SelectedIngredient<TItem, TSource> where TItem : notnull where TSource : notnull
     {
-        public readonly ResourceNeed Need;
+        public readonly ResourceNeed<TSource> Need;
         public readonly int Tier;
-        public readonly IReadOnlyList<Allocation> Allocations;
-        public SelectedIngredient(ResourceNeed need, int tier, List<Allocation> allocations)
+        public readonly IReadOnlyList<Allocation<TItem, TSource>> Allocations;
+        public SelectedIngredient(ResourceNeed<TSource> need, int tier, List<Allocation<TItem, TSource>> allocations)
         {
             Need = need; Tier = tier; Allocations = allocations.AsReadOnly();
         }
     }
 
-    public sealed class IngredientPlan
+    public sealed class IngredientPlan<TItem, TSource> where TItem : notnull where TSource : notnull
     {
-        public readonly IReadOnlyList<SelectedIngredient> Ingredients;
-        public IngredientPlan(List<SelectedIngredient> ingredients) { Ingredients = ingredients.AsReadOnly(); }
-        public IEnumerable<Allocation> Allocations => Ingredients.SelectMany(i => i.Allocations);
+        public readonly IReadOnlyList<SelectedIngredient<TItem, TSource>> Ingredients;
+        public IngredientPlan(List<SelectedIngredient<TItem, TSource>> ingredients) { Ingredients = ingredients.AsReadOnly(); }
+        public IEnumerable<Allocation<TItem, TSource>> Allocations => Ingredients.SelectMany(i => i.Allocations);
     }
 
     public static class IngredientSelector
     {
         // Match ImpactfulSkills 0.20.2: lowest tier that covers the entire requirement.
         // If no single tier suffices, consume across tiers and award no quality bonus.
-        public static IngredientPlan? Select(IReadOnlyList<ResourceStack> stacks,
-            IReadOnlyList<ResourceNeed> needs, int worldLevel, bool leaveOne)
+        public static IngredientPlan<TItem, TSource>? Select<TItem, TSource>(IReadOnlyList<ResourceStack<TItem, TSource>> stacks,
+            IReadOnlyList<ResourceNeed<TSource>> needs, int worldLevel, bool leaveOne) where TItem : notnull where TSource : notnull
         {
             var remaining = stacks.ToDictionary(s => s.Id, s => s.Count);
-            var result = new List<SelectedIngredient>();
-            foreach (ResourceNeed need in needs)
+            var result = new List<SelectedIngredient<TItem, TSource>>();
+            foreach (ResourceNeed<TSource> need in needs)
             {
                 if (need.Count <= 0) continue;
                 var candidates = stacks.Where(s => s.Name == need.Name
                     && s.WorldLevel >= worldLevel
                     && need.AllowsSource(s.Source)).ToList();
-                int Capacity(IEnumerable<ResourceStack> subset)
+                int Capacity(IEnumerable<ResourceStack<TItem, TSource>> subset)
                 {
                     return subset.GroupBy(s => s.Source).Sum(group =>
                     {
@@ -118,8 +118,8 @@ namespace DeepNorthCompat
                 }
 
                 int outstanding = need.Count;
-                var allocations = new List<Allocation>();
-                foreach (ResourceStack stack in candidates)
+                var allocations = new List<Allocation<TItem, TSource>>();
+                foreach (ResourceStack<TItem, TSource> stack in candidates)
                 {
                     if (tier > 0 && stack.Quality != tier) continue;
                     int available = remaining[stack.Id];
@@ -132,43 +132,43 @@ namespace DeepNorthCompat
 
                     int take = Math.Min(available, outstanding);
                     if (take <= 0) continue;
-                    allocations.Add(new Allocation(stack, take));
+                    allocations.Add(new Allocation<TItem, TSource>(stack, take));
                     remaining[stack.Id] -= take;
                     outstanding -= take;
                     if (outstanding == 0) break;
                 }
 
                 if (outstanding != 0) throw new InvalidOperationException("Selection capacity and allocation disagreed.");
-                result.Add(new SelectedIngredient(need, tier, allocations));
+                result.Add(new SelectedIngredient<TItem, TSource>(need, tier, allocations));
             }
-            return new IngredientPlan(result);
+            return new IngredientPlan<TItem, TSource>(result);
         }
     }
 
     public enum ReservationState { Planned, Reserved, Committed, RolledBack }
 
-    public sealed class IngredientReservation
+    public sealed class IngredientReservation<TItem, TSource> where TItem : notnull where TSource : notnull
     {
-        private readonly IngredientPlan plan;
-        private readonly List<Tuple<ResourceStack, int>> before = new List<Tuple<ResourceStack, int>>();
+        private readonly IngredientPlan<TItem, TSource> plan;
+        private readonly List<Tuple<ResourceStack<TItem, TSource>, int>> before = new List<Tuple<ResourceStack<TItem, TSource>, int>>();
         public ReservationState State { get; private set; }
 
-        public IngredientReservation(IngredientPlan plan) { this.plan = plan; }
+        public IngredientReservation(IngredientPlan<TItem, TSource> plan) { this.plan = plan; }
 
-        public bool Reserve(Func<ResourceStack, int> currentCount, Func<Allocation, bool> remove,
-            Action<ResourceStack, int> restore)
+        public bool Reserve(Func<ResourceStack<TItem, TSource>, int> currentCount, Func<Allocation<TItem, TSource>, bool> remove,
+            Action<ResourceStack<TItem, TSource>, int> restore)
         {
             if (State != ReservationState.Planned) return false;
             foreach (var group in plan.Allocations.GroupBy(a => a.Stack.Id))
             {
-                ResourceStack stack = group.First().Stack;
+                ResourceStack<TItem, TSource> stack = group.First().Stack;
                 int count = currentCount(stack);
                 if (count < group.Sum(a => a.Count)) return false;
                 before.Add(Tuple.Create(stack, count));
             }
             try
             {
-                foreach (Allocation allocation in plan.Allocations)
+                foreach (Allocation<TItem, TSource> allocation in plan.Allocations)
                 {
                     if (!remove(allocation)) { Rollback(restore); return false; }
                 }
@@ -178,14 +178,14 @@ namespace DeepNorthCompat
             catch { Rollback(restore); throw; }
         }
 
-        public void Complete(bool outputCreated, Action<ResourceStack, int> restore)
+        public void Complete(bool outputCreated, Action<ResourceStack<TItem, TSource>, int> restore)
         {
             if (State != ReservationState.Reserved) return;
             if (outputCreated) State = ReservationState.Committed;
             else Rollback(restore);
         }
 
-        public void Rollback(Action<ResourceStack, int> restore)
+        public void Rollback(Action<ResourceStack<TItem, TSource>, int> restore)
         {
             if (State == ReservationState.Committed || State == ReservationState.RolledBack) return;
             // Restore original counts, even if a removal hook mutated a stack before throwing.

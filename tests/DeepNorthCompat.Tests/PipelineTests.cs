@@ -37,6 +37,18 @@ internal static class PipelineTests
         }
     }
 
+    // A drawer-style adapter: CraftyBoxes can count it, but it exposes no stacks or qualities.
+    private sealed class Drawer : IContainer
+    {
+        public Inventory GetInventory() => null!;
+        public string GetPrefabName() => "drawer";
+        public Vector3 GetPosition() => default;
+        public void Save() { }
+        public int ItemCount(string name) => 0;
+        public void RemoveItem(string name, int amount) { }
+        public int ProcessContainerInventory(string name, int total, int required) => total;
+    }
+
     private static readonly Dictionary<UnityEngine.Object, string> Names = new Dictionary<UnityEngine.Object, string>();
     private static readonly Dictionary<Component, GameObject> GameObjects = new Dictionary<Component, GameObject>();
     private static readonly List<Chest> Chests = new List<Chest>();
@@ -55,6 +67,7 @@ internal static class PipelineTests
     private static ConfigEntryBase leaveOneEntry = null!;
     private static Type toggleType = null!;
     private static float bowSkill;
+    private static int previewTier;
 
     internal static void Run(Assembly impactAssembly, Assembly crafty, Action<string, Action> test)
     {
@@ -215,11 +228,72 @@ internal static class PipelineTests
             Check(producedQuality == 3 && player.GetInventory().CountItems("fish") == 0
                 && Chests.Sum(c => c.ItemCount("fish")) == 24, "disabled fallback");
         });
+        test("real hooks: whole chest stack is consumed when MultiUserChest guards item removal", () =>
+        {
+            Player player = Setup(0, 0, 0, 12, 0, true);
+            // MultiUserChest 0.6.2 refuses Inventory.RemoveItem(ItemData) for a chest another client owns.
+            var owner = new Harmony("DeepNorthCompat.Tests.ChestOwner");
+            owner.Patch(AccessTools.Method(typeof(Inventory), "RemoveItem", new[] { typeof(ItemDrop.ItemData) }),
+                prefix: new HarmonyMethod(AccessTools.Method(typeof(PipelineTests), nameof(RemoteChest))) { priority = 100 });
+            try { craftMethod.Invoke(Gui(), new object[] { player }); }
+            finally { owner.UnpatchSelf(); }
+            Check(producedQuality == 3 && Chests[0].ItemCount("fish") == 0 && Total() == 0, "remote chest stack");
+        });
+        test("real hooks: failed upgrade output returns the item being upgraded", () =>
+        {
+            Player player = Setup(0, 4, 0, 8, 0, true);
+            recipe.m_resources[0].m_amountPerLevel = 12;
+            ItemDrop.ItemData upgrade = Item(1, 1, "output", 4);
+            player.GetInventory().GetAllItems().Add(upgrade);
+            var gui = Gui();
+            AccessTools.Field(typeof(InventoryGui), "m_craftUpgradeItem").SetValue(gui, upgrade);
+            failOutput = true;
+            // Vanilla DoCrafting removes the item being upgraded before it adds the upgraded output.
+            var vanilla = new Harmony("DeepNorthCompat.Tests.Upgrade");
+            vanilla.Patch(craftMethod, prefix: new HarmonyMethod(AccessTools.Method(typeof(PipelineTests), nameof(RemoveUpgrade)))
+                { priority = Priority.Last });
+            int before = Total();
+            try { craftMethod.Invoke(gui, new object[] { player }); }
+            finally { vanilla.UnpatchSelf(); }
+            var outputs = player.GetInventory().GetAllItems().Where(i => i.m_shared.m_name == "output").ToList();
+            Check(Total() == before && outputs.Count == 1 && outputs[0] == upgrade, "upgrade rollback");
+        });
+        test("real hooks: rollback of a chest-only craft refreshes the player inventory", () =>
+        {
+            Player player = Setup(0, 0, 0, 12, 0, true);
+            failOutput = true;
+            int refreshed = 0;
+            player.GetInventory().m_onChanged = () => refreshed++;
+            MethodInfo changed = AccessTools.Method(typeof(Inventory), "Changed");
+            fixture.Unpatch(changed, HarmonyPatchType.Prefix, fixture.Id);
+            try { craftMethod.Invoke(Gui(), new object[] { player }); }
+            finally { Hook(fixture, typeof(Inventory), "Changed", nameof(Skip)); }
+            Check(refreshed > 0 && !player.GetInventory().GetAllItems().Any(i => i.m_shared.m_name == "output"), "player refresh");
+        });
+        test("real hooks: tier preview after a committed craft reflects remaining ingredients", () =>
+        {
+            Player player = Setup(12, 0, 0, 12, 0, true);
+            previewTier = -1;
+            // Vanilla refreshes the crafting panel inside DoCrafting after consuming ingredients.
+            var panel = new Harmony("DeepNorthCompat.Tests.Panel");
+            panel.Patch(AccessTools.Method(typeof(Player), "ConsumeResources"),
+                postfix: new HarmonyMethod(AccessTools.Method(typeof(PipelineTests), nameof(PreviewAfterCraft))));
+            try { craftMethod.Invoke(Gui(), new object[] { player }); }
+            finally { panel.UnpatchSelf(); }
+            Check(producedQuality == 1 && previewTier == 3, "post-craft preview");
+        });
+        test("real hooks: an inventory-less container adapter is ignored", () =>
+        {
+            Player player = Setup(0, 0, 0, 12, 0, true);
+            var drawer = new Harmony("DeepNorthCompat.Tests.Drawer");
+            drawer.Patch(query, postfix: new HarmonyMethod(AccessTools.Method(typeof(PipelineTests), nameof(AddDrawer))));
+            try { craftMethod.Invoke(Gui(), new object[] { player }); }
+            finally { drawer.UnpatchSelf(); }
+            Check(producedQuality == 3 && Total() == 0, "drawer ignored");
+        });
 
         test("real hooks: optional CraftyBoxes absent preserves player-only crafting", () =>
         {
-            typeof(BowCalculation).Assembly.GetType("DeepNorthCompat.QualityPatch", true)!
-                .GetMethod("DisableIf", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, new object[] { "Quality" });
             new Harmony("DeepNorthCompat.Quality").UnpatchSelf();
             new Harmony("Azumatt.AzuCraftyBoxes").UnpatchSelf();
             Player player = Setup(0, 12, 0, 24, 0, true);
@@ -341,6 +415,20 @@ internal static class PipelineTests
     private static bool SkillFactor(ref float __result) { __result = bowSkill; return false; }
     private static bool Query(ref List<IContainer> __result)
     { __result = Chests.Where(c => c.Eligible).Cast<IContainer>().ToList(); return false; }
+    private static void AddDrawer(ref List<IContainer> __result) => __result.Add(new Drawer());
+    private static bool RemoteChest(Inventory __instance, ref bool __result)
+    {
+        if (!Chests.Any(c => c.Inventory == __instance)) return true;
+        __result = false; return false;
+    }
+    private static void RemoveUpgrade(InventoryGui __instance, Player __0)
+        => __0.GetInventory().RemoveItem((ItemDrop.ItemData)AccessTools.Field(typeof(InventoryGui), "m_craftUpgradeItem").GetValue(__instance));
+    private static void PreviewAfterCraft(Player __instance)
+    {
+        MethodInfo select = impact.GetType("ImpactfulSkills.IngredientQuality", true)!.GetMethod("SelectTier",
+            BindingFlags.NonPublic | BindingFlags.Static, null, new[] { typeof(Inventory), typeof(ItemDrop.ItemData), typeof(int) }, null)!;
+        previewTier = (int)select.Invoke(null, new object[] { __instance.GetInventory(), recipe.m_resources[0].m_resItem.m_itemData, 12 });
+    }
 
     private static IEnumerable<CodeInstruction> CraftBody(IEnumerable<CodeInstruction> _)
         => new[] { new CodeInstruction(OpCodes.Ldarg_0), new CodeInstruction(OpCodes.Ldarg_1),

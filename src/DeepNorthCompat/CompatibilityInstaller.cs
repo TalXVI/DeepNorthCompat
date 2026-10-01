@@ -54,6 +54,9 @@ namespace DeepNorthCompat
             });
         }
 
+        // Harmony may defer applying patches until after Awake, so confirm transpilers ran later.
+        public static void Verify() => DropRangePatch.Verify();
+
         private static void InstallDrops(Assembly? assembly, string hash, string name)
         {
             if (assembly == null)
@@ -74,15 +77,13 @@ namespace DeepNorthCompat
             }
             catch (Exception exception)
             {
-                BowPatch.DisableIf(name);
-                QualityPatch.DisableIf(name);
                 try
                 {
                     new Harmony(Plugin.Guid + "." + name).UnpatchSelf();
                 }
                 catch (Exception rollback)
                 {
-                    Error($"{name}: Harmony rollback failed; guarded hooks are inactive. {rollback}");
+                    Error($"{name}: Harmony rollback failed; some hooks may remain active. {rollback}");
                 }
                 Error($"{name}: NOT APPLIED; expected installed implementation changed or patch failed. "
                     + $"Vendor behavior retained. {exception}");
@@ -126,10 +127,14 @@ namespace DeepNorthCompat
             return new HarmonyMethod(AccessTools.DeclaredMethod(type, name)) { priority = priority };
         }
 
-        internal static void Applied(MethodBase target)
+        internal static void Registered(MethodBase target)
         {
-            CompatibilityInstaller.Info($"Applied: {target.DeclaringType!.Assembly.GetName().Name}:"
-                + $"{target.DeclaringType.FullName}.{target.Name}");
+            CompatibilityInstaller.Info($"Registered: {Name(target)}");
+        }
+
+        internal static string Name(MethodBase target)
+        {
+            return $"{target.DeclaringType!.Assembly.GetName().Name}:{target.DeclaringType.FullName}.{target.Name}";
         }
     }
 }

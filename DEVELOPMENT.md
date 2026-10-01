@@ -17,7 +17,7 @@ The repository's `justfile` provides shorter aliases for these commands if [just
 
 The Python test host loads Valheim's embedded Mono runtime through `ctypes`. It recognizes Windows, Linux and macOS library names. Set `DEEPNORTHCOMPAT_MONO_LIBRARY` to the library file if your installation uses another layout. The host and full suite have been exercised on Windows; Linux and macOS runtime execution still need confirmation.
 
-The 55-case offline suite replaces native scene boundaries with test fixtures. It checks the inspected Harmony targets, optional-mod guards, bow stamina/reporting, animal drop parsing and quality-aware crafting, including batch crafting and failure rollback. It does not launch Valheim or a server. Its config parsing case reads the personal pack's accepted input settings without writing them.
+The offline suite replaces native scene boundaries with test fixtures. It checks the inspected Harmony targets, optional-mod guards, bow stamina/reporting, animal drop parsing and quality-aware crafting, including batch crafting, upgrades, chests guarded by MultiUserChest and failure rollback. It does not launch Valheim or a server. Its config parsing case reads the personal pack's accepted input settings without writing them.
 
 The runtime patches are guarded against the hashes and signatures of the inspected upstream builds. Changes to those mods require a new compatibility review. Missing optional mods leave their corresponding patch inactive.
 

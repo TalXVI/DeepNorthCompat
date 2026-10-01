@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.1
+
+- Quality crafting no longer cancels when a chest owned by another player supplies a whole stack (MultiUserChest).
+- A failed quality craft returns the item being upgraded and refreshes the player's inventory.
+- The crafting panel's quality preview reflects remaining ingredients right after a craft.
+- Drawer-style containers without an inventory are skipped instead of blocking quality crafts.
+- A creature drop parser that doesn't match the expected code now stays unpatched and gets reported, instead of breaking startup patching. This also holds when a startup optimizer delays Harmony patching until after plugin load.
+- After loading finishes, the mod checks the drop-range patches and logs any parser it couldn't patch.
+
 ## 1.0.0
 
 - Quality-aware crafting integration for ImpactfulSkills and AzuCraftyBoxes.

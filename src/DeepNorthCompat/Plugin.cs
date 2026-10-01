@@ -5,7 +5,7 @@ using BepInEx.Bootstrap;
 
 namespace DeepNorthCompat
 {
-    [BepInPlugin(Guid, "DeepNorthCompat", "1.0.0")]
+    [BepInPlugin(Guid, "DeepNorthCompat", "1.0.1")]
     [BepInDependency("MidnightsFX.ImpactfulSkills", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuCraftyBoxes", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuAntiArthriticCrafting", BepInDependency.DependencyFlags.SoftDependency)]
@@ -24,6 +24,12 @@ namespace DeepNorthCompat
             }
             CompatibilityInstaller.Install(Resolve, message => Logger.LogInfo(message),
                 message => Logger.LogWarning(message), message => Logger.LogError(message));
+        }
+
+        // Runs after BepInEx finishes loading plugins, when deferred Harmony patches are applied.
+        private void Start()
+        {
+            CompatibilityInstaller.Verify();
         }
     }
 }
