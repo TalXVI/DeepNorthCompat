@@ -7,6 +7,12 @@ ROOT = Path(__file__).resolve().parents[1]
 TEST_EXECUTABLE = ROOT / "tests/DeepNorthCompat.Tests/bin/Release/net48/DeepNorthCompat.Tests.exe"
 
 
+def require(condition, message):
+    """Fail even when Python runs with -O, which strips assert statements."""
+    if not condition:
+        raise SystemExit("FAIL: " + message)
+
+
 def configured_directory(variable, default=None):
     value = os.environ.get(variable) or default
     if not value:

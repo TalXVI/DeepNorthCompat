@@ -19,7 +19,7 @@ The 55-case offline suite replaces native scene boundaries with test fixtures. I
 
 The runtime patches are guarded against the hashes and signatures of the inspected upstream builds. Changes to those mods require a new compatibility review. Missing optional mods leave their corresponding patch inactive.
 
-Packaging uses the last validated DLL hash in `package/validated-build.json`. It creates `dist/DeepNorthCompat-1.0.0.zip` with the manifest, README, changelog, MIT license, icon and `BepInEx/plugins/DeepNorthCompat/DeepNorthCompat.dll`. After changing source, run the complete suite before updating that hash. No script installs or deploys the package.
+Packaging uses the last validated DLL hash in `package/validated-build.json`. It creates `dist/DeepNorthCompat-<version>.zip` with the manifest, README, changelog, MIT license, icon and `BepInEx/plugins/DeepNorthCompat/DeepNorthCompat.dll`. After changing source, run the complete suite before updating that hash. No script installs or deploys the package.
 
 Automatic Git version suffixes and Source Link generation are disabled so repository metadata cannot change the validated DLL hash.
 
