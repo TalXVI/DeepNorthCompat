@@ -3,10 +3,13 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <Deterministic>true</Deterministic>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
+    <EnableSourceLink>false</EnableSourceLink>
     <PathMap>$(MSBuildThisFileDirectory)=/_/DeepNorthCompat/</PathMap>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AutomaticallyUseReferenceAssemblyPackages>false</AutomaticallyUseReferenceAssemblyPackages>
-    <TargetFrameworkRootPath>$(UserProfile)\.nuget\packages\microsoft.netframework.referenceassemblies.net48\1.0.3\build\</TargetFrameworkRootPath>
+    <TargetFrameworkRootPath Condition="'$(TargetFrameworkRootPath)' == ''">$(UserProfile)\.nuget\packages\microsoft.netframework.referenceassemblies.net48\1.0.3\build\</TargetFrameworkRootPath>
     <LabPath Condition="'$(LabPath)' == '' and '$(DEEPNORTHCOMPAT_LAB_PATH)' != ''">$(DEEPNORTHCOMPAT_LAB_PATH)</LabPath>
     <LabPath Condition="'$(LabPath)' == ''">$(AppData)\com.kesomannen.gale\valheim\profiles\Deep North - Lab</LabPath>
     <ValheimPath Condition="'$(ValheimPath)' == '' and '$(DEEPNORTHCOMPAT_VALHEIM_PATH)' != ''">$(DEEPNORTHCOMPAT_VALHEIM_PATH)</ValheimPath>

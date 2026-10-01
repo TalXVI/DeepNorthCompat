@@ -13,7 +13,7 @@ using SysConsole = System.Console;
 internal static class Program
 {
     private static readonly string Lab = Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_LAB_PATH") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        @"com.kesomannen.gale\valheim\profiles\Deep North - Lab");
+        "com.kesomannen.gale", "valheim", "profiles", "Deep North - Lab");
     private static readonly string Managed = Path.Combine(Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_VALHEIM_PATH")
         ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Steam", "steamapps", "common", "Valheim"),
         "valheim_Data", "Managed");
@@ -221,11 +221,11 @@ internal static class Program
 
         var assemblies = new Dictionary<string, Assembly>
         {
-            ["MidnightsFX.ImpactfulSkills"] = Assembly.LoadFrom(Path.Combine(Lab, @"BepInEx\plugins\MidnightMods-ImpactfulSkills\ImpactfulSkills.dll")),
-            ["Azumatt.AzuCraftyBoxes"] = Assembly.LoadFrom(Path.Combine(Lab, @"BepInEx\plugins\Azumatt-AzuCraftyBoxes\AzuCraftyBoxes.dll")),
-            ["Azumatt.AzuAntiArthriticCrafting"] = Assembly.LoadFrom(Path.Combine(Lab, @"BepInEx\plugins\Azumatt-AAA_Crafting\AzuAntiArthriticCrafting.dll")),
-            ["marlthon.SeaAnimals"] = Assembly.LoadFrom(Path.Combine(Lab, @"BepInEx\plugins\Marlthon-SeaAnimals\SeaAnimals.dll")),
-            ["marlthon.AirAnimals"] = Assembly.LoadFrom(Path.Combine(Lab, @"BepInEx\plugins\Marlthon-AirAnimals\AirAnimals.dll"))
+            ["MidnightsFX.ImpactfulSkills"] = Assembly.LoadFrom(Path.Combine(Lab, "BepInEx", "plugins", "MidnightMods-ImpactfulSkills", "ImpactfulSkills.dll")),
+            ["Azumatt.AzuCraftyBoxes"] = Assembly.LoadFrom(Path.Combine(Lab, "BepInEx", "plugins", "Azumatt-AzuCraftyBoxes", "AzuCraftyBoxes.dll")),
+            ["Azumatt.AzuAntiArthriticCrafting"] = Assembly.LoadFrom(Path.Combine(Lab, "BepInEx", "plugins", "Azumatt-AAA_Crafting", "AzuAntiArthriticCrafting.dll")),
+            ["marlthon.SeaAnimals"] = Assembly.LoadFrom(Path.Combine(Lab, "BepInEx", "plugins", "Marlthon-SeaAnimals", "SeaAnimals.dll")),
+            ["marlthon.AirAnimals"] = Assembly.LoadFrom(Path.Combine(Lab, "BepInEx", "plugins", "Marlthon-AirAnimals", "AirAnimals.dll"))
         };
         Assembly impact = assemblies["MidnightsFX.ImpactfulSkills"];
         Test("BepInEx plugin identity and optional dependencies are valid", () =>
