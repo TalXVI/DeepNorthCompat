@@ -1,5 +1,6 @@
 """Validate the local package without installing it or launching the game."""
 
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -13,9 +14,15 @@ DLL_MEMBER = "BepInEx/plugins/DeepNorthCompat/DeepNorthCompat.dll"
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--release-tag", help="Check a downloaded release ZIP against this tag. "
+                        "Skips the local build comparison, since the release workflow does not build.")
+    args = parser.parse_args()
     manifest = json.loads((ROOT / "package/manifest.json").read_text(encoding="utf-8"))
     approved = json.loads((ROOT / "package/validated-build.json").read_text(encoding="utf-8"))
     check_sources(manifest)
+    if args.release_tag:
+        require(args.release_tag == "v" + manifest["version_number"], "Release tag differs from the manifest version")
     require(manifest["name"] == approved["pluginGUID"] == approved["pluginName"] == "DeepNorthCompat",
             "Plugin identity changed")
     require(manifest["version_number"] == approved["version"], "Manifest version differs from the approved build")
@@ -39,8 +46,10 @@ def main():
                 require(retired_prefix not in member and retired_prefix.encode() not in content
                         and retired_prefix.encode("utf-16le") not in content,
                         f"Retired identity {retired_prefix} found in {member}")
-    built = ROOT / "src/DeepNorthCompat/bin/Release/net48/DeepNorthCompat.dll"
-    require(hashlib.sha256(built.read_bytes()).hexdigest() == approved["sha256"], "Build differs from the approved DLL")
+    if not args.release_tag:
+        built = ROOT / "src/DeepNorthCompat/bin/Release/net48/DeepNorthCompat.dll"
+        require(hashlib.sha256(built.read_bytes()).hexdigest() == approved["sha256"],
+                "Build differs from the approved DLL")
     print(json.dumps({"result": "PASS", "package": str(archive_path), "plugin": approved,
                       "members": members, "retiredIdentitiesAbsent": True}, indent=2))
 

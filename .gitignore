@@ -19,6 +19,7 @@ package/LICENSE
 *.cfg
 *.yml
 *.yaml
+!.github/workflows/*.yml
 __pycache__/
 *.pyc
 .vs/

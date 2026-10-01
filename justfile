@@ -26,3 +26,7 @@ package:
 # Check the dist/ ZIP and build against the approved hash.
 validate:
     {{python}} -B scripts/validate-package.py
+
+# Test the pushed main commit and create its GitHub release, which publishes it to Thunderstore.
+release:
+    {{python}} -B scripts/release.py
