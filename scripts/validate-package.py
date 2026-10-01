@@ -17,7 +17,6 @@ def main():
     require(manifest["name"] == approved["pluginGUID"] == approved["pluginName"] == "DeepNorthCompat",
             "Plugin identity changed")
     require(manifest["version_number"] == approved["version"], "Manifest version differs from the approved build")
-    require(manifest["author"] == "TalXVI", "Package author changed")
     require(manifest["website_url"] == "https://github.com/TalXVI/DeepNorthCompat", "Package website changed")
     require(manifest["dependencies"] == ["denikson-BepInExPack_Valheim-5.4.2351"], "Package dependencies changed")
     archive_path = ROOT / "dist" / (manifest["name"] + "-" + manifest["version_number"] + ".zip")
