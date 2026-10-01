@@ -13,6 +13,8 @@ python -B scripts/validate-package.py
 
 `build-and-test.py` builds and runs the suite. Use `--build-only` to build without running it. `test-existing-build.py` reruns the tests without rebuilding.
 
+The repository's `justfile` provides shorter aliases for these commands if [just](https://github.com/casey/just) is installed: `just build`, `just test`, `just retest`, `just package` and `just validate`. Run `just` to list them.
+
 The Python test host loads Valheim's embedded Mono runtime through `ctypes`. It recognizes Windows, Linux and macOS library names. Set `DEEPNORTHCOMPAT_MONO_LIBRARY` to the library file if your installation uses another layout. The host and full suite have been exercised on Windows; Linux and macOS runtime execution still need confirmation.
 
 The 55-case offline suite replaces native scene boundaries with test fixtures. It checks the inspected Harmony targets, optional-mod guards, bow stamina/reporting, animal drop parsing and quality-aware crafting, including batch crafting and failure rollback. It does not launch Valheim or a server. Its config parsing case reads the personal pack's accepted input settings without writing them.
