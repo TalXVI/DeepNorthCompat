@@ -5,11 +5,11 @@ This script does not build, install, launch Gale, or contact a remote service.
 
 import hashlib
 import json
-import re
 import shutil
 from pathlib import Path
 import zipfile
 
+from thunderstore import check_sources
 from tooling import require
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,7 +20,7 @@ DLL_MEMBER = "BepInEx/plugins/DeepNorthCompat/DeepNorthCompat.dll"
 def main():
     manifest = json.loads((PACKAGE / "manifest.json").read_text(encoding="utf-8"))
     approved = json.loads((PACKAGE / "validated-build.json").read_text(encoding="utf-8"))
-    require(re.fullmatch(r"[A-Za-z0-9_]+", manifest["name"]), "Invalid package name")
+    check_sources(manifest)
     require(manifest["version_number"] == approved["version"], "Manifest version differs from the approved build")
     require(manifest["dependencies"] == ["denikson-BepInExPack_Valheim-5.4.2351"], "Package dependencies changed")
     built = ROOT / "src/DeepNorthCompat/bin/Release/net48/DeepNorthCompat.dll"

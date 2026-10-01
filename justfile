@@ -11,7 +11,7 @@ default:
 build:
     {{python}} -B scripts/build-and-test.py --build-only
 
-# Build and run the offline suite.
+# Build, run the offline suite and package the tested DLL in dist/.
 test:
     {{python}} -B scripts/build-and-test.py
 

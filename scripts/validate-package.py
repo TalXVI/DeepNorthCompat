@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import zipfile
 
+from thunderstore import check_sources
 from tooling import require
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,6 +15,7 @@ DLL_MEMBER = "BepInEx/plugins/DeepNorthCompat/DeepNorthCompat.dll"
 def main():
     manifest = json.loads((ROOT / "package/manifest.json").read_text(encoding="utf-8"))
     approved = json.loads((ROOT / "package/validated-build.json").read_text(encoding="utf-8"))
+    check_sources(manifest)
     require(manifest["name"] == approved["pluginGUID"] == approved["pluginName"] == "DeepNorthCompat",
             "Plugin identity changed")
     require(manifest["version_number"] == approved["version"], "Manifest version differs from the approved build")
@@ -28,9 +30,9 @@ def main():
         require(json.loads(archive.read("manifest.json")) == manifest, "Packaged manifest is stale")
         require(hashlib.sha256(archive.read(DLL_MEMBER)).hexdigest() == approved["sha256"],
                 "Packaged DLL differs from the approved hash")
-        png = archive.read("icon.png")
-        require(png[:8] == b"\x89PNG\r\n\x1a\n" and png[16:24] == b"\0\0\x01\0\0\0\x01\0",
-                "Icon is not a 256x256 PNG")
+        require(archive.read("icon.png") == (ROOT / "package/icon.png").read_bytes(), "Packaged icon is stale")
+        require(archive.read("CHANGELOG.md") == (ROOT / "package/CHANGELOG.md").read_bytes(),
+                "Packaged CHANGELOG is stale")
         for member in members:
             content = archive.read(member)
             for retired_prefix in ("DeepNorth.", "DeepNorth_", "DeepNorth-"):

@@ -11,7 +11,7 @@ python -B scripts/package.py
 python -B scripts/validate-package.py
 ```
 
-`build-and-test.py` builds and runs the suite. Use `--build-only` to build without running it. `test-existing-build.py` reruns the tests without rebuilding.
+`build-and-test.py` builds the plugin and runs the suite. If every case passes, it writes `dist/DeepNorthCompat-<version>.zip` for upload to Thunderstore. Use `--build-only` to build without running the suite, or `--no-package` to run the suite without packaging. `test-existing-build.py` reruns the tests without rebuilding.
 
 The repository's `justfile` provides shorter aliases for these commands if [just](https://github.com/casey/just) is installed: `just build`, `just test`, `just retest`, `just package` and `just validate`. Run `just` to list them.
 
@@ -21,7 +21,11 @@ The offline suite replaces native scene boundaries with test fixtures. It checks
 
 The runtime patches are guarded against the hashes and signatures of the inspected upstream builds. Changes to those mods require a new compatibility review. Missing optional mods leave their corresponding patch inactive.
 
-Packaging uses the last validated DLL hash in `package/validated-build.json`. It creates `dist/DeepNorthCompat-<version>.zip` with the manifest, README, changelog, MIT license, icon and `BepInEx/plugins/DeepNorthCompat/DeepNorthCompat.dll`. After changing source, run the complete suite before updating that hash. No script installs or deploys the package.
+Packaging only ships a DLL that passed the full suite. After a passing run, `build-and-test.py` records the DLL hash and test count in `package/validated-build.json`, then runs `package.py` and `validate-package.py`. Running `package.py` on its own refuses any DLL whose hash differs from that file. The ZIP holds the manifest, README, changelog, MIT license and icon at its root, plus `BepInEx/plugins/DeepNorthCompat/DeepNorthCompat.dll`. No script installs, deploys or uploads the package.
+
+Before building, the script checks the package against Thunderstore's upload rules. The name must be at most 128 characters of `A-Z a-z 0-9 _`, the description at most 250 characters and the version plain `Major.Minor.Patch`. Dependencies must look like `Team-Package-1.2.3`, the icon must be a 256x256 PNG and the README must be UTF-8. Thunderstore never lets you edit an uploaded version, so the script also requires the manifest version to match `<Version>` in the csproj, the `BepInPlugin` version in `Plugin.cs` and the top `##` heading of `package/CHANGELOG.md`.
+
+To release an update, bump the version in all four places, add its changelog section above the previous one, run `build-and-test.py` and upload the ZIP from `dist/` under the same team. Keep the manifest `name` unchanged, or Thunderstore treats the upload as a new package.
 
 Automatic Git version suffixes and Source Link generation are disabled so repository metadata cannot change the validated DLL hash.
 
