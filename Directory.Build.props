@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <Deterministic>true</Deterministic>
+    <PathMap>$(MSBuildThisFileDirectory)=/_/DeepNorthCompat/</PathMap>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AutomaticallyUseReferenceAssemblyPackages>false</AutomaticallyUseReferenceAssemblyPackages>
+    <TargetFrameworkRootPath>$(UserProfile)\.nuget\packages\microsoft.netframework.referenceassemblies.net48\1.0.3\build\</TargetFrameworkRootPath>
+    <LabPath Condition="'$(LabPath)' == '' and '$(DEEPNORTHCOMPAT_LAB_PATH)' != ''">$(DEEPNORTHCOMPAT_LAB_PATH)</LabPath>
+    <LabPath Condition="'$(LabPath)' == ''">$(AppData)\com.kesomannen.gale\valheim\profiles\Deep North - Lab</LabPath>
+    <ValheimPath Condition="'$(ValheimPath)' == '' and '$(DEEPNORTHCOMPAT_VALHEIM_PATH)' != ''">$(DEEPNORTHCOMPAT_VALHEIM_PATH)</ValheimPath>
+    <ValheimPath Condition="'$(ValheimPath)' == ''">$(MSBuildProgramFiles32)\Steam\steamapps\common\Valheim</ValheimPath>
+    <ValheimManaged Condition="'$(ValheimManaged)' == ''">$(ValheimPath)\valheim_Data\Managed</ValheimManaged>
+  </PropertyGroup>
+</Project>

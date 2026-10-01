@@ -1,0 +1,135 @@
+using System;
+using System.IO;
+using System.Reflection;
+using System.Security.Cryptography;
+using HarmonyLib;
+
+namespace DeepNorthCompat
+{
+    internal static class ExpectedBuilds
+    {
+        internal const string ImpactfulSkills = "B3931F24AF0D8FA93EC131A6436D654FF88C96C5213DE76200B0E2A047A4FE1D";
+        internal const string CraftyBoxes = "35E726E43F0DD395A327FE5A536CB6A7D6B5405B8AA2F5D2033058A8C280575A";
+        internal const string AAACrafting = "7AD9805860C5F426440E3B4156B6D75D7BFDC8E43C3F1EF63E53F98C7EF708B5";
+        internal const string SeaAnimals = "3F57F6AD089D5616A924D5917851A0A7C99715CC0B2062EF23B2FA15D07C721A";
+        internal const string AirAnimals = "B29905FFDA5204570D64958CB18D74E08D7CEE8AA361485E1D988B54242F2F85";
+        internal const string Valheim = "96CFC004F7F4A6F30D070BEF39EAFD79C466A137121C4665A2F19FB9C15C6127";
+    }
+
+    public static class CompatibilityInstaller
+    {
+        internal static Action<string> Info = _ => { };
+        internal static Action<string> Warning = _ => { };
+        internal static Action<string> Error = _ => { };
+
+        public static void Install(Func<string, Assembly?> resolve, Action<string> info,
+            Action<string> warning, Action<string> error)
+        {
+            Info = info; Warning = warning; Error = error;
+            Assembly? impact = resolve("MidnightsFX.ImpactfulSkills");
+            Assembly? crafty = resolve("Azumatt.AzuCraftyBoxes");
+            InstallGroup("Bow", () =>
+            {
+                if (impact == null) { Info("Bow: ImpactfulSkills absent; inactive."); return; }
+                Guard.Build(impact, ExpectedBuilds.ImpactfulSkills);
+                Guard.Build(typeof(InventoryGui).Assembly, ExpectedBuilds.Valheim);
+                BowPatch.Install(impact);
+            });
+
+            InstallGroup("Drops.SeaAnimals", () => InstallDrops(resolve("marlthon.SeaAnimals"),
+                ExpectedBuilds.SeaAnimals, "SeaAnimals"));
+            InstallGroup("Drops.AirAnimals", () => InstallDrops(resolve("marlthon.AirAnimals"),
+                ExpectedBuilds.AirAnimals, "AirAnimals"));
+            InstallGroup("Quality", () =>
+            {
+                if (impact == null || crafty == null) { Info("Quality: optional mod absent; inactive."); return; }
+                Guard.Build(impact, ExpectedBuilds.ImpactfulSkills);
+                Guard.Build(crafty, ExpectedBuilds.CraftyBoxes);
+                Guard.Build(typeof(InventoryGui).Assembly, ExpectedBuilds.Valheim);
+
+                Assembly? aaa = resolve("Azumatt.AzuAntiArthriticCrafting");
+                if (aaa != null) Guard.Build(aaa, ExpectedBuilds.AAACrafting);
+
+                QualityPatch.Install(impact, crafty, aaa != null);
+            });
+        }
+
+        private static void InstallDrops(Assembly? assembly, string hash, string name)
+        {
+            if (assembly == null)
+            {
+                Info($"Drops.{name}: mod absent; inactive.");
+                return;
+            }
+
+            Guard.Build(assembly, hash);
+            DropRangePatch.Install(assembly, name);
+        }
+
+        private static void InstallGroup(string name, Action install)
+        {
+            try
+            {
+                install();
+            }
+            catch (Exception exception)
+            {
+                BowPatch.DisableIf(name);
+                QualityPatch.DisableIf(name);
+                try
+                {
+                    new Harmony(Plugin.Guid + "." + name).UnpatchSelf();
+                }
+                catch (Exception rollback)
+                {
+                    Error($"{name}: Harmony rollback failed; guarded hooks are inactive. {rollback}");
+                }
+                Error($"{name}: NOT APPLIED; expected installed implementation changed or patch failed. "
+                    + $"Vendor behavior retained. {exception}");
+            }
+        }
+    }
+
+    public static class Guard
+    {
+        public static void Build(Assembly assembly, string expectedHash)
+        {
+            using (SHA256 sha = SHA256.Create())
+            using (FileStream file = File.OpenRead(assembly.Location))
+            {
+                string actual = BitConverter.ToString(sha.ComputeHash(file)).Replace("-", "");
+                if (actual != expectedHash)
+                    throw new NotSupportedException($"{assembly.GetName().Name} build changed; expected "
+                        + $"{expectedHash}, found {actual}. Re-audit required.");
+            }
+        }
+
+        internal static Type Type(Assembly assembly, string name) =>
+            assembly.GetType(name, throwOnError: true)!;
+
+        internal static MethodInfo Method(Type type, string name, Type returnType, params Type[] parameters)
+        {
+            MethodInfo? method = type.GetMethod(name,
+                BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                null, parameters, null);
+
+            if (method == null || method.ReturnType != returnType)
+            {
+                throw new MissingMethodException(type.FullName, name);
+            }
+
+            return method;
+        }
+
+        internal static HarmonyMethod Hook(Type type, string name, int priority = Priority.Normal)
+        {
+            return new HarmonyMethod(AccessTools.DeclaredMethod(type, name)) { priority = priority };
+        }
+
+        internal static void Applied(MethodBase target)
+        {
+            CompatibilityInstaller.Info($"Applied: {target.DeclaringType!.Assembly.GetName().Name}:"
+                + $"{target.DeclaringType.FullName}.{target.Name}");
+        }
+    }
+}
