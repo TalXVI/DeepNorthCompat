@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2
+
+- Supports ImpactfulSkills 0.21.0. The bow and quality crafting fixes stay active with the updated build.
+
 ## 1.0.1
 
 - Quality crafting no longer cancels when a chest owned by another player supplies a whole stack (MultiUserChest).
