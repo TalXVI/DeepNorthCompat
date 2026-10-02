@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.4
+
+- Supports AzuCraftyBoxes 1.8.27 and AAA Crafting 2.1.11. Quality crafting turned itself off with these versions until now.
+- Targets Valheim 1.0.16, ImpactfulSkills 0.21.0, AzuCraftyBoxes 1.8.27, AAA Crafting 2.1.11, SeaAnimals 0.3.9, AirAnimals 0.3.2 and AzuEPI 2.6.1.
+
 ## 1.0.3
 
 - The AzuEPI 2.6.1 inventory character preview no longer restarts its animation whenever a nearby creature or player equips or unequips something. It still follows your equipment and weapon stance.

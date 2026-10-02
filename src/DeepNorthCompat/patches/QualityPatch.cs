@@ -397,7 +397,7 @@ namespace DeepNorthCompat
 
         private static bool PanelMultiplier(ref int __result)
         {
-            // Patched only when AAA is installed. AAA 2.1.10 disables native multicraft and queues individual crafts. Holding Alt
+            // Patched only when AAA is installed. AAA 2.1.11 disables native multicraft and queues individual crafts. Holding Alt
             // or LStick must not make ImpactfulSkills preview a native batch tier in that UI.
             __result = 1;
             return false;

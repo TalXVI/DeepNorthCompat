@@ -1,6 +1,6 @@
 {
   "name": "DeepNorthCompat",
-  "version_number": "1.0.3",
+  "version_number": "1.0.4",
   "website_url": "https://github.com/TalXVI/DeepNorthCompat",
   "description": "Fixes quality crafting, bow stamina reporting, animal drop ranges and AzuEPI preview animation resets for a personal Valheim modpack.",
   "dependencies": [
