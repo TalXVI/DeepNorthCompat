@@ -59,6 +59,9 @@ def run_suite(runtime, game, executable):
             ("UnityEngine.Object::GetOffsetOfInstanceIDInCPlusPlusObject", ctypes.CFUNCTYPE(integer)(lambda: 0)),
             ("UnityEngine.Object::CurrentThreadIsMainThread", ctypes.CFUNCTYPE(integer)(lambda: 1)),
             ("UnityEngine.Animator::StringToHash_Injected", ctypes.CFUNCTYPE(integer, pointer)(lambda span: 0)),
+            # VisEquipment's static initializer resolves shader property IDs when Harmony
+            # patches its method. The preview tests inspect hooks without a Unity renderer.
+            ("UnityEngine.Shader::PropertyToID_Injected", ctypes.CFUNCTYPE(integer, pointer)(lambda span: 0)),
             ("UnityEngine.Random::get_value", ctypes.CFUNCTYPE(ctypes.c_float)(lambda: 0.5)),
             ("UnityEngine.Random::Range", ctypes.CFUNCTYPE(ctypes.c_float, ctypes.c_float, ctypes.c_float)(lambda low, high: (low + high) * 0.5)),
             ("UnityEngine.Component::get_gameObject_Injected", ctypes.CFUNCTYPE(pointer, pointer)(lambda component: None)),

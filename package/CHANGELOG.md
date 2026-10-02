@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.3
+
+- The AzuEPI 2.6.1 inventory character preview no longer restarts its animation whenever a nearby creature or player equips or unequips something. It still follows your equipment and weapon stance.
+- Other AzuEPI builds keep AzuEPI's original behavior until they're reviewed.
+
 ## 1.0.2
 
 - Supports ImpactfulSkills 0.21.0. The bow and quality crafting fixes stay active with the updated build.

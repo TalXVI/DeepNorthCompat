@@ -212,7 +212,7 @@ internal static class Program
             int inactive = 0;
             CompatibilityInstaller.Install(_ => null, message => { if (message.Contains("inactive")) inactive++; },
                 _ => { }, error => { throw new Exception(error); });
-            Check(inactive == 4, "optional module count");
+            Check(inactive == 5, "optional module count");
         });
         Test("changed upstream assembly rejected safely", () =>
         {
@@ -235,11 +235,11 @@ internal static class Program
         {
             BepInEx.BepInPlugin identity = typeof(Plugin).GetCustomAttribute<BepInEx.BepInPlugin>()!;
             Check(identity.GUID == "DeepNorthCompat" && identity.Name == "DeepNorthCompat"
-                && identity.Version.ToString() == "1.0.2"
+                && identity.Version.ToString() == "1.0.3"
                 && typeof(Plugin).Assembly.GetName().Name == "DeepNorthCompat", "plugin identity");
             Check(typeof(BepInEx.BaseUnityPlugin).IsAssignableFrom(typeof(Plugin)), "BepInEx entry point");
             var dependencies = typeof(Plugin).GetCustomAttributes<BepInEx.BepInDependency>().ToArray();
-            Check(dependencies.Length == 5 && dependencies.All(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.SoftDependency),
+            Check(dependencies.Length == 6 && dependencies.All(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.SoftDependency),
                 "optional dependencies");
             Check(!typeof(Plugin).Assembly.GetReferencedAssemblies().Any(reference =>
                 assemblies.Values.Any(vendor => reference.Name == vendor.GetName().Name)), "hard vendor reference");
@@ -369,6 +369,7 @@ internal static class Program
         });
 
         PipelineTests.Run(impact, assemblies["Azumatt.AzuCraftyBoxes"], Test);
+        PreviewTests.Run(Lab, Test);
 
         foreach (string owner in Harmony.GetAllPatchedMethods().SelectMany(m => Harmony.GetPatchInfo(m)!.Owners)
             .Where(id => id.StartsWith("DeepNorthCompat.")).Distinct().ToArray())

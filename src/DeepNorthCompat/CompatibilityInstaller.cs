@@ -14,6 +14,7 @@ namespace DeepNorthCompat
         internal const string SeaAnimals = "3F57F6AD089D5616A924D5917851A0A7C99715CC0B2062EF23B2FA15D07C721A";
         internal const string AirAnimals = "B29905FFDA5204570D64958CB18D74E08D7CEE8AA361485E1D988B54242F2F85";
         internal const string Valheim = "96CFC004F7F4A6F30D070BEF39EAFD79C466A137121C4665A2F19FB9C15C6127";
+        internal const string AzuEpi = "41ED9378929090C5C46363A319C6A1F63F85DCF18DDE2DA1C0CAB49C39DBECFA";
     }
 
     public static class CompatibilityInstaller
@@ -52,10 +53,16 @@ namespace DeepNorthCompat
 
                 QualityPatch.Install(impact, crafty, aaa != null);
             });
+
+            InstallGroup("Preview.AzuEPI", () => AzuEpiPreviewPatch.Prepare(resolve(AzuEpiPreviewPatch.Owner)));
         }
 
         // Harmony may defer applying patches until after Awake, so confirm transpilers ran later.
-        public static void Verify() => DropRangePatch.Verify();
+        public static void Verify()
+        {
+            DropRangePatch.Verify();
+            AzuEpiPreviewPatch.Verify();
+        }
 
         private static void InstallDrops(Assembly? assembly, string hash, string name)
         {
