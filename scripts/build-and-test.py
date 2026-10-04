@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -19,6 +20,9 @@ def main():
     args = parser.parse_args()
     packaging = not (args.build_only or args.no_package)
     if packaging:
+        for variable in ("DEEPNORTHCOMPAT_SERVER_PATH", "DEEPNORTHCOMPAT_SIMULATION_PATH"):
+            if not os.environ.get(variable):
+                raise RuntimeError(f"Set {variable}: packaging requires both client and dedicated-simulation validation.")
         # Fail before a long build if the upload would be rejected or mislabeled.
         check_sources(json.loads((ROOT / "package/manifest.json").read_text(encoding="utf-8")))
     dotnet = shutil.which("dotnet")

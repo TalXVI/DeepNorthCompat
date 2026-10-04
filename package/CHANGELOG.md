@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0
+
+- Integrate dedicated simulation with VPO/VCP and preserve owner-side ImpactfulSkills bonuses.
+- Keep ValheimTune inactive on clients in the shared pack.
+- Targets VCP 0.32.3 after reviewing its sector and scene-management changes.
+- Registers the fork's existing VCP takeover when load order skipped it.
+- Client skill publication works with the simulation fork installed only on the server.
+
 ## 1.0.4
 
 - Supports AzuCraftyBoxes 1.8.27 and AAA Crafting 2.1.11. Quality crafting turned itself off with these versions until now.

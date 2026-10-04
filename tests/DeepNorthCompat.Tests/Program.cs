@@ -14,7 +14,7 @@ internal static class Program
 {
     private static readonly string Lab = Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_LAB_PATH") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "com.kesomannen.gale", "valheim", "profiles", "Deep North - Lab");
-    private static readonly string Managed = Path.Combine(Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_VALHEIM_PATH")
+    private static readonly string Managed = Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_MANAGED_PATH") ?? Path.Combine(Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_VALHEIM_PATH")
         ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Steam", "steamapps", "common", "Valheim"),
         "valheim_Data", "Managed");
     private static int passed;
@@ -22,7 +22,12 @@ internal static class Program
     private static int Main()
     {
         AppDomain.CurrentDomain.AssemblyResolve += Resolve;
-        try { Run(); SysConsole.WriteLine($"PASS: {passed} test cases"); return 0; }
+        try
+        {
+            if (Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_TEST_MODE") == "server") SimulationTests.Run(Lab, Test);
+            else { Run(); SimulationTests.Policy(Test); ClientSimulationTests.Run(Lab, Test); }
+            SysConsole.WriteLine($"PASS: {passed} test cases"); return 0;
+        }
         catch (Exception exception) { SysConsole.Error.WriteLine(exception); return 1; }
     }
 
@@ -212,14 +217,15 @@ internal static class Program
             int inactive = 0;
             CompatibilityInstaller.Install(_ => null, message => { if (message.Contains("inactive")) inactive++; },
                 _ => { }, error => { throw new Exception(error); });
-            Check(inactive == 5, "optional module count");
+            Check(inactive == 8, "optional module count");
         });
         Test("changed upstream assembly rejected safely", () =>
         {
-            int errors = 0;
+            var errors = new List<string>();
             CompatibilityInstaller.Install(guid => guid == "MidnightsFX.ImpactfulSkills" ? typeof(Program).Assembly : null,
-                _ => { }, _ => { }, _ => errors++);
-            Check(errors == 1, "changed build rejected");
+                _ => { }, _ => { }, errors.Add);
+            Check(errors.Count == 2 && errors.Any(error => error.StartsWith("Bow: NOT APPLIED"))
+                && errors.Any(error => error.StartsWith("OwnerSkills: NOT APPLIED")), "changed build rejected for both client integrations");
         });
 
         var assemblies = new Dictionary<string, Assembly>
@@ -235,11 +241,11 @@ internal static class Program
         {
             BepInEx.BepInPlugin identity = typeof(Plugin).GetCustomAttribute<BepInEx.BepInPlugin>()!;
             Check(identity.GUID == "DeepNorthCompat" && identity.Name == "DeepNorthCompat"
-                && identity.Version.ToString() == "1.0.4"
+                && identity.Version.ToString() == "1.1.0"
                 && typeof(Plugin).Assembly.GetName().Name == "DeepNorthCompat", "plugin identity");
             Check(typeof(BepInEx.BaseUnityPlugin).IsAssignableFrom(typeof(Plugin)), "BepInEx entry point");
             var dependencies = typeof(Plugin).GetCustomAttributes<BepInEx.BepInDependency>().ToArray();
-            Check(dependencies.Length == 6 && dependencies.All(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.SoftDependency),
+            Check(dependencies.Length == 10 && dependencies.All(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.SoftDependency),
                 "optional dependencies");
             Check(!typeof(Plugin).Assembly.GetReferencedAssemblies().Any(reference =>
                 assemblies.Values.Any(vendor => reference.Name == vendor.GetName().Name)), "hard vendor reference");

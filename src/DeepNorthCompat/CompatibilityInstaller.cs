@@ -32,6 +32,7 @@ namespace DeepNorthCompat
             InstallGroup("Bow", () =>
             {
                 if (impact == null) { Info("Bow: ImpactfulSkills absent; inactive."); return; }
+                if (Guard.KnownServerBuild()) { Info("Bow: client-only patch; inactive on dedicated server."); return; }
                 Guard.Build(impact, ExpectedBuilds.ImpactfulSkills);
                 Guard.Build(typeof(InventoryGui).Assembly, ExpectedBuilds.Valheim);
                 BowPatch.Install(impact);
@@ -44,6 +45,7 @@ namespace DeepNorthCompat
             InstallGroup("Quality", () =>
             {
                 if (impact == null || crafty == null) { Info("Quality: optional mod absent; inactive."); return; }
+                if (Guard.KnownServerBuild()) { Info("Quality: client-only patch; inactive on dedicated server."); return; }
                 Guard.Build(impact, ExpectedBuilds.ImpactfulSkills);
                 Guard.Build(crafty, ExpectedBuilds.CraftyBoxes);
                 Guard.Build(typeof(InventoryGui).Assembly, ExpectedBuilds.Valheim);
@@ -54,7 +56,14 @@ namespace DeepNorthCompat
                 QualityPatch.Install(impact, crafty, aaa != null);
             });
 
-            InstallGroup("Preview.AzuEPI", () => AzuEpiPreviewPatch.Prepare(resolve(AzuEpiPreviewPatch.Owner)));
+            InstallGroup("Preview.AzuEPI", () =>
+            {
+                if (Guard.KnownServerBuild()) { Info("Preview.AzuEPI: client-only patch; inactive on dedicated server."); return; }
+                AzuEpiPreviewPatch.Prepare(resolve(AzuEpiPreviewPatch.Owner));
+            });
+            InstallGroup("Simulation", () => SimulationPatch.Prepare(resolve));
+            InstallGroup("OwnerSkills", () => OwnerSkillPatch.Prepare(impact, resolve(SimulationPatch.ForkGuid)));
+            InstallGroup("Tune.Client", () => TuneClientPatch.Prepare(resolve("akoozie.valheimtune")));
         }
 
         // Harmony may defer applying patches until after Awake, so confirm transpilers ran later.
@@ -62,6 +71,9 @@ namespace DeepNorthCompat
         {
             DropRangePatch.Verify();
             AzuEpiPreviewPatch.Verify();
+            SimulationPatch.Verify();
+            OwnerSkillPatch.Verify();
+            TuneClientPatch.Verify();
         }
 
         private static void InstallDrops(Assembly? assembly, string hash, string name)
@@ -100,6 +112,12 @@ namespace DeepNorthCompat
 
     public static class Guard
     {
+        internal static bool KnownServerBuild()
+        {
+            using (SHA256 sha = SHA256.Create())
+            using (FileStream file = File.OpenRead(typeof(ZNet).Assembly.Location))
+                return BitConverter.ToString(sha.ComputeHash(file)).Replace("-", "") == SimulationPatch.ServerHash;
+        }
         public static void Build(Assembly assembly, string expectedHash)
         {
             using (SHA256 sha = SHA256.Create())

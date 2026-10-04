@@ -38,10 +38,18 @@ def installation_paths():
 
 def child_environment(lab, game):
     return dict(os.environ, DEEPNORTHCOMPAT_LAB_PATH=str(lab),
-                DEEPNORTHCOMPAT_VALHEIM_PATH=str(game), PYTHONDONTWRITEBYTECODE="1",
+                DEEPNORTHCOMPAT_VALHEIM_PATH=str(game), DEEPNORTHCOMPAT_MANAGED_PATH=str(managed_path(game)), PYTHONDONTWRITEBYTECODE="1",
                 DOTNET_CLI_TELEMETRY_OPTOUT="1", DOTNET_GENERATE_ASPNET_CERTIFICATE="false",
                 DOTNET_CLI_HOME=str(ROOT / ".dotnet-home"), MSBUILDDISABLENODEREUSE="1",
                 DOTNET_CLI_USE_MSBUILD_SERVER="0")
+
+
+def managed_path(game):
+    candidates = [game / name / "Managed" for name in ("valheim_Data", "valheim_server_Data")]
+    existing = [p for p in candidates if (p / "assembly_valheim.dll").is_file()]
+    if len(existing) != 1:
+        raise RuntimeError(f"Expected one client or dedicated-server managed directory under {game}.")
+    return existing[0]
 
 
 def reference_assemblies():

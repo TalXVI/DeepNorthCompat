@@ -8,6 +8,7 @@ It currently fixes bugs and incompatibilities involving:
 - ImpactfulSkills bow stamina scaling and tooltip reporting.
 - SeaAnimals and AirAnimals custom creature drop ranges.
 - AzuEPI inventory character preview, which restarted its animation whenever a nearby creature or player changed equipment.
+- Dedicated simulation with VPO/VCP object management, ImpactfulSkills owner-side bonuses, and ValheimTune client loading.
 
 ## Supported versions
 
@@ -20,5 +21,8 @@ Each fix is written against one exact build of the mods it touches:
 - SeaAnimals 0.3.9
 - AirAnimals 0.3.2
 - AzuEPI 2.6.1
+- MistrCech dedicated simulation 1.11.0
+- ValheimTune 0.7.8
+- VPO 1.2.3 and VCP 0.32.3
 
 If one of those mods isn't installed, or a different version is, the fixes that depend on it don't activate and that mod behaves as it normally would. The log says which fixes were applied at startup.

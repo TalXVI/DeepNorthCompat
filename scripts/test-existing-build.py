@@ -4,8 +4,10 @@ import ctypes
 import os
 from pathlib import Path
 import sys
+import subprocess
+import re
 
-from tooling import TEST_EXECUTABLE, child_environment, installation_paths
+from tooling import ROOT, TEST_EXECUTABLE, child_environment, installation_paths, managed_path
 
 
 def mono_library(game):
@@ -45,7 +47,7 @@ def run_suite(runtime, game, executable):
     open_assembly = bind("mono_domain_assembly_open", pointer, pointer, string)
     execute = bind("mono_jit_exec", integer, pointer, pointer, integer, ctypes.POINTER(string))
     cleanup = bind("mono_jit_cleanup", None, pointer)
-    managed = str(game / "valheim_Data/Managed").encode("utf-8")
+    managed = str(managed_path(game)).encode("utf-8")
     set_dirs(managed, str(game / "MonoBleedingEdge/etc").encode("utf-8"))
     set_assemblies(managed)
     config_parse(None)
@@ -53,6 +55,16 @@ def run_suite(runtime, game, executable):
     if not domain:
         raise RuntimeError("Game Mono runtime did not initialize.")
     try:
+        def quaternion_identity(_euler, result):
+            values = ctypes.cast(result, ctypes.POINTER(ctypes.c_float))
+            for index, value in enumerate((0, 0, 0, 1)):
+                values[index] = value
+
+        def vector_zero(result):
+            values = ctypes.cast(result, ctypes.POINTER(ctypes.c_float))
+            for index in range(3):
+                values[index] = 0
+
         # These are the same native scene boundaries as the original offline host.
         # Keep every callback alive until Mono finishes. No Unity scene is created.
         callbacks = [
@@ -64,8 +76,17 @@ def run_suite(runtime, game, executable):
             ("UnityEngine.Shader::PropertyToID_Injected", ctypes.CFUNCTYPE(integer, pointer)(lambda span: 0)),
             ("UnityEngine.Random::get_value", ctypes.CFUNCTYPE(ctypes.c_float)(lambda: 0.5)),
             ("UnityEngine.Random::Range", ctypes.CFUNCTYPE(ctypes.c_float, ctypes.c_float, ctypes.c_float)(lambda low, high: (low + high) * 0.5)),
+            ("UnityEngine.Random::RandomRangeInt", ctypes.CFUNCTYPE(integer, integer, integer)(lambda low, high: (low + high - 1) // 2 if high > low else low)),
+            ("UnityEngine.Quaternion::Internal_FromEulerRad_Injected", ctypes.CFUNCTYPE(None, pointer, pointer)(quaternion_identity)),
+            ("UnityEngine.Random::get_insideUnitSphere_Injected", ctypes.CFUNCTYPE(None, pointer)(vector_zero)),
             ("UnityEngine.Component::get_gameObject_Injected", ctypes.CFUNCTYPE(pointer, pointer)(lambda component: None)),
             ("UnityEngine.Time::get_frameCount", ctypes.CFUNCTYPE(integer)(lambda: 1)),
+            ("UnityEngine.Time::get_fixedTime", ctypes.CFUNCTYPE(ctypes.c_float)(lambda: 0)),
+            ("UnityEngine.Time::get_deltaTime", ctypes.CFUNCTYPE(ctypes.c_float)(lambda: 1 / 60)),
+            ("UnityEngine.Time::get_unscaledTime", ctypes.CFUNCTYPE(ctypes.c_float)(lambda: 0)),
+            ("UnityEngine.Time::get_time", ctypes.CFUNCTYPE(ctypes.c_float)(lambda: 0)),
+            ("UnityEngine.Time::get_fixedDeltaTime", ctypes.CFUNCTYPE(ctypes.c_float)(lambda: 0.02)),
+            ("UnityEngine.LayerMask::NameToLayer_Injected", ctypes.CFUNCTYPE(integer, pointer)(lambda span: 0)),
             ("UnityEngine.Object::Destroy_Injected", ctypes.CFUNCTYPE(None, pointer, ctypes.c_float)(lambda value, delay: None)),
         ]
         for name, callback in callbacks:
@@ -81,6 +102,30 @@ def run_suite(runtime, game, executable):
 
 
 def main():
+    if not os.environ.get("DEEPNORTHCOMPAT_TEST_MODE"):
+        lab, game = installation_paths()
+        cases = [("client", game)]
+        if os.environ.get("DEEPNORTHCOMPAT_SERVER_PATH"):
+            cases.append(("server", Path(os.environ["DEEPNORTHCOMPAT_SERVER_PATH"]).resolve()))
+        passed = 0
+        for mode, installation in cases:
+            environment = child_environment(lab, installation)
+            environment["DEEPNORTHCOMPAT_TEST_MODE"] = mode
+            suite = subprocess.Popen([sys.executable, "-B", str(Path(__file__).resolve())], cwd=ROOT,
+                                     env=environment, stdout=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
+            count = None
+            for line in suite.stdout:
+                print(line, end="", flush=True)
+                match = re.fullmatch(r"PASS: (\d+) test cases", line.strip())
+                if match:
+                    count = int(match.group(1))
+            if suite.wait() != 0:
+                return suite.returncode
+            if count is None:
+                raise RuntimeError(f"The {mode} suite did not report its pass count.")
+            passed += count
+        print(f"PASS: {passed} test cases")
+        return 0
     if ctypes.sizeof(ctypes.c_void_p) != 8:
         raise RuntimeError("Use 64-bit Python to load Valheim's 64-bit Mono runtime.")
     if not TEST_EXECUTABLE.is_file():

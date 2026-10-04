@@ -21,6 +21,8 @@ The offline suite replaces native scene boundaries with test fixtures. It checks
 
 The runtime patches are guarded against the hashes and signatures of the inspected upstream builds. Changes to those mods require a new compatibility review. Missing optional mods leave their corresponding patch inactive.
 
+The dedicated integration adds a second process using the dedicated server's managed assemblies and embedded Mono. Set `DEEPNORTHCOMPAT_SERVER_PATH` to that installation and `DEEPNORTHCOMPAT_SIMULATION_PATH` to a local directory containing the unchanged pinned release binaries as `fork.dll` and `tune.dll`. Both variables are required when producing a package. Client and server suites run separately so one process cannot resolve the wrong game build. [docs/dedicated-simulation.md](docs/dedicated-simulation.md) lists the pinned versions, patch targets, configuration and multiplayer launch gate. Keep downloaded or inspected vendor files outside tracked source, for example under the ignored `local-audit` directory.
+
 The AzuEPI module also checks Harmony state, which can change without a hash change. It runs in `Start`, after deferred vendor registrations finish, and changes nothing unless both equipment postfixes are the only registrations of their methods and AzuEPI's local preview hooks are installed. [docs/azu-epi-preview.md](docs/azu-epi-preview.md) describes the fix and its rollback.
 
 Packaging only ships a DLL that passed the full suite. After a passing run, `build-and-test.py` records the DLL hash and test count in `package/validated-build.json`, then runs `package.py` and `validate-package.py`. Running `package.py` on its own refuses any DLL whose hash differs from that file. The ZIP holds the manifest, README, changelog, MIT license and icon at its root, plus `BepInEx/plugins/DeepNorthCompat/DeepNorthCompat.dll`. Only the release workflow uploads the package; no script installs or deploys it.
@@ -35,4 +37,4 @@ The upload needs a Thunderstore service account token for the Talent team, store
 
 Automatic Git version suffixes and Source Link generation are disabled so repository metadata cannot change the validated DLL hash.
 
-Gale 1.22.3 can track this ZIP through its local importer. Local profile duplication preserves it. Normal profile exports and published mod sets exclude local packages, so distribute the ZIP separately. A public GitHub repository does not change that behavior.
+Install the published `Talent/DeepNorthCompat` package in Gale so normal profile exports and published mod sets include it. Gale's local importer is useful for pre-release validation, but those local records are excluded from the published mod manifest. The dedicated simulation fork is server-only; clients need DeepNorthCompat for the owner-skill bridge, without a local simulation DLL.
