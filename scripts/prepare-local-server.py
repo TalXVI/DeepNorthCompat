@@ -95,7 +95,10 @@ def main():
     if os.name != "nt":
         native = runtime / "doorstop_libs/libdoorstop_x64.so"
         require(native.is_file(), "Linux Doorstop library missing")
-        environment.update(LD_PRELOAD=str(native), DOORSTOP_ENABLE="TRUE", DOORSTOP_INVOKE_DLL_PATH=str(bepinex / "core/BepInEx.Preloader.dll"))
+        # Doorstop 4 names; the 3.x DOORSTOP_ENABLE/DOORSTOP_INVOKE_DLL_PATH are ignored.
+        libraries = [str(runtime / "linux64"), str(native.parent)] + [p for p in environment.get("LD_LIBRARY_PATH", "").split(":") if p]
+        environment.update(LD_LIBRARY_PATH=":".join(libraries), LD_PRELOAD=str(native), DOORSTOP_ENABLED="1",
+                           DOORSTOP_TARGET_ASSEMBLY=str(bepinex / "core/BepInEx.Preloader.dll"))
     command = [str(executable), "-batchmode", "-nographics", "-name", "DeepNorthCompat local test",
                "-world", "DeepNorthCompatSmoke", "-password", secrets.token_hex(12), "-port", str(args.port),
                "-public", "0", "-savedir", str(private / "saves"), "-logFile", str(runtime / "unity.log")]

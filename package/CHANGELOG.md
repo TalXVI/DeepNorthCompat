@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.2
+
+- A failed simulation launch gate on a server now disables the simulation fork, so the server runs vanilla object management instead of fork Core next to restored VPO/VCP hooks. A changed fork build is now detected at this gate.
+- Missing skill data no longer pauses resource damage, taming, loot or deaths; they proceed without the owner-side bonus and the server logs a warning.
+- Server-owned beehives and plants use the most skilled nearby player's any-biome flags, and boat damage reduction uses the most skilled player aboard.
+- Corrected the documented reason for removing VCP's idle-sweep hooks.
+
 ## 1.1.1
 
 - Recognizes the Linux 1.0.16 dedicated server, so dedicated simulation and owner-side skill bonuses apply on Linux hosts. Its game assembly differs from the Windows server only in platform reporting.

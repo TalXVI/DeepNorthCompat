@@ -19,6 +19,7 @@ internal static class ServerSkillTests
     private static readonly Dictionary<Component, Transform> transforms = new Dictionary<Component, Transform>();
     private static readonly Dictionary<Transform, Vector3> positions = new Dictionary<Transform, Vector3>();
     private static readonly Dictionary<Component, Character> characters = new Dictionary<Component, Character>();
+    private static readonly Dictionary<Component, Ship> ships = new Dictionary<Component, Ship>();
     private static readonly List<ItemDrop> spawned = new List<ItemDrop>();
     private static readonly List<(long Peer, string Name, ZPackage Data)> grants = new List<(long, string, ZPackage)>();
     private static readonly List<Dictionary<GameObject, int>> miningDrops = new List<Dictionary<GameObject, int>>();
@@ -44,7 +45,7 @@ internal static class ServerSkillTests
             {
                 new Harmony("DeepNorthCompat.Tests.SkillScene").UnpatchSelf();
                 foreach (IntPtr pointer in pointers) Marshal.FreeHGlobal(pointer);
-                pointers.Clear(); transforms.Clear(); positions.Clear(); characters.Clear();
+                pointers.Clear(); transforms.Clear(); positions.Clear(); characters.Clear(); ships.Clear();
                 spawned.Clear(); grants.Clear(); miningDrops.Clear(); produced.Clear(); Player.m_localPlayer = null;
                 AccessTools.Method(skills, "Reset").Invoke(null, null);
             }
@@ -73,21 +74,18 @@ internal static class ServerSkillTests
             }
             Check(Actor() == null, "actor retained after scope");
         });
-        Case("missing skill data pauses damage before the original RPC mutates resources", () =>
+        Case("missing skill data lets damage proceed without a bonus actor", () =>
         {
             attacker = NewPlayer(105, 0.5f);
             Set(View(attacker).GetZDO(), "DeepNorthCompat.skillProtocol", 0);
             var rock = Fake<MineRock5>(); var hit = new HitData();
             object?[] args = { rock, hit, null };
-            Check(!(bool)Call("BeginDamage", args)!, "unready damage allowed");
-            Check(args[2] == null, "unready actor scope entered");
-            // The actual patched RPC must skip its body; the uninitialized rock has
-            // no hit areas and would throw if damage processing were entered.
-            AccessTools.Method(typeof(MineRock5), "RPC_Damage").Invoke(rock, new object[] { 105L, hit, 0 });
+            Call("BeginDamage", args);
+            using ((IDisposable)args[2]!) Check(Actor() == null, "unready player selected as bonus actor");
             switches["EnableMining"].Value = false;
             args = new object?[] { rock, hit, null };
-            Check((bool)Call("BeginDamage", args)!, "disabled feature interfered");
-            ((IDisposable)args[2]!).Dispose();
+            Call("BeginDamage", args);
+            using ((IDisposable)args[2]!) Check(Actor() == attacker, "disabled feature interfered");
         });
         Case("server mining notifications pay a bonus only once per destroyed area", () =>
         {
@@ -154,7 +152,7 @@ internal static class ServerSkillTests
                 Check(spawned.Sum(i => i.m_itemData.m_stack) == expected, "wood yield changed");
             }
         });
-        Case("wild loot is never skipped and missing tamed skill state cannot return a null drop list", () =>
+        Case("wild and tamed loot drop without a bonus actor when skill state is missing", () =>
         {
             var drop = Fake<CharacterDrop>(); Character character = Fake<Character>(); characters[drop] = character;
             AccessTools.Field(typeof(CharacterDrop), "m_character").SetValue(drop, character);
@@ -163,9 +161,56 @@ internal static class ServerSkillTests
             AccessTools.Field(typeof(Player), "s_players").SetValue(null, new List<Player> { unready });
             Check(drop.GenerateDropList() != null, "wild loot skipped");
             AccessTools.Field(typeof(Character), "m_tamed").SetValue(character, true);
-            Reject(() => drop.GenerateDropList());
-            Check(!(bool)Call("DeathReady", character)!, "death committed without skill state");
-            health = 10; Check((bool)Call("DeathReady", character)!, "healthy creature stalled");
+            Check(drop.GenerateDropList() != null, "tamed loot skipped");
+            object?[] args = { drop, null };
+            Call("BeginLoot", args);
+            using ((IDisposable)args[1]!) Check(Actor() == null, "unready player selected for tamed loot");
+        });
+        Case("server any-biome flags use the most skilled nearby player's replicated level", () =>
+        {
+            Bind("EnableFarmingBiomeUnrestricted", true); Bind("EnableBeeBiomeUnrestricted", true);
+            foreach (var entry in new[] { ("FarmingBiomeUnrestrictedLevel", 50), ("BeeBiomeUnrestrictedLevel", 25) })
+                AccessTools.Field(config, entry.Item1).SetValue(null, cfg.Bind("test", entry.Item1, entry.Item2));
+            Player novice = Levels(NewPlayer(150, 0), 40, 20, 0), expert = Levels(NewPlayer(151, 0), 60, 30, 0), distant = Levels(NewPlayer(152, 0), 100, 100, 0);
+            Position(novice, Vector3.zero); Position(expert, new Vector3(10, 0, 0)); Position(distant, new Vector3(100, 0, 0));
+            MethodInfo plantRule = Vendor("PlantBiome", "IsBiomeUnrestricted"), hiveRule = Vendor("AnimalWhisper+BehivesInAnyBiome", "Prefix");
+            foreach (bool skilled in new[] { false, true })
+            {
+                AccessTools.Field(typeof(Player), "s_players").SetValue(null, skilled ? new List<Player> { novice, expert, distant } : new List<Player> { novice, distant });
+                Plant plant = Fake<Plant>(); AccessTools.Field(typeof(Plant), "m_nview").SetValue(plant, OwnedView(501));
+                object?[] args = { plant, null };
+                Call("BeginPlant", args);
+                using ((IDisposable)args[1]!) Check((bool)plantRule.Invoke(null, new object[] { plant }) == skilled, "plant rule used the wrong player");
+                Check(View(plant).GetZDO().GetBool("IS_ANYBIOME_PLANT") == skilled, "plant flag");
+                Beehive hive = Fake<Beehive>(); AccessTools.Field(typeof(Beehive), "m_nview").SetValue(hive, OwnedView(502));
+                args = new object?[] { hive, null };
+                Call("BeginHive", args);
+                using ((IDisposable)args[1]!)
+                {
+                    object[] call = { hive, false };
+                    Check((bool)hiveRule.Invoke(null, call) == !skilled && (bool)call[1] == skilled, "hive rule used the wrong player");
+                }
+                Check(View(hive).GetZDO().GetBool("IS_BHIVE") == skilled, "hive flag");
+            }
+        });
+        Case("server boat damage reduction uses the most skilled aboard player's replicated level", () =>
+        {
+            Bind("EnableBoatDamageReduction", true);
+            AccessTools.Field(config, "BoatDamageReductionLevel").SetValue(null, cfg.Bind("test", "BoatDamageReductionLevel", 35));
+            AccessTools.Field(config, "VoyagerDamageReductionAmount").SetValue(null, cfg.Bind("test", "VoyagerDamageReductionAmount", 0.5f));
+            Player low = Levels(NewPlayer(160, 0), 0, 0, 20), high = Levels(NewPlayer(161, 0), 0, 0, 80), unready = NewPlayer(162, 0);
+            Set(View(unready).GetZDO(), "DeepNorthCompat.level.voyaging", 100f); Set(View(unready).GetZDO(), "DeepNorthCompat.skillProtocol", 0);
+            MethodInfo reduction = Vendor("Voyaging+ShipDamageReduction", "Prefix");
+            foreach ((List<Player> aboard, float expected) in new[] { (new List<Player>(), 100f), (new List<Player> { low, unready }, 100f), (new List<Player> { low, high, unready }, 60f) })
+            {
+                WearNTear hull = Fake<WearNTear>(); hull.m_materialType = WearNTear.MaterialType.Wood;
+                Ship ship = Fake<Ship>(); AccessTools.Field(typeof(Ship), "m_players").SetValue(ship, aboard); ships[hull] = ship;
+                var hit = new HitData(); hit.m_damage.m_blunt = 100;
+                object?[] args = { hull, null };
+                Call("BeginShipDamage", args);
+                using ((IDisposable)args[1]!) { object[] call = { hull, hit }; reduction.Invoke(null, call); hit = (HitData)call[1]; }
+                Check(Mathf.Approximately(hit.m_damage.m_blunt, expected), $"boat damage {hit.m_damage.m_blunt}, expected {expected}");
+            }
         });
     }
 
@@ -180,6 +225,7 @@ internal static class ServerSkillTests
             ("AnimalHandlingLootRange", 20f), ("DistanceMiningDropMultiplierChecks", 20f), ("MiningLootFactor", 1.5f), ("WoodCuttingLootFactor", 1.5f) })
             AccessTools.Field(config, entry.Item1).SetValue(null, cfg.Bind("test", entry.Item1, entry.Item2));
         AccessTools.Field(impact.GetType("ImpactfulSkills.patches.AnimalWhisper", true), "AnimalHandling").SetValue(null, (Skills.SkillType)991);
+        AccessTools.Field(impact.GetType("ImpactfulSkills.patches.Voyaging", true), "VoyagingSkill").SetValue(null, (Skills.SkillType)992);
         var fixture = new Harmony("DeepNorthCompat.Tests.SkillScene");
         Hook(fixture, typeof(ZDOMan), "GetSessionID", nameof(Session));
         Hook(fixture, typeof(ZDO), "IncreaseDataRevision", nameof(Skip));
@@ -191,7 +237,8 @@ internal static class ServerSkillTests
         Hook(fixture, typeof(HitData), "GetAttacker", nameof(Attacker));
         fixture.Patch(AccessTools.Method(typeof(ZRoutedRpc), "InvokeRoutedRPC", new[] { typeof(long), typeof(string), typeof(object[]) }), prefix: Hook(nameof(Grant)));
         fixture.Patch(AccessTools.Method(skills, "RunCoroutine"), prefix: Hook(nameof(Coroutine)));
-        foreach (MethodInfo method in new[] { Vendor("AnimalWhisper+ScaleTamedAnimalLoot", "Postfix"), Vendor("Woodcutting", "IncreaseWoodDrops"), AccessTools.Method(skills, "BeginLoot"), AccessTools.Method(skills, "BeginSlaughter") })
+        foreach (MethodInfo method in new[] { Vendor("AnimalWhisper+ScaleTamedAnimalLoot", "Postfix"), Vendor("Woodcutting", "IncreaseWoodDrops"), AccessTools.Method(skills, "BeginLoot"), AccessTools.Method(skills, "BeginSlaughter"),
+            AccessTools.Method(skills, "BeginShipDamage"), Vendor("Voyaging+ShipDamageReduction", "Prefix") })
             fixture.Patch(method, transpiler: Hook(nameof(NativeComponents)));
         MethodInfo instantiate = AccessTools.GetDeclaredMethods(typeof(UnityEngine.Object)).Single(m => m.Name == "Instantiate" && !m.IsGenericMethod
             && m.GetParameters().Select(p => p.ParameterType).SequenceEqual(new[] { typeof(UnityEngine.Object), typeof(Vector3), typeof(Quaternion) }));
@@ -215,7 +262,15 @@ internal static class ServerSkillTests
         foreach (string key in new[] { "DeepNorthCompat.mining", "DeepNorthCompat.woodcutting", "DeepNorthCompat.animalHandling" }) Set(zdo, key, factor);
         return player;
     }
-    private static ZNetView View(Player player) => (ZNetView)AccessTools.Field(typeof(Character), "m_nview").GetValue(player);
+    private static ZNetView View(Component owner) => (ZNetView)AccessTools.Field(owner is Player ? typeof(Character) : owner.GetType(), "m_nview").GetValue(owner);
+    private static ZNetView OwnedView(long uid)
+    { var view = Fake<ZNetView>(); ZDO zdo = Zdo(uid); zdo.SetOwnerInternal(100); AccessTools.Field(typeof(ZNetView), "m_zdo").SetValue(view, zdo); return view; }
+    private static Player Levels(Player player, float farming, float animal, float voyaging)
+    {
+        ZDO zdo = View(player).GetZDO();
+        Set(zdo, "DeepNorthCompat.level.farming", farming); Set(zdo, "DeepNorthCompat.level.animalHandling", animal); Set(zdo, "DeepNorthCompat.level.voyaging", voyaging);
+        return player;
+    }
     private static void Set(ZDO zdo, string key, float value) => zdo.Set(key, value);
     private static void Set(ZDO zdo, string key, int value) => zdo.Set(key, value);
     private static void Position(Component component, Vector3 position)
@@ -246,6 +301,7 @@ internal static class ServerSkillTests
     }
     private static readonly Dictionary<GameObject, ItemDrop> produced = new Dictionary<GameObject, ItemDrop>();
     private static Character GetCharacter(Component target) => characters[target];
+    private static Ship GetShip(Component target) => ships[target];
     private static ItemDrop GetItem(GameObject target) => produced.TryGetValue(target, out ItemDrop item) ? item : prefabItem;
     private static IEnumerable<CodeInstruction> NativeComponents(IEnumerable<CodeInstruction> instructions)
     {
@@ -256,6 +312,7 @@ internal static class ServerSkillTests
             {
                 if (method.GetGenericArguments()[0] == typeof(Character)) code.operand = AccessTools.Method(typeof(ServerSkillTests), nameof(GetCharacter));
                 if (method.GetGenericArguments()[0] == typeof(ItemDrop)) code.operand = AccessTools.Method(typeof(ServerSkillTests), nameof(GetItem));
+                if (method.GetGenericArguments()[0] == typeof(Ship)) code.operand = AccessTools.Method(typeof(ServerSkillTests), nameof(GetShip));
                 code.opcode = OpCodes.Call;
             }
             yield return code;

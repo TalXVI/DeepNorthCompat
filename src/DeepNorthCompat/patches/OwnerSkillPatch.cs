@@ -20,16 +20,22 @@ namespace DeepNorthCompat
         private static readonly int MiningKey = "DeepNorthCompat.mining".GetStableHashCode();
         private static readonly int WoodKey = "DeepNorthCompat.woodcutting".GetStableHashCode();
         private static readonly int AnimalKey = "DeepNorthCompat.animalHandling".GetStableHashCode();
+        // Levels feed the vendor's threshold checks; factors derive from them as in Skills.GetSkillFactor.
+        private static readonly int FarmingLevelKey = "DeepNorthCompat.level.farming".GetStableHashCode();
+        private static readonly int AnimalLevelKey = "DeepNorthCompat.level.animalHandling".GetStableHashCode();
+        private static readonly int VoyagingLevelKey = "DeepNorthCompat.level.voyaging".GetStableHashCode();
+        private const float FlagRange = 30;
         private static readonly HashSet<(ZDOID, int)> minedAreas = new HashSet<(ZDOID, int)>();
         private static readonly HashSet<ZDOID> missingPlayers = new HashSet<ZDOID>();
         private static Assembly? impact;
         private static bool prepared, server, installed, coreOnServer;
         private static float nextPublish;
         private static float nextHello;
-        private static FieldInfo view = null!, animalSkill = null!, animalRange = null!, animalEnabled = null!, miningEnabled = null!, woodEnabled = null!;
+        private static FieldInfo view = null!, animalSkill = null!, animalRange = null!, animalEnabled = null!, miningEnabled = null!, woodEnabled = null!, voyagingSkill = null!;
         private static MethodInfo treeBonus = null!;
         [ThreadStatic] private static Player? current;
         private static readonly MethodInfo serverId = AccessTools.DeclaredMethod(typeof(ZRoutedRpc), "GetServerPeerID");
+        private static readonly FieldInfo shipPlayers = AccessTools.Field(typeof(Ship), "m_players");
 
         internal sealed class Scope : IDisposable
         {
@@ -67,6 +73,7 @@ namespace DeepNorthCompat
             animalEnabled = AccessTools.Field(Guard.Type(skills, "ImpactfulSkills.ValConfig"), "EnableAnimalWhisper");
             miningEnabled = AccessTools.Field(Guard.Type(skills, "ImpactfulSkills.ValConfig"), "EnableMining");
             woodEnabled = AccessTools.Field(Guard.Type(skills, "ImpactfulSkills.ValConfig"), "EnableWoodcutting");
+            voyagingSkill = AccessTools.Field(Guard.Type(skills, "ImpactfulSkills.patches.Voyaging"), "VoyagingSkill");
             treeBonus = Guard.Method(Guard.Type(skills, "ImpactfulSkills.patches.Woodcutting"), "IncreaseTreeDrops", typeof(void), typeof(TreeBase));
             var harmony = new Harmony(Owner);
             harmony.Patch(Guard.Method(typeof(Player), "SetLocalPlayer", typeof(void)), postfix: Guard.Hook(typeof(OwnerSkillPatch), nameof(Publish)));
@@ -108,8 +115,14 @@ namespace DeepNorthCompat
                     (typeof(Tameable), "OnDeath", nameof(BeginSlaughter))
                 }) harmony.Patch(AccessTools.DeclaredMethod(type, name), prefix: Guard.Hook(typeof(OwnerSkillPatch), begin, Priority.First),
                     finalizer: Guard.Hook(typeof(OwnerSkillPatch), nameof(EndScope)));
-                harmony.Patch(AccessTools.DeclaredMethod(typeof(Character), "CheckDeath"),
-                    prefix: Guard.Hook(typeof(OwnerSkillPatch), nameof(DeathReady), Priority.First));
+                foreach ((MethodInfo method, string begin) in new[]
+                {
+                    (Guard.Method(typeof(Beehive), "CheckBiome", typeof(bool)), nameof(BeginHive)),
+                    (Guard.Method(typeof(Plant), "UpdateHealth", typeof(void), typeof(double)), nameof(BeginPlant)),
+                    (Guard.Method(typeof(WearNTear), "RPC_Damage", typeof(void), typeof(long), typeof(HitData)), nameof(BeginShipDamage)),
+                    (AccessTools.DeclaredMethod(typeof(ImpactEffect), "OnCollisionEnter"), nameof(BeginShipImpact))
+                }) harmony.Patch(method, prefix: Guard.Hook(typeof(OwnerSkillPatch), begin, Priority.First),
+                    finalizer: Guard.Hook(typeof(OwnerSkillPatch), nameof(EndScope)));
 
                 foreach (string name in new[]
                 {
@@ -133,6 +146,14 @@ namespace DeepNorthCompat
                     harmony.Patch(AccessTools.DeclaredMethod(Guard.Type(impact, "ImpactfulSkills.patches." + type),
                         type == "Mining" ? "IncreaseMiningDrops" : "IncreaseWoodDrops"),
                         transpiler: Guard.Hook(typeof(OwnerSkillPatch), nameof(RewriteContext)));
+                foreach ((string type, string name) in new[]
+                {
+                    ("AnimalWhisper+BehivesInAnyBiome", "Prefix"),
+                    ("PlantBiome", "IsBiomeUnrestricted"),
+                    ("Voyaging+ShipDamageReduction", "Prefix"),
+                    ("Voyaging+ShipDamageImpactReduction", "ImpactDamagesSelf")
+                }) harmony.Patch(AccessTools.DeclaredMethod(Guard.Type(impact, "ImpactfulSkills.patches." + type), name),
+                    transpiler: Guard.Hook(typeof(OwnerSkillPatch), nameof(RewriteContext)));
                 harmony.Patch(treeBonus, prefix: Guard.Hook(typeof(OwnerSkillPatch), nameof(HasTreeActor)));
 
                 var tree = SimulationPatch.ExactHook(typeof(TreeBase), "RPC_Damage",
@@ -162,12 +183,16 @@ namespace DeepNorthCompat
         }
 
         private static Skills.SkillType Animal => (Skills.SkillType)animalSkill.GetValue(null);
+        private static Skills.SkillType Voyaging => (Skills.SkillType)voyagingSkill.GetValue(null);
         private static float LootRange => ((ConfigEntry<float>)animalRange.GetValue(null)).Value;
         private static bool Configured(FieldInfo field) => ((ConfigEntry<bool>)field.GetValue(null)).Value;
         private static ZDO? PlayerZdo(Player player) => (view.GetValue(player) as ZNetView)?.GetZDO();
         private static int Key(Skills.SkillType skill) => skill == Skills.SkillType.Pickaxes ? MiningKey
             : skill == Skills.SkillType.WoodCutting ? WoodKey : skill == Animal ? AnimalKey
             : throw new NotSupportedException("Unexpected owner-side skill " + skill);
+        private static int LevelKey(Skills.SkillType skill) => skill == Skills.SkillType.Farming ? FarmingLevelKey
+            : skill == Animal ? AnimalLevelKey : skill == Voyaging ? VoyagingLevelKey
+            : throw new NotSupportedException("Unexpected owner-side skill level " + skill);
 
         private static void Publish(Player __instance)
         {
@@ -179,6 +204,12 @@ namespace DeepNorthCompat
                 float factor = __instance.GetSkillFactor(skill);
                 if (!SkillState.ValidFactor(factor)) throw new InvalidOperationException("Invalid local skill factor.");
                 zdo.Set(Key(skill), factor);
+            }
+            foreach (var skill in new[] { Skills.SkillType.Farming, Animal, Voyaging })
+            {
+                float level = __instance.GetSkillLevel(skill);
+                if (!SkillState.ValidLevel(level)) throw new InvalidOperationException("Invalid local skill level.");
+                zdo.Set(LevelKey(skill), level);
             }
             zdo.Set(ProtocolKey, SkillState.Protocol);
         }
@@ -205,9 +236,18 @@ namespace DeepNorthCompat
         internal static float Factor(Character player, Skills.SkillType skill)
         {
             if (!Enabled) return player.GetSkillFactor(skill);
+            if (skill == Voyaging) return Mathf.Clamp01(Level(player, skill) / 100f);
             ZDO? zdo = PlayerZdo((Player)player);
             if (zdo == null) throw new InvalidOperationException("Player has no replicated skill state.");
             return SkillState.RequireFactor(zdo.GetInt(ProtocolKey), zdo.GetFloat(Key(skill), float.NaN));
+        }
+
+        internal static float Level(Character player, Skills.SkillType skill)
+        {
+            if (!Enabled) return player.GetSkillLevel(skill);
+            ZDO? zdo = PlayerZdo((Player)player);
+            if (zdo == null) throw new InvalidOperationException("Player has no replicated skill state.");
+            return SkillState.RequireLevel(zdo.GetInt(ProtocolKey), zdo.GetFloat(LevelKey(skill), float.NaN));
         }
 
         private static void Raise(Character player, Skills.SkillType skill, float amount)
@@ -250,6 +290,7 @@ namespace DeepNorthCompat
         {
             FieldInfo local = AccessTools.Field(typeof(Player), "m_localPlayer");
             MethodInfo factor = AccessTools.Method(typeof(Character), "GetSkillFactor");
+            MethodInfo level = AccessTools.Method(typeof(Character), "GetSkillLevel");
             MethodInfo raise = AccessTools.Method(typeof(Character), "RaiseSkill");
             MethodInfo coroutine = AccessTools.Method(typeof(MonoBehaviour), "StartCoroutine", new[] { typeof(IEnumerator) });
             foreach (CodeInstruction source in instructions)
@@ -258,16 +299,18 @@ namespace DeepNorthCompat
                 if (code.opcode == OpCodes.Ldsfld && Equals(code.operand, local))
                 { code.opcode = OpCodes.Call; code.operand = AccessTools.Method(typeof(OwnerSkillPatch), nameof(Actor)); }
                 else if (code.Calls(factor)) { code.opcode = OpCodes.Call; code.operand = AccessTools.Method(typeof(OwnerSkillPatch), nameof(Factor)); }
+                else if (code.Calls(level)) { code.opcode = OpCodes.Call; code.operand = AccessTools.Method(typeof(OwnerSkillPatch), nameof(Level)); }
                 else if (code.Calls(raise)) { code.opcode = OpCodes.Call; code.operand = AccessTools.Method(typeof(OwnerSkillPatch), nameof(Raise)); }
                 else if (code.Calls(coroutine)) { code.opcode = OpCodes.Call; code.operand = AccessTools.Method(typeof(OwnerSkillPatch), nameof(RunCoroutine)); }
                 yield return code;
             }
         }
 
-        private static bool BeginDamage(Component __instance, HitData __1, out Scope? __state)
+        // Missing skill state runs the action without an actor: vanilla results, no ImpactfulSkills bonus.
+        private static void BeginDamage(Component __instance, HitData __1, out Scope? __state)
         {
             __state = null;
-            if (!Enabled) return true;
+            if (!Enabled) return;
             Player? player = __1?.GetAttacker() as Player;
             bool mining = __instance is MineRock || __instance is MineRock5;
             bool wood = __instance is TreeBase || __instance is TreeLog;
@@ -277,8 +320,8 @@ namespace DeepNorthCompat
                 mining = kind == 1; wood = kind == 2;
             }
             if (player != null && ((mining && Configured(miningEnabled) && !Ready(player, Skills.SkillType.Pickaxes))
-                || (wood && Configured(woodEnabled) && !Ready(player, Skills.SkillType.WoodCutting)))) return false;
-            __state = new Scope(player); return true;
+                || (wood && Configured(woodEnabled) && !Ready(player, Skills.SkillType.WoodCutting)))) player = null;
+            __state = new Scope(player);
         }
 
         private static bool Ready(Player player, Skills.SkillType skill)
@@ -291,32 +334,27 @@ namespace DeepNorthCompat
             catch (InvalidOperationException)
             {
                 if (missingPlayers.Add(player.GetZDOID()))
-                    CompatibilityInstaller.Error("OwnerSkills: waiting for valid skill state from player " + player.GetZDOID()
-                        + "; resource actions paused before mutation. Check the client's matching compatibility package.");
+                    CompatibilityInstaller.Warning("OwnerSkills: no valid skill state from player " + player.GetZDOID()
+                        + "; their owner-side ImpactfulSkills bonuses are skipped. Check the client's matching compatibility package.");
                 return false;
             }
         }
 
         private static Player? Nearby(Component target, float range) => SkillState.Closest(Player.GetAllPlayers(),
             p => (p.transform.position - target.transform.position).sqrMagnitude, p => p.GetOwner(), range);
-        private static bool BeginNearby(Component target, float range, out Scope? state)
+        private static void BeginTaming(Tameable __instance, out Scope? __state)
         {
-            state = null; if (!Enabled || !Configured(animalEnabled)) return true;
-            Player? player = Nearby(target, range);
-            if (player != null && !Ready(player, Animal)) return false;
-            state = new Scope(player); return true;
+            __state = null; if (!Enabled || !Configured(animalEnabled)) return;
+            Player? player = Nearby(__instance, 30);
+            __state = new Scope(player != null && Ready(player, Animal) ? player : null);
         }
-        private static bool BeginTaming(Tameable __instance, out Scope? __state) => BeginNearby(__instance, 30, out __state);
         private static void BeginLoot(CharacterDrop __instance, out Scope? __state)
         {
             __state = null;
             if (!Enabled || !Configured(animalEnabled)) return;
             Character character = __instance.GetComponent<Character>();
             Player? player = character && character.IsTamed() ? Nearby(__instance, LootRange) : null;
-            // CheckDeath gates normal deaths before any drops or destruction. An unexpected
-            // caller must fail explicitly; skipping GenerateDropList would return a null list.
-            if (player != null) Factor(player, Animal);
-            __state = new Scope(player);
+            __state = new Scope(player != null && Ready(player, Animal) ? player : null);
         }
         private static void BeginSlaughter(Tameable __instance, out Scope? __state)
         {
@@ -324,18 +362,30 @@ namespace DeepNorthCompat
             if (!Enabled || !Configured(animalEnabled)) return;
             Character character = __instance.GetComponent<Character>();
             Player? player = character && character.IsTamed() ? Nearby(__instance, LootRange) : null;
-            if (player != null) Factor(player, Animal);
-            __state = new Scope(player);
+            __state = new Scope(player != null && Ready(player, Animal) ? player : null);
         }
         private static void EndScope(Scope? __state) => __state?.Dispose();
         private static bool HasTreeActor() => !Enabled || current != null;
-        private static bool DeathReady(Character __instance)
+
+        // The vendor checks the owner's local player. A server owner uses the most skilled qualifying player instead.
+        private static bool HasLevel(Player player, Skills.SkillType skill)
         {
-            if (!Enabled || !Configured(animalEnabled) || !__instance.IsTamed()
-                || __instance.IsDead() || __instance.GetHealth() > 0) return true;
-            Player? player = Nearby(__instance, LootRange);
-            return player == null || Ready(player, Animal);
+            try { Level(player, skill); return true; }
+            catch (InvalidOperationException) { return false; }
         }
+        private static Player? Best(IEnumerable<Player> players, Skills.SkillType skill) => players.Where(p => p && HasLevel(p, skill))
+            .OrderByDescending(p => Level(p, skill)).ThenBy(p => p.GetOwner()).FirstOrDefault();
+        private static IEnumerable<Player> Near(Component target, float range) => Player.GetAllPlayers()
+            .Where(p => (p.transform.position - target.transform.position).sqrMagnitude <= range * range);
+        private static void BeginHive(Beehive __instance, out Scope? __state) =>
+            __state = Enabled ? new Scope(Best(Near(__instance, FlagRange), Animal)) : null;
+        private static void BeginPlant(Plant __instance, out Scope? __state) =>
+            __state = Enabled ? new Scope(Best(Near(__instance, FlagRange), Skills.SkillType.Farming)) : null;
+        private static void BeginShipDamage(WearNTear __instance, out Scope? __state) =>
+            __state = Enabled ? new Scope(Aboard(__instance.GetComponent<Ship>())) : null;
+        private static void BeginShipImpact(ImpactEffect __instance, out Scope? __state) =>
+            __state = Enabled ? new Scope(Aboard(__instance.GetComponent<Ship>())) : null;
+        private static Player? Aboard(Ship? ship) => ship ? Best((List<Player>)shipPlayers.GetValue(ship), Voyaging) : null;
         private static bool OncePerMiningArea(MineRock5 __0, int __2, float __3)
         {
             if ((!server && !coreOnServer) || (server && !Enabled)) return true;

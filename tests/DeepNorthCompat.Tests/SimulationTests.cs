@@ -169,39 +169,53 @@ internal static class SimulationTests
             Check(Harmony.GetPatchInfo(target)!.Postfixes.Count(p => p.PatchMethod == ForkVcpHook()) == 1, "duplicated upstream hook");
             Check(!messages.Any(m => m.Contains("registered the fork's existing")), "existing hook was reinstalled");
         });
-        Case("missing takeover after world initialization rejects before mutation", () =>
+        Case("missing takeover after world initialization rejects and disables the fork", () =>
         {
             RegisterCore(); RegisterVendors();
             AccessTools.Field(ForkVcpHook().DeclaringType, "s_done").SetValue(null, true);
             string[] before = Snapshot(); Prepare(); Call(simulation, "Verify");
-            Check(!Active && errors.Count == 1 && before.SequenceEqual(Snapshot()), "already-run takeover was silently registered again");
+            Check(!Active && VanillaFallback(before), "already-run takeover was silently registered again");
         });
-        Case("missing vendor hook rejects the whole removal transaction", () =>
+        Case("missing vendor hook rejects the whole removal transaction and disables the fork", () =>
         {
             RegisterCore(); RegisterVendors();
             MethodInfo hook = AccessTools.Method(vcp.GetType("ValheimCommunityPatch.Patches.Performance.SceneIdleSkipPatch", true), "CreateDestroyObjectsPostfix");
             new Harmony("MidnightsFX.ValheimCommunityPatch").Unpatch(AccessTools.Method(typeof(ZNetScene), "CreateDestroyObjects"), hook);
             string[] before = Snapshot(); Prepare(); Call(simulation, "Verify");
-            Check(!Active && errors.Count == 1 && before.SequenceEqual(Snapshot()), "partial removal on rejection");
+            Check(!Active && VanillaFallback(before), "partial removal on rejection");
         });
-        Case("changed upstream build is rejected before removing hooks", () =>
+        Case("changed upstream build is rejected and disables the fork", () =>
         {
             RegisterCore(); RegisterVendors(); string[] before = Snapshot();
             Func<string, Assembly?> resolve = guid => guid == "MVP.Valheim_Serverside_Simulations" ? fork
                 : guid == "dev.ontrigger.vpo" ? typeof(SimulationTests).Assembly
                 : guid == "MidnightsFX.ValheimCommunityPatch" ? vcp : null;
             Call(simulation, "Prepare", resolve); Call(simulation, "Verify");
-            Check(!Active && errors.Count == 1 && before.SequenceEqual(Snapshot()), "changed vendor mutated state");
+            Check(!Active && VanillaFallback(before), "changed vendor mutated state");
         });
-        Case("removal failure restores the vendor hooks and retains Core", () =>
+        Case("removal failure restores the vendor hooks and disables the fork", () =>
         {
             RegisterCore(); RegisterVendors(); string[] before = Snapshot(); Prepare(); removals = 0;
             var failure = new Harmony("DeepNorthCompat.Tests.Failure");
             failure.Patch(AccessTools.Method(typeof(Harmony), "Unpatch", new[] { typeof(MethodBase), typeof(MethodInfo) }), prefix: Hook(nameof(FailRemoval)));
             try { Call(simulation, "Verify"); }
             finally { failure.UnpatchSelf(); }
-            Check(!Active && errors.Count == 1, "rollback failure log");
-            Check(before.SequenceEqual(Snapshot()), "vendor hooks not restored");
+            Check(!Active && VanillaFallback(before), "vendor hooks not restored or fork retained");
+        });
+        Case("changed fork build disables the fork before removing vendor hooks", () =>
+        {
+            // A renamed copy loads beside the pinned fork with the same types and a different file hash.
+            string copy = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "sandbox/changed-fork.dll");
+            using (var module = Mono.Cecil.ModuleDefinition.ReadModule(fork.Location))
+            { module.Assembly.Name.Name += ".Changed"; module.Write(copy); }
+            var changed = new Assembly[1];
+            var resolve = new Func<string, Assembly?>(guid => guid == "MVP.Valheim_Serverside_Simulations" ? changed[0]
+                : guid == "dev.ontrigger.vpo" ? vpo : guid == "MidnightsFX.ValheimCommunityPatch" ? vcp : null);
+            changed[0] = Assembly.LoadFrom(copy);
+            Check(changed[0].Location != fork.Location, "changed fork resolved to the pinned file");
+            RegisterCore(changed[0]); RegisterVendors(); string[] before = Snapshot();
+            Call(simulation, "Prepare", resolve); Call(simulation, "Verify");
+            Check(!Active && VanillaFallback(before), "changed fork kept Core or removed vendor hooks");
         });
         Case("headless owner skill hooks resolve against actual installed implementations", () =>
         {
@@ -253,7 +267,7 @@ internal static class SimulationTests
         Cleanup();
     }
 
-    private static void RegisterCore()
+    private static void RegisterCore(Assembly? source = null)
     {
         foreach ((Type type, string method, string patch) in new[]
         {
@@ -261,8 +275,11 @@ internal static class SimulationTests
             (typeof(ZDOMan), "ReleaseNearbyZDOS", "ZDOMan_ReleaseNearbyZDOS_Patch"),
             (typeof(ZoneSystem), "Update", "ZoneSystem_Update_Patch")
         }) new Harmony(Core).Patch(AccessTools.Method(type, method), prefix: new HarmonyMethod(AccessTools.Method(
-            fork.GetType("Valheim_Serverside.Features.Core+" + patch, true), "Prefix")));
+            (source ?? fork).GetType("Valheim_Serverside.Features.Core+" + patch, true), "Prefix")));
     }
+    // A rejected integration leaves every vendor hook in place and no fork hook except its console capture.
+    private static bool VanillaFallback(string[] before) => errors.Count == 2 && errors[1].StartsWith("Simulation: FORK DISABLED")
+        && before.Where(s => !s.Split(':')[1].StartsWith("MVP.Valheim_Serverside_Simulations")).SequenceEqual(Snapshot());
     private static void RegisterVendors()
     {
         new Harmony("dev.ontrigger.vpo").PatchAll(vpo.GetType("ValheimPerformanceOptimizations.Patches.ObjectManagement.ZNetSceneObjectManagementPatch", true)!);

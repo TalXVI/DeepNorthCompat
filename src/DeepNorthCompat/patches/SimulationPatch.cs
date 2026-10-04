@@ -12,6 +12,7 @@ namespace DeepNorthCompat
         internal const string ForkGuid = "MVP.Valheim_Serverside_Simulations";
         internal const string CoreOwner = ForkGuid + ".Core";
         private const string CompatOwner = ForkGuid + ".Compat_ValheimCommunityPatch";
+        private const string ConsoleOwner = ForkGuid + ".ServerConsole";
         private const string VpoGuid = "dev.ontrigger.vpo";
         private const string VcpGuid = "MidnightsFX.ValheimCommunityPatch";
         internal const string ForkHash = "804AE557AD93D44C508EFCB472BE23DCFB5DE80FBFA13F5EC264D2DDB009221A";
@@ -32,8 +33,8 @@ namespace DeepNorthCompat
             Active = false;
             fork = resolve(ForkGuid); vpo = resolve(VpoGuid); vcp = resolve(VcpGuid);
             pending = fork != null;
+            // The fork hash is checked in Verify, where a mismatch can still disable Core.
             if (fork == null) CompatibilityInstaller.Info("Simulation: fork absent; inactive.");
-            else Guard.Build(fork, ForkHash);
         }
 
         internal static bool CoreActive(Assembly assembly)
@@ -59,6 +60,7 @@ namespace DeepNorthCompat
             pending = false;
             var removed = new List<(MethodBase Target, Patch Hook, HarmonyPatchType Kind)>();
             (MethodInfo Target, MethodInfo Hook)? addedCompat = null;
+            bool core = false;
             try
             {
                 if (!CoreActive(fork))
@@ -66,6 +68,8 @@ namespace DeepNorthCompat
                     CompatibilityInstaller.Info("Simulation: Core not active on this process; object-management patches retained.");
                     return;
                 }
+                core = true;
+                Guard.Build(fork, ForkHash);
                 Guard.Build(typeof(ZNet).Assembly, ServerHashes);
                 var hooks = new List<(MethodBase Target, Patch Hook, HarmonyPatchType Kind)>();
                 (MethodInfo Target, MethodInfo Hook)? missingCompat = null;
@@ -135,6 +139,26 @@ namespace DeepNorthCompat
                     catch (Exception rollback) { CompatibilityInstaller.Error("Simulation: rollback failed; inspect Harmony state before launch. " + rollback); }
                 }
                 CompatibilityInstaller.Error("Simulation: REJECTED BUILD/REGISTRATIONS; required launch gate failed. " + error);
+                // Core next to restored VPO/VCP object management is unsafe; fall back to vanilla, as the fork does when Core fails.
+                if (core) DisableFork();
+            }
+        }
+
+        private static bool IsFork(string owner) => (owner == ForkGuid || owner.StartsWith(ForkGuid + ".")) && owner != ConsoleOwner;
+
+        private static void DisableFork()
+        {
+            try
+            {
+                string[] owners = Harmony.GetAllPatchedMethods().SelectMany(All).Select(p => p.owner).Where(IsFork).Distinct().ToArray();
+                foreach (string owner in owners) new Harmony(owner).UnpatchSelf();
+                if (Harmony.GetAllPatchedMethods().SelectMany(All).Any(p => IsFork(p.owner)))
+                    throw new InvalidOperationException("Fork hooks remain installed.");
+                CompatibilityInstaller.Error("Simulation: FORK DISABLED; this server runs vanilla object management and ownership until the build mismatch is resolved.");
+            }
+            catch (Exception error)
+            {
+                CompatibilityInstaller.Error("Simulation: could not disable the fork; stop the server before players join. " + error);
             }
         }
 
