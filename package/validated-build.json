@@ -1,7 +1,7 @@
 {
   "pluginGUID": "DeepNorthCompat",
   "pluginName": "DeepNorthCompat",
-  "version": "1.1.0",
-  "sha256": "d0357c7b931eff2d1ba7b3b1fbce61177021aa6ccad9245fc07cbdab12f2f0b2",
-  "offlineTestsPassed": 109
+  "version": "1.1.1",
+  "sha256": "ae7e8dd6fdade94af452d49f1465642f6e0eba0d6741c016e66809c91ec31468",
+  "offlineTestsPassed": 111
 }

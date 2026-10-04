@@ -50,7 +50,7 @@ namespace DeepNorthCompat
             }
             Guard.Build(skills, ExpectedBuilds.ImpactfulSkills);
             try { Guard.Build(typeof(ZNet).Assembly, ExpectedBuilds.Valheim); server = false; }
-            catch (NotSupportedException) { Guard.Build(typeof(ZNet).Assembly, SimulationPatch.ServerHash); server = true; }
+            catch (NotSupportedException) { Guard.Build(typeof(ZNet).Assembly, SimulationPatch.ServerHashes); server = true; }
             if (server)
             {
                 if (fork == null)

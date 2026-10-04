@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using HarmonyLib;
@@ -116,17 +117,17 @@ namespace DeepNorthCompat
         {
             using (SHA256 sha = SHA256.Create())
             using (FileStream file = File.OpenRead(typeof(ZNet).Assembly.Location))
-                return BitConverter.ToString(sha.ComputeHash(file)).Replace("-", "") == SimulationPatch.ServerHash;
+                return SimulationPatch.ServerHashes.Contains(BitConverter.ToString(sha.ComputeHash(file)).Replace("-", ""));
         }
-        public static void Build(Assembly assembly, string expectedHash)
+        public static void Build(Assembly assembly, params string[] expectedHashes)
         {
             using (SHA256 sha = SHA256.Create())
             using (FileStream file = File.OpenRead(assembly.Location))
             {
                 string actual = BitConverter.ToString(sha.ComputeHash(file)).Replace("-", "");
-                if (actual != expectedHash)
+                if (!expectedHashes.Contains(actual))
                     throw new NotSupportedException($"{assembly.GetName().Name} build changed; expected "
-                        + $"{expectedHash}, found {actual}. Re-audit required.");
+                        + $"{string.Join(" or ", expectedHashes)}, found {actual}. Re-audit required.");
             }
         }
 

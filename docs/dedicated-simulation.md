@@ -1,6 +1,6 @@
 # Dedicated simulation integration
 
-The integration targets MistrCech's maintained valheim-serverside 1.11.0, commit `1a5dd9442d8106166af08ad45a8039e81351a42b`, and ValheimTune 0.7.8, commit `b24fabf8d9114c6b48b8f5a58bfe9a77085abdb4`. Vendor binaries are unchanged. This version was validated against the installed Windows Valheim client and dedicated server, both 1.0.16. Another platform's game assembly needs verification if its hash differs.
+The integration targets MistrCech's maintained valheim-serverside 1.11.0, commit `1a5dd9442d8106166af08ad45a8039e81351a42b`, and ValheimTune 0.7.8, commit `b24fabf8d9114c6b48b8f5a58bfe9a77085abdb4`. Vendor binaries are unchanged. This version was validated against the installed Windows Valheim client and dedicated server, both 1.0.16. The Linux 1.0.16 dedicated server assembly (SHA-256 `50035055F9B158A025CACD25E038B603943F7C2A465DA3021707B5F1E44E39FD`) is also accepted. Its IL differs from the Windows server (`7CAB9B49D31EC064591CA80402DD35C566E03B7297CFB7BF4696C38DA4E24D8B`) only in `Version.GetPlatform` and `UpscaledFrameBuffer.AutomaticRenderScaleSupported`, which no patched or verified method uses. The offline suite runs against the Windows server; Linux native runtime behavior still needs a multiplayer smoke test. Any other game assembly needs verification if its hash differs.
 
 ## Object management
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1
+
+- Recognizes the Linux 1.0.16 dedicated server, so dedicated simulation and owner-side skill bonuses apply on Linux hosts. Its game assembly differs from the Windows server only in platform reporting.
+
 ## 1.1.0
 
 - Integrate dedicated simulation with VPO/VCP and preserve owner-side ImpactfulSkills bonuses.

@@ -41,6 +41,17 @@ internal static class SimulationTests
             Check(SkillState.Closest(players, p => p.Item2, p => p.Item1, 5) == null, "out of range");
             Check(SkillState.Closest(Array.Empty<Tuple<long, float>>(), p => p.Item2, p => p.Item1, 20) == null, "empty");
         });
+        test("build guard accepts any listed platform build and rejects unlisted builds", () =>
+        {
+            Assembly assembly = typeof(SimulationTests).Assembly;
+            string actual;
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+            using (FileStream file = File.OpenRead(assembly.Location))
+                actual = BitConverter.ToString(sha.ComputeHash(file)).Replace("-", "");
+            string other = new string('0', 64);
+            Guard.Build(assembly, other, actual);
+            Reject(() => Guard.Build(assembly, other));
+        });
     }
 
     internal static void Run(string lab, Action<string, Action> test)

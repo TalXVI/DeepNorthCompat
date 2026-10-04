@@ -15,7 +15,12 @@ namespace DeepNorthCompat
         private const string VpoGuid = "dev.ontrigger.vpo";
         private const string VcpGuid = "MidnightsFX.ValheimCommunityPatch";
         internal const string ForkHash = "804AE557AD93D44C508EFCB472BE23DCFB5DE80FBFA13F5EC264D2DDB009221A";
-        internal const string ServerHash = "7CAB9B49D31EC064591CA80402DD35C566E03B7297CFB7BF4696C38DA4E24D8B";
+        // Windows and Linux 1.0.16 dedicated builds; they differ only in platform reporting.
+        internal static readonly string[] ServerHashes =
+        {
+            "7CAB9B49D31EC064591CA80402DD35C566E03B7297CFB7BF4696C38DA4E24D8B",
+            "50035055F9B158A025CACD25E038B603943F7C2A465DA3021707B5F1E44E39FD"
+        };
         private const string VpoHash = "614CD643343E2E2D182BA4B50AA8C96D8FEDB8E09A16C6AA0018BAD222D6EE70";
         private const string VcpHash = "1B80C4EACBB831D11ED9C044D40DFE03B5D8E84B9A51D9B6646031C98ADEAF8C";
         private static Assembly? fork, vpo, vcp;
@@ -61,7 +66,7 @@ namespace DeepNorthCompat
                     CompatibilityInstaller.Info("Simulation: Core not active on this process; object-management patches retained.");
                     return;
                 }
-                Guard.Build(typeof(ZNet).Assembly, ServerHash);
+                Guard.Build(typeof(ZNet).Assembly, ServerHashes);
                 var hooks = new List<(MethodBase Target, Patch Hook, HarmonyPatchType Kind)>();
                 (MethodInfo Target, MethodInfo Hook)? missingCompat = null;
                 if (vpo != null)
