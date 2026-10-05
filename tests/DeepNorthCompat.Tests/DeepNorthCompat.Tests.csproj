@@ -15,5 +15,6 @@
     <Reference Include="UnityEngine.CoreModule"><HintPath>$(ValheimManaged)\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.AnimationModule"><HintPath>$(ValheimManaged)\UnityEngine.AnimationModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="AzuCraftyBoxes"><HintPath>$(LabPath)\BepInEx\plugins\Azumatt-AzuCraftyBoxes\AzuCraftyBoxes.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="MultiUserChest"><HintPath>$(LabPath)\BepInEx\plugins\MSchmoecker-MultiUserChest\MultiUserChest.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
 </Project>

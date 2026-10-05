@@ -65,6 +65,12 @@ namespace DeepNorthCompat
             InstallGroup("Simulation", () => SimulationPatch.Prepare(resolve));
             InstallGroup("OwnerSkills", () => OwnerSkillPatch.Prepare(impact, resolve(SimulationPatch.ForkGuid)));
             InstallGroup("Tune.Client", () => TuneClientPatch.Prepare(resolve("akoozie.valheimtune")));
+            // The registry also answers crafting handoffs, so every peer serves other peers'
+            // requests even when its own crafting hooks or MultiUserChest guards fail.
+            InstallGroup("Chests.Registry", () => ChestRegistry.Install(crafty));
+            InstallGroup("ChestCraft", () => ChestCraftPatch.Install(crafty));
+            InstallGroup("Chests", () => ChestSyncPatch.Install(resolve(ChestSyncPatch.MucGuid), resolve(ChestSyncPatch.QuickGuid)));
+            InstallGroup("Diagnostics", DiagnosticsPatch.Install);
         }
 
         // Harmony may defer applying patches until after Awake, so confirm transpilers ran later.

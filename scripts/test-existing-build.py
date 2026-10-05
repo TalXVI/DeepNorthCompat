@@ -65,6 +65,10 @@ def run_suite(runtime, game, executable):
             for index in range(3):
                 values[index] = 0
 
+        def vector2_zero(result):
+            values = ctypes.cast(result, ctypes.POINTER(ctypes.c_float))
+            values[0] = values[1] = 0
+
         # These are the same native scene boundaries as the original offline host.
         # Keep every callback alive until Mono finishes. No Unity scene is created.
         callbacks = [
@@ -79,7 +83,15 @@ def run_suite(runtime, game, executable):
             ("UnityEngine.Random::RandomRangeInt", ctypes.CFUNCTYPE(integer, integer, integer)(lambda low, high: (low + high - 1) // 2 if high > low else low)),
             ("UnityEngine.Quaternion::Internal_FromEulerRad_Injected", ctypes.CFUNCTYPE(None, pointer, pointer)(quaternion_identity)),
             ("UnityEngine.Random::get_insideUnitSphere_Injected", ctypes.CFUNCTYPE(None, pointer)(vector_zero)),
+            ("UnityEngine.Random::GetRandomUnitCircle", ctypes.CFUNCTYPE(None, pointer)(vector2_zero)),
             ("UnityEngine.Component::get_gameObject_Injected", ctypes.CFUNCTYPE(pointer, pointer)(lambda component: None)),
+            ("UnityEngine.Component::get_transform_Injected", ctypes.CFUNCTYPE(pointer, pointer)(lambda component: None)),
+            ("UnityEngine.Behaviour::set_enabled_Injected", ctypes.CFUNCTYPE(None, pointer, integer)(lambda component, enabled: None)),
+            ("UnityEngine.Transform::get_position_Injected", ctypes.CFUNCTYPE(None, pointer, pointer)(lambda transform, result: vector_zero(result))),
+            ("UnityEngine.Transform::get_rotation_Injected", ctypes.CFUNCTYPE(None, pointer, pointer)(quaternion_identity)),
+            ("UnityEngine.Quaternion::Internal_ToEulerRad_Injected", ctypes.CFUNCTYPE(None, pointer, pointer)(lambda rotation, result: vector_zero(result))),
+            ("UnityEngine.Quaternion::LookRotation_Injected", ctypes.CFUNCTYPE(None, pointer, pointer, pointer)(lambda forward, up, result: quaternion_identity(None, result))),
+            ("UnityEngine.Random::get_rotation_Injected", ctypes.CFUNCTYPE(None, pointer)(lambda result: quaternion_identity(None, result))),
             ("UnityEngine.Time::get_frameCount", ctypes.CFUNCTYPE(integer)(lambda: 1)),
             ("UnityEngine.Time::get_fixedTime", ctypes.CFUNCTYPE(ctypes.c_float)(lambda: 0)),
             ("UnityEngine.Time::get_deltaTime", ctypes.CFUNCTYPE(ctypes.c_float)(lambda: 1 / 60)),

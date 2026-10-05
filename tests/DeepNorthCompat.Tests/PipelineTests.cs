@@ -324,6 +324,7 @@ internal static class PipelineTests
                     Check(((string)args[1]).Contains("(" + expected.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + ")"), "actual reporting");
                 }
         });
+        fixture.UnpatchSelf();
     }
 
     private static ConfigEntry<bool> Bool(ConfigFile file, Type type, string name, bool value)

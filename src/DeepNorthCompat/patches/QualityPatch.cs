@@ -69,6 +69,7 @@ namespace DeepNorthCompat
         private static MethodInfo containerSave = null!;
         private static MethodInfo inventoryChanged = null!;
         private static bool previewFailed;
+        private static bool installed;
 
         internal static void Install(Assembly impact, Assembly crafty, bool hasAaa)
         {
@@ -123,6 +124,7 @@ namespace DeepNorthCompat
                 harmony.Patch(panelMultiplier, prefix: Guard.Hook(typeof(QualityPatch), nameof(PanelMultiplier)));
             foreach (MethodInfo method in new[] { crafting, prototypeTier, namedTier, process, add }) Guard.Registered(method);
             if (hasAaa) Guard.Registered(panelMultiplier);
+            installed = true;
         }
 
         private static FieldInfo RequiredConfig(Type type, string name, Type expected)
@@ -174,6 +176,19 @@ namespace DeepNorthCompat
             string prefab = requirement.m_resItem.name;
             return new ItemNeed(item.m_shared.m_name, item.m_shared.m_maxQuality, amount,
                 source => Allowed(source, prefab));
+        }
+
+        internal static List<Container>? CraftContainers(Player player, Recipe recipe, int quality, int multiplier)
+        {
+            if (!installed || !Enabled || recipe.m_requireOnlyOneIngredient) return null;
+            CraftingStation station = player.GetCurrentCraftingStation();
+            var requirements = recipe.m_resources.Where(r => r?.m_resItem?.m_itemData?.m_shared != null
+                && r.m_upgraderResource == (station != null && station.m_upgrader)).ToList();
+            if (!requirements.Any(r => r.m_resItem.m_itemData.m_shared.m_maxQuality > 1)) return null;
+            ItemPlan? plan = IngredientSelector.Select(Snapshot(player), requirements.Select(r =>
+                Need(r, checked(r.GetAmount(quality) * multiplier))).ToList(), Game.m_worldLevel, LeavingOne);
+            return plan == null ? new List<Container>() : plan.Allocations.Select(a => ChestCraftPatch.Unwrap(a.Stack.Source.Container))
+                .OfType<Container>().Distinct().ToList();
         }
 
         private static bool Prepare(InventoryGui __instance, Player __0, out Scope __state)
@@ -277,14 +292,16 @@ namespace DeepNorthCompat
         {
             ItemDrop.ItemData item = stack.Id;
             Source source = stack.Source;
+            Container? chest = ChestCraftPatch.Unwrap(source.Container);
+            if (chest != null && ChestRegistry.View(chest)?.IsOwner() != true) return 0;
             return source.Inventory.ContainsItem(item) && item.m_quality == stack.Quality
                 && item.m_worldLevel == stack.WorldLevel && item.m_shared.m_name == stack.Name ? item.m_stack : 0;
         }
 
         private static bool Remove(ItemAllocation allocation)
         {
-            // Remove like CraftyBoxes' VanillaContainer: by index or stack size. MultiUserChest
-            // refuses Inventory.RemoveItem(ItemData) for a chest another client owns.
+            // The crafting gate obtains ownership before a vanilla chest is planned.
+            // Index removal also preserves the existing non-vanilla adapter behavior.
             Source source = allocation.Stack.Source;
             ItemDrop.ItemData item = allocation.Stack.Id;
             int index = source.Inventory.GetAllItems().IndexOf(item);

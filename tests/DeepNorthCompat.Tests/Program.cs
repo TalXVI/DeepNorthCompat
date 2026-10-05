@@ -24,12 +24,18 @@ internal static class Program
         AppDomain.CurrentDomain.AssemblyResolve += Resolve;
         try
         {
-            if (Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_TEST_MODE") == "server") SimulationTests.Run(Lab, Test);
-            else { Run(); SimulationTests.Policy(Test); ClientSimulationTests.Run(Lab, Test); }
+            if (Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_TEST_MODE") == "server") RunServer();
+            else { Run(); SimulationTests.Policy(Test); ClientSimulationTests.Run(Lab, Test); RunChests(); }
             SysConsole.WriteLine($"PASS: {passed} test cases"); return 0;
         }
         catch (Exception exception) { SysConsole.Error.WriteLine(exception); return 1; }
     }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void RunServer() { SimulationTests.Run(Lab, Test); ChestTests.Run(Lab, Test); }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void RunChests() => ChestTests.Run(Lab, Test);
 
     private static Assembly? Resolve(object sender, ResolveEventArgs args)
     {
@@ -180,7 +186,7 @@ internal static class Program
             List<CodeInstruction> result = DropRangePatch.FixMaximum(code, MethodBase.GetCurrentMethod()!).ToList();
             Check(result.Count == 1 && result[0].opcode == OpCodes.Nop, "original IL returned");
             Check(code[0].opcode == OpCodes.Nop, "unchanged");
-            Check(errors.Count == 1, "rejection reported");
+            Check(errors.Count == 1, "rejection reported: " + string.Join(Environment.NewLine, errors));
         });
 
         OfflineIntegration();
@@ -217,7 +223,7 @@ internal static class Program
             int inactive = 0;
             CompatibilityInstaller.Install(_ => null, message => { if (message.Contains("inactive")) inactive++; },
                 _ => { }, error => { throw new Exception(error); });
-            Check(inactive == 8, "optional module count");
+            Check(inactive == 10, "optional module count");
         });
         Test("changed upstream assembly rejected safely", () =>
         {
@@ -241,11 +247,11 @@ internal static class Program
         {
             BepInEx.BepInPlugin identity = typeof(Plugin).GetCustomAttribute<BepInEx.BepInPlugin>()!;
             Check(identity.GUID == "DeepNorthCompat" && identity.Name == "DeepNorthCompat"
-                && identity.Version.ToString() == "1.1.2"
+                && identity.Version.ToString() == "1.1.3"
                 && typeof(Plugin).Assembly.GetName().Name == "DeepNorthCompat", "plugin identity");
             Check(typeof(BepInEx.BaseUnityPlugin).IsAssignableFrom(typeof(Plugin)), "BepInEx entry point");
             var dependencies = typeof(Plugin).GetCustomAttributes<BepInEx.BepInDependency>().ToArray();
-            Check(dependencies.Length == 10 && dependencies.All(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.SoftDependency),
+            Check(dependencies.Length == 12 && dependencies.All(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.SoftDependency),
                 "optional dependencies");
             Check(!typeof(Plugin).Assembly.GetReferencedAssemblies().Any(reference =>
                 assemblies.Values.Any(vendor => reference.Name == vendor.GetName().Name)), "hard vendor reference");

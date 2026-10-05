@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.3
+
+- Clear stuck chest-use flags after ownership loss and refresh nearby inventories within Quick Stack's range.
+- Wait for chest ownership and current inventory data before crafting. The owner verifies the requester, explains denials, and keeps chests its own craft needs. The client checks the inventory hash and retries when ownership moves.
+- Hand off only the chests Crafty consumes from, including for single-ingredient recipes.
+- Add `/dnc_report`, which copies a combined client and server diagnostic report to the clipboard, and `/dnc_mark <note>`, which marks a problem on both sides. Server reports go to admins by default.
+- Record chest, crafting, network, version and error events on clients and servers in `BepInEx/DeepNorthCompat/diagnostics`. Flag saves by non-owners and crafts that create or remove items without the matching change.
+
 ## 1.1.2
 
 - A failed simulation launch gate on a server now disables the simulation fork, so the server runs vanilla object management instead of fork Core next to restored VPO/VCP hooks. A changed fork build is now detected at this gate.
