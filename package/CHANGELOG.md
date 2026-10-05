@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.4
+
+- Targets ValheimCommunityPatch 0.32.4.
+
 ## 1.1.3
 
 - Clear stuck chest-use flags after ownership loss and refresh nearby inventories within Quick Stack's range.

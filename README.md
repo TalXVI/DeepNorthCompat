@@ -29,7 +29,7 @@ Each fix is written against one exact build of the mods it touches:
 - [MistrCech Serverside Simulation](https://github.com/MistrCech/valheim-serverside) 1.11.0
 - ValheimTune 0.7.8
 - ValheimPerformanceOptimizations 1.2.3
-- ValheimCommunityPatch 0.32.3
+- ValheimCommunityPatch 0.32.4
 - MultiUserChest 0.6.2
 - Quick Stack - Store - Sort - Trash - Restock 1.4.15
 

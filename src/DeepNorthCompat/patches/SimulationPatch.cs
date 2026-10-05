@@ -23,7 +23,7 @@ namespace DeepNorthCompat
             "50035055F9B158A025CACD25E038B603943F7C2A465DA3021707B5F1E44E39FD"
         };
         private const string VpoHash = "614CD643343E2E2D182BA4B50AA8C96D8FEDB8E09A16C6AA0018BAD222D6EE70";
-        private const string VcpHash = "1B80C4EACBB831D11ED9C044D40DFE03B5D8E84B9A51D9B6646031C98ADEAF8C";
+        private const string VcpHash = "7E4DAAA1C25B4E73EE3172229EA0A6A5772315E25E9278EC2BB13ACCD84D7206";
         private static Assembly? fork, vpo, vcp;
         private static bool pending;
         internal static bool Active { get; private set; }
