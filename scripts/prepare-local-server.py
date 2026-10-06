@@ -1,4 +1,4 @@
-"""Stage Lab in a disposable dedicated-server copy; optionally run a bounded smoke test."""
+"""Stage the active profile in a disposable dedicated-server copy; optionally run a bounded smoke test."""
 
 import argparse
 import configparser

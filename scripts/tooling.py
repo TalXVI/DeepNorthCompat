@@ -27,7 +27,7 @@ def installation_paths():
     lab_default = game_default = None
     if os.name == "nt":
         if os.environ.get("APPDATA"):
-            lab_default = Path(os.environ["APPDATA"]) / "com.kesomannen.gale/valheim/profiles/Deep North - Lab"
+            lab_default = Path(os.environ["APPDATA"]) / "com.kesomannen.gale/valheim/profiles/Deep North"
         if os.environ.get("PROGRAMFILES(X86)"):
             game_default = Path(os.environ["PROGRAMFILES(X86)"]) / "Steam/steamapps/common/Valheim"
     return (

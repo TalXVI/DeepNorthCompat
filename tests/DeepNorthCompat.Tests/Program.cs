@@ -13,7 +13,7 @@ using SysConsole = System.Console;
 internal static class Program
 {
     private static readonly string Lab = Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_LAB_PATH") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "com.kesomannen.gale", "valheim", "profiles", "Deep North - Lab");
+        "com.kesomannen.gale", "valheim", "profiles", "Deep North");
     private static readonly string Managed = Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_MANAGED_PATH") ?? Path.Combine(Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_VALHEIM_PATH")
         ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Steam", "steamapps", "common", "Valheim"),
         "valheim_Data", "Managed");
