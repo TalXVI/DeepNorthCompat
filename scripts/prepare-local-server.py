@@ -38,8 +38,8 @@ def main():
         if source.is_file() and source.suffix.lower() in {".exe", ".dll", ".so"}:
             shutil.copy2(source, runtime / source.name)
         elif source.is_dir() and source.name in {"valheim_server_Data", "MonoBleedingEdge", "D3D12", "linux64"}:
-            if not (runtime / source.name).exists():
-                shutil.copytree(source, runtime / source.name)
+            # Refresh files a server update changed; an untouched copy would test the old game build.
+            shutil.copytree(source, runtime / source.name, dirs_exist_ok=True, copy_function=copy_changed)
     if (server / "steam_appid.txt").is_file():
         shutil.copy2(server / "steam_appid.txt", runtime / "steam_appid.txt")
     executable = next((runtime / name for name in ("valheim_server.exe", "valheim_server.x86_64", "valheim_server") if (runtime / name).is_file()), None)
@@ -143,6 +143,15 @@ def main():
                 process.stdin.close()
             print(f"Temporary server stopped; exit {process.returncode}.", flush=True)
     require(ready and process.returncode == 0, f"Local startup validation failed; inspect {log}")
+
+
+def copy_changed(source, target):
+    old = Path(target)
+    if old.is_file():
+        before, after = os.stat(source), old.stat()
+        if before.st_size == after.st_size and int(before.st_mtime) == int(after.st_mtime):
+            return target
+    return shutil.copy2(source, target)
 
 
 if __name__ == "__main__":
