@@ -77,7 +77,7 @@ internal static class SimulationTests
             try { action(); } finally { Cleanup(); }
         });
 
-        Case("actual headless 1.0.16 build is recognized and client groups stay inactive", () =>
+        Case("actual headless dedicated build is recognized and client groups stay inactive", () =>
         {
             CompatibilityInstaller.Install(guid => guid == "MidnightsFX.ImpactfulSkills" ? impact : null,
                 messages.Add, messages.Add, errors.Add);

@@ -104,7 +104,7 @@ def main():
                "-public", "0", "-savedir", str(private / "saves"), "-logFile", str(runtime / "unity.log")]
     options = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" else {"start_new_session": True}
     log = bepinex / "LogOutput.log"
-    required = ("Simulation: APPLIED", "OwnerSkills: APPLIED", "Sarkastic.eu Dedicated Simulation installed", "[ValheimTune] 0.7.8 loaded",
+    required = ("Simulation: APPLIED", "OwnerSkills: APPLIED", "Sarkastic.eu Dedicated Simulation installed", "[ValheimTune] 0.7.9 loaded",
                 "Removed ValheimCommunityPatch's spawn queue from ZNetScene.CreateObjectsSorted",
                 "Removed ValheimCommunityPatch's zone-diff unload from ZNetScene.RemoveObjects")
     ready = False

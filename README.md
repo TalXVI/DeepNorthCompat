@@ -16,7 +16,7 @@ Install the same version on the dedicated server and every client, then restart.
 
 ## Supported versions
 
-- Valheim 1.0.16
+- Valheim 1.0.16 and 1.0.17
 
 Each fix is written against one exact build of the mods it touches:
 
@@ -27,7 +27,7 @@ Each fix is written against one exact build of the mods it touches:
 - AirAnimals 0.3.2
 - AzuEPI 2.6.1
 - [MistrCech Serverside Simulation](https://github.com/MistrCech/valheim-serverside) 1.11.0
-- ValheimTune 0.7.8
+- ValheimTune 0.7.8 and 0.7.9
 - ValheimPerformanceOptimizations 1.2.3
 - ValheimCommunityPatch 0.32.4
 - MultiUserChest 0.6.2

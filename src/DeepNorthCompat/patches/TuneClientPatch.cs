@@ -14,7 +14,9 @@ namespace DeepNorthCompat
         {
             pending = null;
             if (assembly == null) { CompatibilityInstaller.Info("Tune.Client: optional mod absent; inactive."); return; }
-            Guard.Build(assembly, "8043CD81398FF33CA29FBC75A1D4BDD20BBE950E6BB67D8BF66668C0404A9515");
+            // 0.7.9 differs from 0.7.8 only in version strings and its known-good game list.
+            Guard.Build(assembly, "8043CD81398FF33CA29FBC75A1D4BDD20BBE950E6BB67D8BF66668C0404A9515",
+                "8E00C71476806AB8ED6E344AA639CB08D5D9EB4E90D3A7C77E4DE2F0B67C5B9A");
             pending = assembly;
         }
 

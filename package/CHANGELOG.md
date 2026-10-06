@@ -2,6 +2,7 @@
 
 ## 1.1.5
 
+- Supports Valheim 1.0.17 clients and dedicated servers (Windows and Linux) and ValheimTune 0.7.9. Neither update changes a method this mod patches.
 - Keep recipes stocked from other players' chests craftable in the crafting list that vanilla rebuilds right after a craft. They were drawn greyed out until the next rebuild.
 
 ## 1.1.4
