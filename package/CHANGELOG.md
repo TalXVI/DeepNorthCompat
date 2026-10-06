@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.5
+
+- Keep recipes stocked from other players' chests craftable in the crafting list that vanilla rebuilds right after a craft. They were drawn greyed out until the next rebuild.
+
 ## 1.1.4
 
 - Targets ValheimCommunityPatch 0.32.4.
