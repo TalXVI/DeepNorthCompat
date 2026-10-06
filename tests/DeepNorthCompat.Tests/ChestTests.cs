@@ -52,6 +52,8 @@ internal static class ChestTests
     private static int outputs;
     private static bool failOutput;
     private static bool genericCraft;
+    private static Recipe? panelRecipe;
+    private static bool? panelCraftable;
 
     internal static void Run(string profile, Action<string, Action> test)
     {
@@ -97,6 +99,7 @@ internal static class ChestTests
         stack = AccessTools.Method(quick.GetType("QuickStackStore.QuickStackModule", true)!, "QuickStackIntoThisContainer");
         craft = AccessTools.Method(typeof(InventoryGui), "DoCrafting");
         fixture.Patch(craft, transpiler: new HarmonyMethod(AccessTools.Method(typeof(ChestTests), nameof(CraftBody))));
+        fixture.Patch(AccessTools.Method(typeof(InventoryGui), "UpdateCraftingPanel"), transpiler: new HarmonyMethod(AccessTools.Method(typeof(ChestTests), nameof(PanelBody))));
         fixture.Patch(AccessTools.Method(typeof(Inventory), "AddItem", new[] { typeof(string), typeof(int), typeof(int), typeof(int),
             typeof(long), typeof(string), typeof(Vector2i), typeof(bool), typeof(bool), typeof(bool) }),
             transpiler: new HarmonyMethod(AccessTools.Method(typeof(ChestTests), nameof(AddBody))));
@@ -132,7 +135,7 @@ internal static class ChestTests
         {
             void Case(string name, Action run) => test("chests: " + name, () =>
             {
-                Invoke(registry, "Reset"); Invoke(diagnostics, "Clear"); Invoke(report, "Clear"); Peer(100); now = 0; outputs = 0; failOutput = false; genericCraft = false; messages.Clear(); additions.Clear(); nearby.Clear();
+                Invoke(registry, "Reset"); Invoke(diagnostics, "Clear"); Invoke(report, "Clear"); Peer(100); now = 0; outputs = 0; failOutput = false; genericCraft = false; panelRecipe = null; panelCraftable = null; messages.Clear(); additions.Clear(); nearby.Clear();
                 player.GetInventory().GetAllItems().Clear(); run();
             });
             bool server = (bool)Invoke(typeof(Guard), "KnownServerBuild")!;
@@ -248,6 +251,18 @@ internal static class ChestTests
                     Check(selected.Count == 1 && selected[0].GetInventory() == owned.GetInventory() && nearby.Count == 2, "owned-only snapshot");
                 }
                 finally { AccessTools.Field(authority, "consuming").SetValue(null, false); }
+            });
+            ClientCase("the crafting panel refreshed after consumption still counts remote chests", () =>
+            {
+                genericCraft = true;
+                Container owned = Chest(100), remote = Chest(200); Payload(owned, "wood", 10); Payload(remote, "stone", 5);
+                ChestSync(owned); ChestSync(remote); nearby.Add(Adapter(owned)); nearby.Add(Adapter(remote)); InventoryGui gui = Gui();
+                ((Recipe)AccessTools.Field(typeof(InventoryGui), "m_craftRecipe").GetValue(gui)).m_resources[0].m_resItem.m_itemData.m_shared.m_maxQuality = 1;
+                ItemDrop stone = Fake<ItemDrop>("stone"); stone.m_itemData = Item("stone", 1); stone.m_itemData.m_shared.m_maxQuality = 1;
+                panelRecipe = Fake<Recipe>("stone-recipe"); panelRecipe.m_resources = new[] { new Piece.Requirement { m_resItem = stone, m_amount = 3 } };
+                craft.Invoke(gui, new object[] { player });
+                Check(outputs == 1 && owned.GetInventory().CountItems("wood") == 5 && remote.GetInventory().CountItems("stone") == 5, "crafted from the owned chest only");
+                Check(panelCraftable == true, "recipe backed by another player's chest stays craftable in the refreshed list");
             });
             ClientCase("forged reply cannot authorize output", () =>
             {
@@ -556,6 +571,16 @@ internal static class ChestTests
         object containers = AccessTools.Method(frame, "Get").MakeGenericMethod(typeof(Player)).Invoke(null, new object[] { value, 60f });
         Invoke(crafty.GetType("AzuCraftyBoxes.Util.Functions.MiscFunctions", true)!, "ProcessRequirements",
             recipe.m_resources, 1, value.GetInventory(), containers, -1, 1, null);
+        // Vanilla DoCrafting refreshes the crafting panel after consumption.
+        if (panelRecipe != null) AccessTools.Method(typeof(InventoryGui), "UpdateCraftingPanel").Invoke(gui, new object[] { false });
+    }
+    // The panel's recipe list marks each recipe through Crafty's requirement check.
+    private static IEnumerable<CodeInstruction> PanelBody(IEnumerable<CodeInstruction> _) => new[] { new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ChestTests), nameof(PanelRecipes))), new CodeInstruction(OpCodes.Ret) };
+    private static void PanelRecipes()
+    {
+        if (panelRecipe == null) return;
+        Type check = typeof(VanillaContainer).Assembly.GetType("AzuCraftyBoxes.Patches.PlayerHaveRequirementsPatchRBoolInt", true)!;
+        panelCraftable = (bool)Invoke(check, "HaveRequirementItems", Player.m_localPlayer, panelRecipe, false, 1, 1)!;
     }
     private static IEnumerable<CodeInstruction> AddBody(IEnumerable<CodeInstruction> _) => new[] { new CodeInstruction(OpCodes.Ldarg_0), new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ChestTests), nameof(AddOutput))), new CodeInstruction(OpCodes.Ret) };
     private static ItemDrop.ItemData? AddOutput(Inventory inventory)

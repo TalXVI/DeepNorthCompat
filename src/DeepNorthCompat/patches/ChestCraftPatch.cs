@@ -122,6 +122,8 @@ namespace DeepNorthCompat
             before.before = new[] { Plugin.Guid + ".Quality", "MidnightsFX.ImpactfulSkills", "Azumatt.AzuAntiArthriticCrafting" };
             harmony.Patch(Guard.Method(typeof(InventoryGui), "DoCrafting", typeof(void), typeof(Player)), prefix: before,
                 finalizer: Guard.Hook(typeof(ChestCraftPatch), nameof(EndCraft)));
+            harmony.Patch(Guard.Method(typeof(InventoryGui), "UpdateCraftingPanel", typeof(void), typeof(bool)),
+                prefix: Guard.Hook(typeof(ChestCraftPatch), nameof(BeginPanel), Priority.First), finalizer: Guard.Hook(typeof(ChestCraftPatch), nameof(EndPanel)));
             harmony.Patch(Guard.Method(typeof(InventoryGui), "OnCraftPressed", typeof(void)), postfix: Guard.Hook(typeof(ChestCraftPatch), nameof(Pressed)));
             harmony.Patch(Guard.Method(typeof(InventoryGui), "UpdateRecipe", typeof(void), typeof(Player), typeof(float)),
                 prefix: Guard.Hook(typeof(ChestCraftPatch), nameof(Update), Priority.First + 100),
@@ -165,6 +167,11 @@ namespace DeepNorthCompat
             __result = __result.Where(adapter => Unwrap(adapter) is not Container chest
                 || ChestRegistry.View(chest)?.IsOwner() == true).ToList();
         }
+
+        // Vanilla DoCrafting rebuilds the recipe list after consumption. The list previews every
+        // source the player can draw from, so the owned-only consumption filter does not apply.
+        private static void BeginPanel(out bool __state) { __state = consuming; consuming = false; }
+        private static Exception? EndPanel(Exception? __exception, bool __state) { consuming = __state; return __exception; }
 
         private static List<object> Sources(Player player) => ((IEnumerable)query!.Invoke(null, new object[] { player, Range })).Cast<object>().ToList();
         private static int Pullable(int count) => count > 0 && LeavingOne ? count - 1 : count;
