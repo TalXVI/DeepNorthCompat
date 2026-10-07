@@ -95,20 +95,31 @@ namespace DeepNorthCompat
             }
             // Quick Stack reads these inventories directly, so release stale use flags and
             // load current contents first.
+            var refreshed = new List<Container>();
             foreach (Container chest in ChestRegistry.Containers)
                 if ((ChestRegistry.LiveZdo(chest)!.GetPosition() - __0.transform.position).sqrMagnitude <= range * range)
                 {
                     ChestRegistry.Refresh(chest);
-                    ChestDiagnostics.Record("operation-chest", chest);
+                    refreshed.Add(chest);
                 }
+            if (!ChestDiagnostics.Enabled) return;
+            // Repeated presses touch the same chests. Record each chest's starting state once
+            // per burst; the settled record reports what changed.
+            try { refreshed = ItemLedger.BeginOperation(__originalMethod.Name, __0, refreshed).ToList(); }
+            catch (Exception error) { ChestDiagnostics.RecordText("diagnostics-hook-error", "ItemLedger.BeginOperation: " + error, Severity.Info); }
+            foreach (Container chest in refreshed) ChestDiagnostics.Record("operation-chest", chest);
         }
 
         private static Exception? EndOperation(Exception? __exception, Player __0, Operation __state)
         {
             if (__state.Before != null)
+            {
                 ChestDiagnostics.Record("operation-end", null, "player_delta=" + ChestDiagnostics.Format(ChestDiagnostics.Delta(__state.Before,
                     ChestDiagnostics.Counts(new[] { __0.GetInventory() }))) + (__exception == null ? "" : ";exception=" + __exception),
                     __exception == null ? Severity.Info : Severity.Problem);
+                try { ItemLedger.EndOperation(__0); }
+                catch (Exception error) { ChestDiagnostics.RecordText("diagnostics-hook-error", "ItemLedger.EndOperation: " + error, Severity.Info); }
+            }
             ChestDiagnostics.Operation = __state.Previous; return __exception;
         }
     }

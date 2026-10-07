@@ -412,6 +412,51 @@ internal static class ChestTests
                 }
                 finally { Invoke(diagnostics, "Disable"); }
             });
+            ClientCase("Quick Stack bursts settle after MultiUserChest returns and markers keep item movements", () =>
+            {
+                string directory = Sandbox();
+                Invoke(diagnostics, "Configure", directory, false, 1L << 20); Invoke(observer, "Install");
+                try
+                {
+                    MethodInfo quickStack = AccessTools.DeclaredMethod(quick.GetType("QuickStackStore.QuickStackModule", true)!, "DoQuickStack");
+                    Type ledger = typeof(Plugin).Assembly.GetType("DeepNorthCompat.ItemLedger", true)!;
+                    void Press(Container target)
+                    {
+                        object?[] args = { quickStack, player, null };
+                        AccessTools.Method(sync, "BeginOperation").Invoke(null, args);
+                        Stack(target);
+                        AccessTools.Method(sync, "EndOperation").Invoke(null, new object?[] { null, player, args[2] });
+                    }
+                    void Changed() => AccessTools.Method(typeof(Inventory), "Changed").Invoke(player.GetInventory(), new object[] { false, false });
+                    Container remote = Chest(200); Payload(remote, "wood", 10); ChestSync(remote);
+                    player.GetInventory().GetAllItems().Add(Item("wood", 15)); InventoryPatch.AddItemPostfix(player.GetInventory());
+                    Press(remote); Press(remote);
+                    Check(player.GetInventory().CountItems("wood") == 0 && additions.Count == 1, "MultiUserChest took the whole stack: player "
+                        + player.GetInventory().CountItems("wood") + ", requests " + additions.Count);
+                    // The owner keeps 5 and MultiUserChest returns the other 10.
+                    Payload(remote, "wood", 15); ChestSync(remote);
+                    player.GetInventory().GetAllItems().Add(Item("wood", 10)); Changed();
+                    now = 1; Invoke(ledger, "Tick");
+                    Check(Logs(directory).Contains("player-items") && Logs(directory).Contains("delta=wood:q1:w0=+10"), "return recorded");
+                    Check(!Logs(directory).Contains("operation-settled"), "burst waits for quiet");
+                    now = 4; Invoke(ledger, "Tick");
+                    string settled = Logs(directory);
+                    Check(settled.Contains("operations=2(DoQuickStack)") && settled.Contains("player_delta=wood:q1:w0=-5")
+                        && settled.Contains("wood:q1:w0=+5") && settled.Contains("unaccounted=none"), "balanced burst: "
+                        + settled.Split('\n').LastOrDefault(line => line.Contains("operation-settled")));
+                    Check(settled.Split('\n').Count(line => line.Contains("\toperation-chest\t")) == 1, "chest state recorded once per burst");
+                    // The owner never answers: the stack left the player and reached no chest.
+                    Press(remote); now = 8; Invoke(ledger, "Tick");
+                    string text = Report();
+                    Check(text.Contains("WARNING operation-settled") && text.Contains("unaccounted=wood:q1:w0=-10"), "lost items flagged");
+                    Invoke(diagnostics, "Mark", "tester", "wood gone");
+                    text = Report();
+                    Check(text.Contains("Item movements in the 20 minutes before:") && text.Contains("## Item movements"), "marker keeps item movements");
+                    Container own = Chest(100); own.SetInUse(true); own.SetInUse(true); own.SetInUse(true);
+                    Check(Logs(directory).Split('\n').Count(line => line.Contains("\topen-use\t")) == 1, "repeated opens recorded once");
+                }
+                finally { new Harmony("DeepNorthCompat.Diagnostics").UnpatchSelf(); Invoke(diagnostics, "Disable"); }
+            });
             ClientCase("handoff timeout cancels before consumption", () =>
             {
                 Container chest = Chest(200); Payload(chest, "wood", 10); ChestSync(chest); nearby.Add(Adapter(chest)); InventoryGui gui = Gui();

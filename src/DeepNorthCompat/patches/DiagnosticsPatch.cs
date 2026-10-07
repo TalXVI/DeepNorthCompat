@@ -36,8 +36,11 @@ namespace DeepNorthCompat
             CompatibilityInstaller.Info("Diagnostics: APPLIED; chest, crafting, network and error events are recorded.");
         }
 
+        // MultiUserChest calls SetInUse(true) every frame while a chest is open, so record an
+        // open only when the local flag is still clear.
         private static void Use(Container __instance, bool __0)
         {
+            if (__0 && __instance.IsInUse()) return;
             if (ChestRegistry.LiveZdo(__instance) != null) ChestDiagnostics.Record(__0 ? "open-use" : "close-use", __instance);
         }
 
@@ -109,6 +112,7 @@ namespace DeepNorthCompat
         {
             try
             {
+                ItemLedger.InventoryChanged(__instance);
                 Container? chest = ChestRegistry.Find(__instance);
                 if (chest is object && !ReferenceEquals(chest, loading)) Contents(chest, "inventory-changed");
             }

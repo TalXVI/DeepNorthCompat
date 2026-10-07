@@ -25,15 +25,24 @@ namespace DeepNorthCompat
         {
             internal DateTime Utc;
             internal string Who = "", Note = "";
-            internal string[] Context = Array.Empty<string>();
+            internal string[] Context = Array.Empty<string>(), Activity = Array.Empty<string>();
         }
 
         private const string Header = "utc\tsession\trole\tseverity\tevent\toperation\tchest\tpeer\towner\tdata_revision\tloaded_revision\tlocal_use\treplicated_use\tstacks\tfree_slots\titems\tpayload\tdetails";
+        // Item movements stay in marker context longer than other events: players often notice
+        // missing items minutes after they moved.
+        private static readonly HashSet<string> ActivityKinds = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "operation-end", "operation-settled", "player-items", "craft-result", "craft-handoff-cancelled",
+            "craft-output-without-consumption", "craft-consumed-without-output",
+        };
+        private const int ActivityLimit = 200, ActivityMinutes = 20, MarkerActivity = 40;
         private const int RecentLimit = 600, ChestHistory = 12, FindingLimit = 80, KeptEarlyFindings = 10, MarkerLimit = 30, SessionsRetained = 20, PartsPerSession = 16;
         internal static readonly string Session = Guid.NewGuid().ToString("N").Substring(0, 12);
         internal static readonly DateTime Started = DateTime.UtcNow;
         private static readonly object gate = new object();
         private static readonly Queue<(DateTime Utc, string Line)> recent = new Queue<(DateTime, string)>();
+        private static readonly Queue<(DateTime Utc, string Line)> activity = new Queue<(DateTime, string)>();
         private static readonly Dictionary<ZDOID, Queue<string>> histories = new Dictionary<ZDOID, Queue<string>>();
         private static readonly List<Finding> findings = new List<Finding>();
         private static readonly List<Marker> markers = new List<Marker>();
@@ -153,7 +162,9 @@ namespace DeepNorthCompat
             lock (gate)
             {
                 DateTime now = DateTime.UtcNow;
-                markers.Add(new Marker { Utc = now, Who = who, Note = note, Context = recent.Where(entry => (now - entry.Utc).TotalSeconds <= 90).Select(entry => entry.Line).Reverse().Take(30).Reverse().ToArray() });
+                markers.Add(new Marker { Utc = now, Who = who, Note = note,
+                    Context = recent.Where(entry => (now - entry.Utc).TotalSeconds <= 90).Select(entry => entry.Line).Reverse().Take(30).Reverse().ToArray(),
+                    Activity = activity.Where(entry => (now - entry.Utc).TotalMinutes <= ActivityMinutes).Select(entry => entry.Line).Reverse().Take(MarkerActivity).Reverse().ToArray() });
                 if (markers.Count > MarkerLimit) markers.RemoveAt(0);
                 Version++;
             }
@@ -177,6 +188,11 @@ namespace DeepNorthCompat
             else if (severity != Severity.Info) context = recent.Skip(Math.Max(0, recent.Count - 8)).Select(entry => entry.Line).ToArray();
             recent.Enqueue((DateTime.UtcNow, line));
             if (recent.Count > RecentLimit) recent.Dequeue();
+            if (ActivityKinds.Contains(kind))
+            {
+                activity.Enqueue((DateTime.UtcNow, line));
+                if (activity.Count > ActivityLimit) activity.Dequeue();
+            }
             if (severity != Severity.Info)
             {
                 if (severity == Severity.Problem) problems++; else warnings++;
@@ -213,11 +229,12 @@ namespace DeepNorthCompat
             if (first) CompatibilityInstaller.Error("Diagnostics could not record '" + kind + "'; gameplay continues. " + failure);
         }
 
-        internal static (Finding[] Findings, int Dropped, Marker[] Markers, string[] Recent, KeyValuePair<string, int>[] Counts, string[] Failures, bool WriteFailed) Snapshot(int recentLines)
+        internal static (Finding[] Findings, int Dropped, Marker[] Markers, string[] Recent, string[] Activity, KeyValuePair<string, int>[] Counts, string[] Failures, bool WriteFailed) Snapshot(int recentLines)
         {
             lock (gate)
                 return (findings.ToArray(), droppedFindings, markers.ToArray(),
                     recent.Skip(Math.Max(0, recent.Count - recentLines)).Select(entry => entry.Line).ToArray(),
+                    activity.Skip(Math.Max(0, activity.Count - recentLines)).Select(entry => entry.Line).ToArray(),
                     counts.OrderByDescending(entry => entry.Value).ThenBy(entry => entry.Key, StringComparer.Ordinal).ToArray(),
                     reportedFailures.ToArray(), writeFailed);
         }
@@ -319,9 +336,10 @@ namespace DeepNorthCompat
         {
             lock (gate)
             {
-                recent.Clear(); histories.Clear(); findings.Clear(); markers.Clear(); counts.Clear(); reportedFailures.Clear();
+                recent.Clear(); activity.Clear(); histories.Clear(); findings.Clear(); markers.Clear(); counts.Clear(); reportedFailures.Clear();
                 droppedFindings = problems = warnings = 0; Version++;
             }
+            ItemLedger.Reset();
         }
     }
 }

@@ -160,6 +160,8 @@ namespace DeepNorthCompat
         internal static void Tick()
         {
             if (!ChestDiagnostics.Enabled) return;
+            try { ItemLedger.Tick(); }
+            catch (Exception error) { ChestDiagnostics.RecordText("diagnostics-hook-error", "ItemLedger.Tick: " + error, Severity.Info); }
             if (nextAutoWrite == 0) nextAutoWrite = Time.realtimeSinceStartup + 300f;
             if (Time.realtimeSinceStartup < nextAutoWrite) return;
             nextAutoWrite = Time.realtimeSinceStartup + 300f;
@@ -325,6 +327,12 @@ namespace DeepNorthCompat
                 foreach (var marker in snapshot.Markers)
                 {
                     b.AppendLine("### " + marker.Utc.ToString("HH:mm:ss", CultureInfo.InvariantCulture) + " " + marker.Who + ": " + marker.Note).AppendLine();
+                    if (marker.Activity.Length > 0)
+                    {
+                        b.AppendLine("Item movements in the 20 minutes before:").AppendLine();
+                        Block(b, marker.Activity.Skip(Math.Max(0, marker.Activity.Length - budget.Recent)));
+                        b.AppendLine("Events in the 90 seconds before:").AppendLine();
+                    }
                     Block(b, marker.Context.Skip(Math.Max(0, marker.Context.Length - budget.Recent)));
                 }
             }
@@ -360,6 +368,14 @@ namespace DeepNorthCompat
                         b.AppendLine("- " + peer.m_uid + " " + peer.m_playerName + ": "
                             + (hellos.TryGetValue(peer.m_uid, out string hello) ? hello : "no DeepNorthCompat hello. This peer lacks DeepNorthCompat 1.1.3 or later."));
                 b.AppendLine();
+            }
+
+            if (snapshot.Activity.Length > 0)
+            {
+                b.AppendLine("## Item movements").AppendLine();
+                b.AppendLine("Quick Stack, restock and crafting results and other changes to the player's items, newest last. `operation-settled` "
+                    + "nets a burst of presses after MultiUserChest returns what a chest could not hold; `unaccounted` must be `none`.").AppendLine();
+                Block(b, snapshot.Activity);
             }
 
             b.AppendLine("## Recent events").AppendLine();
