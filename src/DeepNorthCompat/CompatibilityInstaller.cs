@@ -68,6 +68,7 @@ namespace DeepNorthCompat
                 AzuEpiPreviewPatch.Prepare(resolve(AzuEpiPreviewPatch.Owner));
             });
             InstallGroup("Simulation", () => SimulationPatch.Prepare(resolve));
+            InstallGroup("VPO.Burst", () => VpoBurstPatch.Prepare(resolve("dev.ontrigger.vpo")));
             InstallGroup("OwnerSkills", () => OwnerSkillPatch.Prepare(impact, resolve(SimulationPatch.ForkGuid)));
             InstallGroup("Tune.Client", () => TuneClientPatch.Prepare(resolve("akoozie.valheimtune")));
             // The registry also answers crafting handoffs, so every peer serves other peers'
@@ -84,6 +85,7 @@ namespace DeepNorthCompat
             DropRangePatch.Verify();
             AzuEpiPreviewPatch.Verify();
             SimulationPatch.Verify();
+            VpoBurstPatch.Verify();
             OwnerSkillPatch.Verify();
             TuneClientPatch.Verify();
         }

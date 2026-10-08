@@ -72,6 +72,7 @@ def run_suite(runtime, game, executable):
         # These are the same native scene boundaries as the original offline host.
         # Keep every callback alive until Mono finishes. No Unity scene is created.
         callbacks = [
+            ("UnityEngine.Application::get_platform", ctypes.CFUNCTYPE(integer)(lambda: 44 if os.environ.get("DEEPNORTHCOMPAT_TEST_MODE") == "server" else 2)),
             ("UnityEngine.Object::GetOffsetOfInstanceIDInCPlusPlusObject", ctypes.CFUNCTYPE(integer)(lambda: 0)),
             ("UnityEngine.Object::CurrentThreadIsMainThread", ctypes.CFUNCTYPE(integer)(lambda: 1)),
             ("UnityEngine.Animator::StringToHash_Injected", ctypes.CFUNCTYPE(integer, pointer)(lambda span: 0)),

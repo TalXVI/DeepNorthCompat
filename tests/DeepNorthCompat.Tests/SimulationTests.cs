@@ -136,6 +136,22 @@ internal static class SimulationTests
         {
             RegisterCore(); RegisterVendors();
             var vendor = new Harmony("MidnightsFX.ValheimCommunityPatch");
+            Type loading = vcp.GetType("ValheimCommunityPatch.Patches.Correctness.LoadingWaitPatch", true)!;
+            Type prefetch = vcp.GetType("ValheimCommunityPatch.Patches.Performance.PortalPrefetchPatch", true)!;
+            Type syncList = prefetch.GetNestedType("SyncListHooks", Flags)!;
+            vendor.PatchAll(loading);
+            vendor.PatchAll(prefetch); vendor.PatchAll(syncList);
+            MethodInfo[] loadingTargets = { AccessTools.Method(typeof(ZNet), "OnNewConnection"), AccessTools.Method(typeof(ZDOMan), "Update"),
+                AccessTools.Method(typeof(ZDOMan), "CreateSyncList") };
+            Type[] loadingGroups = { loading, prefetch, syncList };
+            MethodInfo[] loadingHooks = loadingTargets.SelectMany(Patches).Where(p => loadingGroups.Contains(p.PatchMethod.DeclaringType))
+                .Select(p => p.PatchMethod).ToArray();
+            Check(loadingHooks.Length == 4, "loading confirmation and portal prefetch hooks not registered");
+            Type dirty = Assembly.LoadFrom(Path.Combine(upstream, "tune.dll")).GetType("ValheimTune.Patches.DirtyPatches", true)!;
+            MethodInfo createSyncList = loadingTargets[2];
+            new Harmony("akoozie.valheimtune").Patch(createSyncList,
+                prefix: new HarmonyMethod(AccessTools.Method(dirty, "CreateSyncListPrefix")),
+                postfix: new HarmonyMethod(AccessTools.Method(dirty, "CreateSyncListPostfix")));
             foreach ((string type, string target, string hook) in new[]
             {
                 ("SpawnQueueCachePatch", "CreateObjectsSorted", "CreateObjectsSortedPrefix"),
@@ -158,6 +174,11 @@ internal static class SimulationTests
                 Check(!(Harmony.GetPatchInfo(AccessTools.Method(typeof(ZNetScene), target))?.Prefixes
                     .Any(p => p.owner == "MidnightsFX.ValheimCommunityPatch") ?? false), "upstream takeover did not remove " + target);
             Check((bool)Call(simulation, "CoreActive", fork)!, "upstream takeover removed Core");
+            Check(loadingTargets.SelectMany(Patches).Count(p => loadingHooks.Contains(p.PatchMethod)) == 4,
+                "simulation takeover removed VCP loading confirmation or portal prefetch");
+            Check(Patches(createSyncList).Count(p => p.owner == "akoozie.valheimtune") == 2, "Tune sync-list hooks removed");
+            Check(PatchProcessor.GetSortedPatchMethods(createSyncList, Harmony.GetPatchInfo(createSyncList)!.Postfixes.ToArray())
+                .Last().DeclaringType == syncList, "portal prefetch must append after Tune finishes its sync list");
         });
         Case("already registered fork VCP takeover is retained without duplication", () =>
         {
@@ -184,15 +205,18 @@ internal static class SimulationTests
             string[] before = Snapshot(); Prepare(); Call(simulation, "Verify");
             Check(!Active && VanillaFallback(before), "partial removal on rejection");
         });
-        Case("changed upstream build is rejected and disables the fork", () =>
+        foreach (string changedGuid in new[] { "dev.ontrigger.vpo", "MidnightsFX.ValheimCommunityPatch" })
         {
-            RegisterCore(); RegisterVendors(); string[] before = Snapshot();
-            Func<string, Assembly?> resolve = guid => guid == "MVP.Valheim_Serverside_Simulations" ? fork
-                : guid == "dev.ontrigger.vpo" ? typeof(SimulationTests).Assembly
-                : guid == "MidnightsFX.ValheimCommunityPatch" ? vcp : null;
-            Call(simulation, "Prepare", resolve); Call(simulation, "Verify");
-            Check(!Active && VanillaFallback(before), "changed vendor mutated state");
-        });
+            Case("changed " + changedGuid + " build is rejected and disables the fork", () =>
+            {
+                RegisterCore(); RegisterVendors(); string[] before = Snapshot();
+                Func<string, Assembly?> resolve = guid => guid == changedGuid ? typeof(SimulationTests).Assembly
+                    : guid == "MVP.Valheim_Serverside_Simulations" ? fork : guid == "dev.ontrigger.vpo" ? vpo
+                    : guid == "MidnightsFX.ValheimCommunityPatch" ? vcp : null;
+                Call(simulation, "Prepare", resolve); Call(simulation, "Verify");
+                Check(!Active && VanillaFallback(before), "changed vendor mutated state");
+            });
+        }
         Case("removal failure restores the vendor hooks and disables the fork", () =>
         {
             RegisterCore(); RegisterVendors(); string[] before = Snapshot(); Prepare(); removals = 0;

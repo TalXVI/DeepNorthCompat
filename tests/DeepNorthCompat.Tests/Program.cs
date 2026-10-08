@@ -25,14 +25,14 @@ internal static class Program
         try
         {
             if (Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_TEST_MODE") == "server") RunServer();
-            else { Run(); SimulationTests.Policy(Test); ClientSimulationTests.Run(Lab, Test); RunChests(); }
+            else { Run(); SimulationTests.Policy(Test); ClientSimulationTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); RunChests(); }
             SysConsole.WriteLine($"PASS: {passed} test cases"); return 0;
         }
         catch (Exception exception) { SysConsole.Error.WriteLine(exception); return 1; }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static void RunServer() { SimulationTests.Run(Lab, Test); ChestTests.Run(Lab, Test); }
+    private static void RunServer() { SimulationTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); ChestTests.Run(Lab, Test); }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void RunChests() => ChestTests.Run(Lab, Test);
@@ -223,7 +223,7 @@ internal static class Program
             int inactive = 0;
             CompatibilityInstaller.Install(_ => null, message => { if (message.Contains("inactive")) inactive++; },
                 _ => { }, error => { throw new Exception(error); });
-            Check(inactive == 10, "optional module count");
+            Check(inactive == 11, "optional module count");
         });
         Test("changed upstream assembly rejected safely", () =>
         {

@@ -107,6 +107,8 @@ def main():
     required = ("Simulation: APPLIED", "OwnerSkills: APPLIED", "Sarkastic.eu Dedicated Simulation installed", "[ValheimTune] 0.7.9 loaded",
                 "Removed ValheimCommunityPatch's spawn queue from ZNetScene.CreateObjectsSorted",
                 "Removed ValheimCommunityPatch's zone-diff unload from ZNetScene.RemoveObjects")
+    if os.name == "nt" and list((bepinex / "plugins").rglob("ValheimPerformanceOptimizations.dll")):
+        required += ("VPO.Burst: APPLIED",)
     ready = False
     with (runtime / "stdout.log").open("w", encoding="utf-8") as output:
         process = subprocess.Popen(command, cwd=runtime, env=environment, stdin=subprocess.PIPE, stdout=output, stderr=subprocess.STDOUT, text=True, **options)

@@ -9,6 +9,7 @@ It currently fixes bugs and incompatibilities involving:
 - SeaAnimals and AirAnimals custom creature drop ranges.
 - AzuEPI inventory character preview, which restarted its animation whenever a nearby creature or player changed equipment.
 - Serverside Simulation with VPO/VCP object management, ImpactfulSkills owner-side bonuses, and ValheimTune client loading.
+- VPO native water-wave initialization on Windows dedicated servers.
 - MultiUserChest stale chest inventories after ownership changes.
 - AzuCraftyBoxes chest ownership during crafting.
 
@@ -29,7 +30,7 @@ Each fix is written against one exact build of the mods it touches:
 - [MistrCech Serverside Simulation](https://github.com/MistrCech/valheim-serverside) 1.11.0
 - ValheimTune 0.7.8 and 0.7.9
 - ValheimPerformanceOptimizations 1.2.3
-- ValheimCommunityPatch 0.32.4
+- ValheimCommunityPatch 0.34.1
 - MultiUserChest 0.6.2
 - Quick Stack - Store - Sort - Trash - Restock 1.4.15
 
