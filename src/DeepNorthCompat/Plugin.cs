@@ -6,7 +6,7 @@ using BepInEx.Bootstrap;
 
 namespace DeepNorthCompat
 {
-    [BepInPlugin(Guid, "DeepNorthCompat", "1.1.5")]
+    [BepInPlugin(Guid, "DeepNorthCompat", "1.1.6")]
     [BepInDependency("MidnightsFX.ImpactfulSkills", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuCraftyBoxes", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuAntiArthriticCrafting", BepInDependency.DependencyFlags.SoftDependency)]

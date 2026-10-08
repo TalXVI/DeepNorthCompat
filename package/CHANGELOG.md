@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.6
+
+- Supports ValheimCommunityPatch 0.34.1 while preserving its loading confirmation, portal prefetch and HearthBelow compatibility fixes.
+- Fixes VPO 1.2.3 native-library initialization on Windows dedicated servers, preventing recursive water-wave calls. Servers verify native loading and the Burst job probe before reporting the fix applied.
+- Records settled Quick Stack and restock transfers after MultiUserChest's delayed returns. Diagnostic reports and markers retain item movements and flag unaccounted items when the touched chests have current data.
+
 ## 1.1.5
 
 - Supports Valheim 1.0.17 clients and dedicated servers (Windows and Linux) and ValheimTune 0.7.9. Neither update changes a method this mod patches.
