@@ -25,14 +25,14 @@ internal static class Program
         try
         {
             if (Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_TEST_MODE") == "server") RunServer();
-            else { Run(); SimulationTests.Policy(Test); ClientSimulationTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); RunChests(); }
+            else { Run(); TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); RunChests(); }
             SysConsole.WriteLine($"PASS: {passed} test cases"); return 0;
         }
         catch (Exception exception) { SysConsole.Error.WriteLine(exception); return 1; }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static void RunServer() { SimulationTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); ChestTests.Run(Lab, Test); }
+    private static void RunServer() { TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); ChestTests.Run(Lab, Test); }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void RunChests() => ChestTests.Run(Lab, Test);
@@ -223,15 +223,14 @@ internal static class Program
             int inactive = 0;
             CompatibilityInstaller.Install(_ => null, message => { if (message.Contains("inactive")) inactive++; },
                 _ => { }, error => { throw new Exception(error); });
-            Check(inactive == 11, "optional module count");
+            Check(inactive == 9, "optional module count");
         });
         Test("changed upstream assembly rejected safely", () =>
         {
             var errors = new List<string>();
             CompatibilityInstaller.Install(guid => guid == "MidnightsFX.ImpactfulSkills" ? typeof(Program).Assembly : null,
                 _ => { }, _ => { }, errors.Add);
-            Check(errors.Count == 2 && errors.Any(error => error.StartsWith("Bow: NOT APPLIED"))
-                && errors.Any(error => error.StartsWith("OwnerSkills: NOT APPLIED")), "changed build rejected for both client integrations");
+            Check(errors.Count == 1 && errors.Any(error => error.StartsWith("Bow: NOT APPLIED")), "changed build rejected for retained bow integration");
         });
 
         var assemblies = new Dictionary<string, Assembly>
@@ -247,11 +246,11 @@ internal static class Program
         {
             BepInEx.BepInPlugin identity = typeof(Plugin).GetCustomAttribute<BepInEx.BepInPlugin>()!;
             Check(identity.GUID == "DeepNorthCompat" && identity.Name == "DeepNorthCompat"
-                && identity.Version.ToString() == "1.1.6"
+                && identity.Version.ToString() == "1.2.0"
                 && typeof(Plugin).Assembly.GetName().Name == "DeepNorthCompat", "plugin identity");
             Check(typeof(BepInEx.BaseUnityPlugin).IsAssignableFrom(typeof(Plugin)), "BepInEx entry point");
             var dependencies = typeof(Plugin).GetCustomAttributes<BepInEx.BepInDependency>().ToArray();
-            Check(dependencies.Length == 12 && dependencies.All(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.SoftDependency),
+            Check(dependencies.Length == 10 && dependencies.All(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.SoftDependency),
                 "optional dependencies");
             Check(!typeof(Plugin).Assembly.GetReferencedAssemblies().Any(reference =>
                 assemblies.Values.Any(vendor => reference.Name == vendor.GetName().Name)), "hard vendor reference");

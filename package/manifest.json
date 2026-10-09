@@ -1,8 +1,8 @@
 {
   "name": "DeepNorthCompat",
-  "version_number": "1.1.6",
+  "version_number": "1.2.0",
   "website_url": "https://github.com/TalXVI/DeepNorthCompat",
-  "description": "Fixes quality crafting, bow stamina, animal drops and AzuEPI previews, and integrates dedicated simulation with VPO, VCP, ImpactfulSkills and ValheimTune.",
+  "description": "Deep North fixes for crafting, chest ownership, bow stamina, animal drops, AzuEPI previews, VPO native loading and client ValheimTune policy.",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2351"
   ]

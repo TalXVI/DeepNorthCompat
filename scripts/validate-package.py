@@ -7,6 +7,7 @@ from pathlib import Path
 import zipfile
 
 from thunderstore import check_sources
+from provenance import verify_sources
 from tooling import require
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +21,7 @@ def main():
     args = parser.parse_args()
     manifest = json.loads((ROOT / "package/manifest.json").read_text(encoding="utf-8"))
     approved = json.loads((ROOT / "package/validated-build.json").read_text(encoding="utf-8"))
+    verify_sources(approved)
     check_sources(manifest)
     if args.release_tag:
         require(args.release_tag == "v" + manifest["version_number"], "Release tag differs from the manifest version")
@@ -29,11 +31,13 @@ def main():
     require(manifest["website_url"] == "https://github.com/TalXVI/DeepNorthCompat", "Package website changed")
     require(manifest["dependencies"] == ["denikson-BepInExPack_Valheim-5.4.2351"], "Package dependencies changed")
     archive_path = ROOT / "dist" / (manifest["name"] + "-" + manifest["version_number"] + ".zip")
-    members = ["manifest.json", "README.md", "CHANGELOG.md", "LICENSE", "icon.png", DLL_MEMBER]
+    members = ["manifest.json", "README.md", "CHANGELOG.md", "LICENSE", "icon.png", "docs/serverbound-migration.md", DLL_MEMBER]
     with zipfile.ZipFile(archive_path) as archive:
         require(archive.namelist() == members and archive.testzip() is None, "Package members changed or corrupt")
         require(archive.read("README.md") == (ROOT / "README.md").read_bytes(), "Packaged README is stale")
         require(archive.read("LICENSE") == (ROOT / "LICENSE").read_bytes(), "Packaged LICENSE is stale")
+        require(archive.read("docs/serverbound-migration.md") == (ROOT / "docs/serverbound-migration.md").read_bytes(),
+                "Packaged migration guide is stale")
         require(json.loads(archive.read("manifest.json")) == manifest, "Packaged manifest is stale")
         require(hashlib.sha256(archive.read(DLL_MEMBER)).hexdigest() == approved["sha256"],
                 "Packaged DLL differs from the approved hash")

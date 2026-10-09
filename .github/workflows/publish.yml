@@ -26,7 +26,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh release download "$TAG" --pattern "DeepNorthCompat-*.zip" --dir dist
       - name: Validate it against the tagged sources
-        run: python -B scripts/validate-package.py --release-tag "$TAG"
+        run: |
+          python -B scripts/test-provenance.py
+          python -B scripts/validate-package.py --release-tag "$TAG"
       - name: Upload to Thunderstore
         env:
           TCLI_AUTH_TOKEN: ${{ secrets.TCLI_AUTH_TOKEN }}

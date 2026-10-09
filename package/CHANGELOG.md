@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0
+
+- Transfers dedicated object-management integration and the ImpactfulSkills server/client bridge to Serverbound. Removes superseded hooks, protocol handlers and simulation dependency.
+- Retains independent chest-close, MultiUserChest refresh, Crafty handoff, gameplay and VPO native-loading fixes.
+- Retains client ValheimTune disabling as an explicit Deep North profile policy. Public Serverbound does not impose that policy.
+- Requires coordinated Serverbound installation for migrated integrations. Older DeepNorthCompat releases are unsafe beside Serverbound.
+- Verifies downloaded release packages against every validated source file. Validation records remain stable after committing them.
+
 ## 1.1.6
 
 - Supports ValheimCommunityPatch 0.34.1 while preserving its loading confirmation, portal prefetch and HearthBelow compatibility fixes.

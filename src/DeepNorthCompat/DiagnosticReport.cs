@@ -39,7 +39,7 @@ namespace DeepNorthCompat
         private static readonly string[] Relevant =
         {
             Plugin.Guid, ChestSyncPatch.MucGuid, ChestSyncPatch.QuickGuid, "Azumatt.AzuCraftyBoxes", "Azumatt.AzuAntiArthriticCrafting",
-            "MidnightsFX.ImpactfulSkills", SimulationPatch.ForkGuid, "dev.ontrigger.vpo", "MidnightsFX.ValheimCommunityPatch", "akoozie.valheimtune",
+            "MidnightsFX.ImpactfulSkills", "org.serverbound.valheim", "dev.ontrigger.vpo", "MidnightsFX.ValheimCommunityPatch", "akoozie.valheimtune",
         };
         private static readonly object gate = new object();
         private static readonly List<string> startup = new List<string>();

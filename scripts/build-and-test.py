@@ -10,6 +10,7 @@ import subprocess
 import sys
 
 from thunderstore import check_sources
+from provenance import source_files, fingerprint
 from tooling import ROOT, child_environment, installation_paths, reference_assemblies
 
 
@@ -20,9 +21,9 @@ def main():
     args = parser.parse_args()
     packaging = not (args.build_only or args.no_package)
     if packaging:
-        for variable in ("DEEPNORTHCOMPAT_SERVER_PATH", "DEEPNORTHCOMPAT_SIMULATION_PATH"):
+        for variable in ("DEEPNORTHCOMPAT_SERVER_PATH", "DEEPNORTHCOMPAT_VENDOR_PATH"):
             if not os.environ.get(variable):
-                raise RuntimeError(f"Set {variable}: packaging requires both client and dedicated-simulation validation.")
+                raise RuntimeError(f"Set {variable}: packaging requires both client and dedicated-role validation.")
         # Fail before a long build if the upload would be rejected or mislabeled.
         check_sources(json.loads((ROOT / "package/manifest.json").read_text(encoding="utf-8")))
     dotnet = shutil.which("dotnet")
@@ -41,6 +42,7 @@ def main():
     if args.build_only:
         return
     passed = run_suite(environment)
+    subprocess.run([sys.executable, "-B", str(ROOT / "scripts/test-provenance.py")], cwd=ROOT, check=True)
     if not packaging:
         return
     approve(passed)
@@ -70,6 +72,9 @@ def approve(passed):
     approved = {"pluginGUID": "DeepNorthCompat", "pluginName": "DeepNorthCompat",
                 "version": manifest["version_number"], "sha256": hashlib.sha256(built.read_bytes()).hexdigest(),
                 "offlineTestsPassed": passed}
+    files = source_files()
+    approved["sourceFiles"] = files
+    approved["sourceSha256"] = fingerprint(files)
     (ROOT / "package/validated-build.json").write_bytes((json.dumps(approved, indent=2) + "\n").encode("utf-8"))
 
 

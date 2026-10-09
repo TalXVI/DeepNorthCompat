@@ -21,6 +21,13 @@ namespace DeepNorthCompat
             "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE"
         };
         internal const string AzuEpi = "41ED9378929090C5C46363A319C6A1F63F85DCF18DDE2DA1C0CAB49C39DBECFA";
+        internal static readonly string[] Server =
+        {
+            "7CAB9B49D31EC064591CA80402DD35C566E03B7297CFB7BF4696C38DA4E24D8B",
+            "50035055F9B158A025CACD25E038B603943F7C2A465DA3021707B5F1E44E39FD",
+            "0DFC7E81436F822121148EFED859BA1E661D58B9484BD45E3B6F33B6DD86BFAD",
+            "E7220DC5D9CF9D38270E751352D94918308E59CCA86E56C4BDA0210016C847FA"
+        };
     }
 
     public static class CompatibilityInstaller
@@ -67,9 +74,7 @@ namespace DeepNorthCompat
                 if (Guard.KnownServerBuild()) { Info("Preview.AzuEPI: client-only patch; inactive on dedicated server."); return; }
                 AzuEpiPreviewPatch.Prepare(resolve(AzuEpiPreviewPatch.Owner));
             });
-            InstallGroup("Simulation", () => SimulationPatch.Prepare(resolve));
             InstallGroup("VPO.Burst", () => VpoBurstPatch.Prepare(resolve("dev.ontrigger.vpo")));
-            InstallGroup("OwnerSkills", () => OwnerSkillPatch.Prepare(impact, resolve(SimulationPatch.ForkGuid)));
             InstallGroup("Tune.Client", () => TuneClientPatch.Prepare(resolve("akoozie.valheimtune")));
             // The registry also answers crafting handoffs, so every peer serves other peers'
             // requests even when its own crafting hooks or MultiUserChest guards fail.
@@ -84,9 +89,7 @@ namespace DeepNorthCompat
         {
             DropRangePatch.Verify();
             AzuEpiPreviewPatch.Verify();
-            SimulationPatch.Verify();
             VpoBurstPatch.Verify();
-            OwnerSkillPatch.Verify();
             TuneClientPatch.Verify();
         }
 
@@ -130,7 +133,7 @@ namespace DeepNorthCompat
         {
             using (SHA256 sha = SHA256.Create())
             using (FileStream file = File.OpenRead(typeof(ZNet).Assembly.Location))
-                return SimulationPatch.ServerHashes.Contains(BitConverter.ToString(sha.ComputeHash(file)).Replace("-", ""));
+                return ExpectedBuilds.Server.Contains(BitConverter.ToString(sha.ComputeHash(file)).Replace("-", ""));
         }
         public static void Build(Assembly assembly, params string[] expectedHashes)
         {

@@ -35,7 +35,7 @@ namespace DeepNorthCompat
 
         internal static void Install(Assembly? crafty)
         {
-            Guard.Build(typeof(Container).Assembly, ExpectedBuilds.Valheim.Concat(SimulationPatch.ServerHashes).ToArray());
+            Guard.Build(typeof(Container).Assembly, ExpectedBuilds.Valheim.Concat(ExpectedBuilds.Server).ToArray());
             ChestCraftPatch.PrepareOwner(crafty);
             var harmony = new Harmony(Owner);
             harmony.Patch(Guard.Method(typeof(Container), "Awake", typeof(void)), postfix: Guard.Hook(typeof(ChestRegistry), nameof(Track), Priority.Last));
