@@ -81,7 +81,7 @@ namespace DeepNorthCompat
 
     public static class IngredientSelector
     {
-        // Match ImpactfulSkills 0.21.0: lowest tier that covers the entire requirement.
+        // Match ImpactfulSkills 0.21.1: lowest tier that covers the entire requirement.
         // If no single tier suffices, consume across tiers and award no quality bonus.
         public static IngredientPlan<TItem, TSource>? Select<TItem, TSource>(IReadOnlyList<ResourceStack<TItem, TSource>> stacks,
             IReadOnlyList<ResourceNeed<TSource>> needs, int worldLevel, bool leaveOne) where TItem : notnull where TSource : notnull

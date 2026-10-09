@@ -23,7 +23,7 @@ Version 1.2.0 transfers dedicated simulation takeover and the ImpactfulSkills sk
 
 Each fix is written against one exact build of the mods it touches:
 
-- ImpactfulSkills 0.21.0
+- ImpactfulSkills 0.21.1
 - AzuCraftyBoxes 1.8.27
 - AAA Crafting 2.1.11
 - SeaAnimals 0.3.9

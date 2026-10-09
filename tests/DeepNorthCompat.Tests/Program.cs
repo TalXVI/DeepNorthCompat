@@ -225,12 +225,18 @@ internal static class Program
                 _ => { }, error => { throw new Exception(error); });
             Check(inactive == 9, "optional module count");
         });
-        Test("changed upstream assembly rejected safely", () =>
+        Test("changed ImpactfulSkills assembly rejects bow and quality hooks safely", () =>
         {
             var errors = new List<string>();
-            CompatibilityInstaller.Install(guid => guid == "MidnightsFX.ImpactfulSkills" ? typeof(Program).Assembly : null,
+            Assembly crafty = Assembly.LoadFrom(Path.Combine(Lab, "BepInEx", "plugins", "Azumatt-AzuCraftyBoxes", "AzuCraftyBoxes.dll"));
+            CompatibilityInstaller.Install(guid => guid == "MidnightsFX.ImpactfulSkills" ? typeof(Program).Assembly
+                : guid == "Azumatt.AzuCraftyBoxes" ? crafty : null,
                 _ => { }, _ => { }, errors.Add);
-            Check(errors.Count == 1 && errors.Any(error => error.StartsWith("Bow: NOT APPLIED")), "changed build rejected for retained bow integration");
+            Check(errors.Count == 2 && errors.Any(error => error.StartsWith("Bow: NOT APPLIED"))
+                && errors.Any(error => error.StartsWith("Quality: NOT APPLIED")), "changed build rejected for both integrations");
+            Check(!Harmony.GetAllPatchedMethods().Any(method => Harmony.GetPatchInfo(method)!.Owners
+                .Any(owner => owner == "DeepNorthCompat.Bow" || owner == "DeepNorthCompat.Quality")),
+                "rejected integrations left hooks installed");
         });
 
         var assemblies = new Dictionary<string, Assembly>
@@ -246,7 +252,7 @@ internal static class Program
         {
             BepInEx.BepInPlugin identity = typeof(Plugin).GetCustomAttribute<BepInEx.BepInPlugin>()!;
             Check(identity.GUID == "DeepNorthCompat" && identity.Name == "DeepNorthCompat"
-                && identity.Version.ToString() == "1.2.0"
+                && identity.Version.ToString() == "1.2.1"
                 && typeof(Plugin).Assembly.GetName().Name == "DeepNorthCompat", "plugin identity");
             Check(typeof(BepInEx.BaseUnityPlugin).IsAssignableFrom(typeof(Plugin)), "BepInEx entry point");
             var dependencies = typeof(Plugin).GetCustomAttributes<BepInEx.BepInDependency>().ToArray();

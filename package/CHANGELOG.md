@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1
+
+- Supports ImpactfulSkills 0.21.1 after auditing its bow and quality-crafting hooks. Retains the bow stamina correction and quality-aware crafting from AzuCraftyBoxes containers.
+
 ## 1.2.0
 
 - Transfers dedicated object-management integration and the ImpactfulSkills server/client bridge to Serverbound. Removes superseded hooks, protocol handlers and simulation dependency.

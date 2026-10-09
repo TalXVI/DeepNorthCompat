@@ -1,6 +1,6 @@
 {
   "name": "DeepNorthCompat",
-  "version_number": "1.2.0",
+  "version_number": "1.2.1",
   "website_url": "https://github.com/TalXVI/DeepNorthCompat",
   "description": "Deep North fixes for crafting, chest ownership, bow stamina, animal drops, AzuEPI previews, VPO native loading and client ValheimTune policy.",
   "dependencies": [
