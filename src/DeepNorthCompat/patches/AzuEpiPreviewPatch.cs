@@ -29,7 +29,7 @@ namespace DeepNorthCompat
             // StartupAccelerator can defer AzuEPI's Harmony registrations until chainloading
             // finishes. Inspect and remove them in Start, after that batch has completed.
             pending = assembly;
-            CompatibilityInstaller.Info("Preview.AzuEPI: 2.6.1 build verified; awaiting vendor Harmony registrations.");
+            CompatibilityInstaller.Info("Preview.AzuEPI: 2.6.3 build verified; awaiting vendor Harmony registrations.");
         }
 
         internal static void Verify()
@@ -66,7 +66,7 @@ namespace DeepNorthCompat
                 // SetPreviewPose also copied weapon stance. Keep that part, without its pose reset or render.
                 harmony.Patch(refresh, postfix: Guard.Hook(typeof(AzuEpiPreviewPatch), nameof(SyncStance), Priority.Last));
                 foreach ((MethodInfo target, Patch patch) in hooks) harmony.Unpatch(target, patch.PatchMethod);
-                CompatibilityInstaller.Info("Preview.AzuEPI: APPLIED; removed the two broad 2.6.1 equipment preview postfixes; weapon stance syncs through the local preview update.");
+                CompatibilityInstaller.Info("Preview.AzuEPI: APPLIED; removed the two broad 2.6.3 equipment preview postfixes; weapon stance syncs through the local preview update.");
             }
             catch (Exception exception)
             {

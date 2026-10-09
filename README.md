@@ -28,7 +28,7 @@ Each fix is written against one exact build of the mods it touches:
 - AAA Crafting 2.1.11
 - SeaAnimals 0.3.9
 - AirAnimals 0.3.2
-- AzuEPI 2.6.1
+- AzuEPI 2.6.3
 - ValheimTune 0.7.8 and 0.7.9
 - ValheimPerformanceOptimizations 1.2.3
 - MultiUserChest 0.6.2

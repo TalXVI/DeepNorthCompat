@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.2
+
+- Supports AzuExtendedPlayerInventory 2.6.3 after auditing its preview hooks. Retains smooth inventory-preview animation and local weapon-stance synchronization.
+
 ## 1.2.1
 
 - Supports ImpactfulSkills 0.21.1 after auditing its bow and quality-crafting hooks. Retains the bow stamina correction and quality-aware crafting from AzuCraftyBoxes containers.
