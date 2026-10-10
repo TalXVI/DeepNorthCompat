@@ -469,7 +469,7 @@ namespace DeepNorthCompat
             nview.InvokeRPC(sender, ReplyRpc, reply);
         }
 
-        private static bool WardAccess(Vector3 position, long playerId)
+        internal static bool WardAccess(Vector3 position, long playerId)
         {
             // PrivateArea.CheckAccess checks Player.m_localPlayer and cannot authorize
             // the requester on a dedicated server or a different owning client.

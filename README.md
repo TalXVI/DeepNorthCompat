@@ -12,10 +12,9 @@ It currently fixes bugs and incompatibilities involving:
 - VPO native water-wave initialization on Windows dedicated servers.
 - MultiUserChest stale chest inventories after ownership changes.
 - AzuCraftyBoxes chest ownership during crafting.
+- OdinShip canoe propulsion, replicated ship names, mounted ammunition refunds, input handling, and manual FishPress payment.
 
 Install the same version on the dedicated server and every client, then restart.
-
-Version 1.2.0 transfers dedicated simulation takeover and the ImpactfulSkills skill bridge to Serverbound. Install the same Serverbound candidate on the server and participating skill clients. DeepNorthCompat no longer supplies those integrations or requires a predecessor simulation DLL. Keep its independent chest and crafting fixes if you use them. Older DeepNorthCompat builds must be removed before using Serverbound. See [the migration guide](docs/serverbound-migration.md).
 
 ## Supported versions
 
@@ -23,7 +22,7 @@ Version 1.2.0 transfers dedicated simulation takeover and the ImpactfulSkills sk
 
 Each fix is written against one exact build of the mods it touches:
 
-- ImpactfulSkills 0.21.1
+- ImpactfulSkills 0.21.1 and 0.21.3
 - AzuCraftyBoxes 1.8.27
 - AAA Crafting 2.1.11
 - SeaAnimals 0.3.9
@@ -33,5 +32,8 @@ Each fix is written against one exact build of the mods it touches:
 - ValheimPerformanceOptimizations 1.2.3
 - MultiUserChest 0.6.2
 - Quick Stack - Store - Sort - Trash - Restock 1.4.15
+- OdinShip 0.8.7
 
 Mod patches only activate if the corresponding mod and supported version are present.
+
+Manual FishPress feeding checks that the owner supports the fix before consuming a fish. Rejected fish return to your inventory once space is available. If delivery is unconfirmed, the fish is not automatically restored. Pending refunds are lost when you leave the session or restart.

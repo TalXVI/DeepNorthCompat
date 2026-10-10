@@ -6,7 +6,7 @@ using BepInEx.Bootstrap;
 
 namespace DeepNorthCompat
 {
-    [BepInPlugin(Guid, "DeepNorthCompat", "1.2.2")]
+    [BepInPlugin(Guid, "DeepNorthCompat", "1.2.3")]
     [BepInDependency("MidnightsFX.ImpactfulSkills", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuCraftyBoxes", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuAntiArthriticCrafting", BepInDependency.DependencyFlags.SoftDependency)]
@@ -17,6 +17,7 @@ namespace DeepNorthCompat
     [BepInDependency("akoozie.valheimtune", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.maxsch.valheim.MultiUserChest", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("goldenrevolver.quick_stack_store", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("marlthon.OdinShip", BepInDependency.DependencyFlags.SoftDependency)]
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "DeepNorthCompat";
@@ -58,7 +59,12 @@ namespace DeepNorthCompat
                 Logger.LogWarning("Simulation compatibility moved to Serverbound in DeepNorthCompat 1.2.0. The predecessor simulation is loaded without the retired takeover and skill bridge. Stop and follow the coordinated migration guide before using those integrations.");
         }
 
-        private void Update() => DiagnosticReport.Tick();
+        private void Update()
+        {
+            DiagnosticReport.Tick();
+            OdinShipPatch.Tick();
+            OdinShipFishPatch.Tick();
+        }
 
         private void OnDestroy() => ChestDiagnostics.Disable();
     }

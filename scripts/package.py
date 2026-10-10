@@ -34,7 +34,7 @@ def main():
     shutil.copyfile(built, payload)
     shutil.copyfile(ROOT / "README.md", PACKAGE / "README.md")
     shutil.copyfile(ROOT / "LICENSE", PACKAGE / "LICENSE")
-    members = ["manifest.json", "README.md", "CHANGELOG.md", "LICENSE", "icon.png", "docs/serverbound-migration.md", DLL_MEMBER]
+    members = ["manifest.json", "README.md", "CHANGELOG.md", "LICENSE", "icon.png", DLL_MEMBER]
     output = ROOT / "dist" / (manifest["name"] + "-" + manifest["version_number"] + ".zip")
     output.parent.mkdir(exist_ok=True)
     with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
@@ -42,8 +42,7 @@ def main():
             info = zipfile.ZipInfo(member, date_time=(2026, 9, 30, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o100644 << 16
-            source = ROOT / member if member == "docs/serverbound-migration.md" else PACKAGE / member
-            archive.writestr(info, source.read_bytes(), compresslevel=9)
+            archive.writestr(info, (PACKAGE / member).read_bytes(), compresslevel=9)
     with zipfile.ZipFile(output) as archive:
         require(archive.testzip() is None, "Package archive is corrupt")
         require(archive.namelist() == members, "Package members changed")

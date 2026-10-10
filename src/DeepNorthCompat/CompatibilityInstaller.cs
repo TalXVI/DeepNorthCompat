@@ -9,7 +9,11 @@ namespace DeepNorthCompat
 {
     internal static class ExpectedBuilds
     {
-        internal const string ImpactfulSkills = "D6E0844F3DADE42B23C33A678EB6E3D6DAA288DCC4187F497B8BB2A1F3CF47BA";
+        internal static readonly string[] ImpactfulSkills =
+        {
+            "D6E0844F3DADE42B23C33A678EB6E3D6DAA288DCC4187F497B8BB2A1F3CF47BA",
+            "52DB5951ADDA57426706A58C9F7C530DFD7519A3E987C73516992111588EF656"
+        };
         internal const string CraftyBoxes = "432285A08AA0D43BBD89B36330BEDC19CB6EA93AED439E493D0287EDAECEDEB4";
         internal const string AAACrafting = "316C5B47B449B8172627BD48C12830429E38BBD21A704746F86D1053D38D4830";
         internal const string SeaAnimals = "3F57F6AD089D5616A924D5917851A0A7C99715CC0B2062EF23B2FA15D07C721A";
@@ -21,6 +25,14 @@ namespace DeepNorthCompat
             "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE"
         };
         internal const string AzuEpi = "0C8702F9F9A3F4AE2A0E9977801F40E1691E42D1B5CE60863C1B01FF5697C52E";
+        internal const string OdinShip = "5D5817BC169677DB49CAE55986B3F6A178AB3BF0B1D681A2ABA4ECC5DAC067D0";
+        // OdinShip integration was inspected against these 1.0.17 roles only.
+        internal static readonly string[] OdinShipGame =
+        {
+            "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
+            "0DFC7E81436F822121148EFED859BA1E661D58B9484BD45E3B6F33B6DD86BFAD",
+            "E7220DC5D9CF9D38270E751352D94918308E59CCA86E56C4BDA0210016C847FA"
+        };
         internal static readonly string[] Server =
         {
             "7CAB9B49D31EC064591CA80402DD35C566E03B7297CFB7BF4696C38DA4E24D8B",
@@ -77,6 +89,10 @@ namespace DeepNorthCompat
             InstallGroup("VPO.Burst", () => VpoBurstPatch.Prepare(resolve("dev.ontrigger.vpo")));
             InstallGroup("UI.TabAudio", TabAudioPatch.Prepare);
             InstallGroup("Tune.Client", () => TuneClientPatch.Prepare(resolve("akoozie.valheimtune")));
+            Assembly? odin = resolve("marlthon.OdinShip");
+            InstallGroup("OdinShip.Core", () => OdinShipPatch.Prepare(odin));
+            InstallGroup("OdinShip.Input", () => OdinShipInputPatch.Prepare(odin));
+            InstallGroup("OdinShip.FishPress", () => OdinShipFishPatch.Prepare(odin));
             // The registry also answers crafting handoffs, so every peer serves other peers'
             // requests even when its own crafting hooks or MultiUserChest guards fail.
             InstallGroup("Chests.Registry", () => ChestRegistry.Install(crafty));
@@ -93,6 +109,9 @@ namespace DeepNorthCompat
             VpoBurstPatch.Verify();
             TabAudioPatch.Verify();
             TuneClientPatch.Verify();
+            OdinShipPatch.Verify();
+            OdinShipInputPatch.Verify();
+            OdinShipFishPatch.Verify();
         }
 
         private static void InstallDrops(Assembly? assembly, string hash, string name)

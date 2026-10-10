@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.3
+
+- Supports ImpactfulSkills 0.21.3 while retaining audited 0.21.1 support. Preserves upstream crafting bonus limits and material refund eligibility.
+- Adds audited OdinShip 0.8.7 compatibility: canoe ownership and timestep handling, replicated nameplate updates, mounted turret ammunition refunds, and input checks for gameplay, text entry, maps, and radial menus. Preserves OdinShip's original keys and hover hints.
+- Manual FishPress feeding confirms owner support before payment and restores explicitly rejected fish to the payer's inventory. Full inventories retain the refund until space is available; uncertain deliveries are not retried or refunded automatically.
+
 ## 1.2.2
 
 - Supports AzuExtendedPlayerInventory 2.6.3 after auditing its preview hooks. Retains smooth inventory-preview animation and local weapon-stance synchronization.
@@ -10,10 +16,9 @@
 
 ## 1.2.0
 
-- Transfers dedicated object-management integration and the ImpactfulSkills server/client bridge to Serverbound. Removes superseded hooks, protocol handlers and simulation dependency.
+- Removes dedicated object-management integration and the ImpactfulSkills server/client bridge, along with their hooks, protocol handlers and simulation dependency.
 - Retains independent chest-close, MultiUserChest refresh, Crafty handoff, gameplay and VPO native-loading fixes.
-- Retains client ValheimTune disabling as an explicit Deep North profile policy. Public Serverbound does not impose that policy.
-- Requires coordinated Serverbound installation for migrated integrations. Older DeepNorthCompat releases are unsafe beside Serverbound.
+- Retains client ValheimTune disabling as an explicit Deep North profile policy.
 - Verifies downloaded release packages against every validated source file. Validation records remain stable after committing them.
 
 ## 1.1.6

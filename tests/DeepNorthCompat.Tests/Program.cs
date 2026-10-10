@@ -25,14 +25,14 @@ internal static class Program
         try
         {
             if (Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_TEST_MODE") == "server") RunServer();
-            else { Run(); TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); RunChests(); }
+            else { Run(); TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); RunChests(); OdinShipTests.Run(Lab, Test); }
             SysConsole.WriteLine($"PASS: {passed} test cases"); return 0;
         }
         catch (Exception exception) { SysConsole.Error.WriteLine(exception); return 1; }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static void RunServer() { TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); ChestTests.Run(Lab, Test); TabAudioTests.RunServer(Test); }
+    private static void RunServer() { TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); ChestTests.Run(Lab, Test); TabAudioTests.RunServer(Test); OdinShipTests.Run(Lab, Test); }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void RunChests() => ChestTests.Run(Lab, Test);
@@ -223,7 +223,7 @@ internal static class Program
             int inactive = 0;
             CompatibilityInstaller.Install(_ => null, message => { if (message.Contains("inactive")) inactive++; },
                 _ => { }, error => { throw new Exception(error); });
-            Check(inactive == 9, "optional module count");
+            Check(inactive == 12, "optional module count");
         });
         Test("changed ImpactfulSkills assembly rejects bow and quality hooks safely", () =>
         {
@@ -247,16 +247,19 @@ internal static class Program
             ["marlthon.SeaAnimals"] = Assembly.LoadFrom(Path.Combine(Lab, "BepInEx", "plugins", "Marlthon-SeaAnimals", "SeaAnimals.dll")),
             ["marlthon.AirAnimals"] = Assembly.LoadFrom(Path.Combine(Lab, "BepInEx", "plugins", "Marlthon-AirAnimals", "AirAnimals.dll"))
         };
+        string? odinPath = Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_ODINSHIP_PATH");
+        if (odinPath != null) assemblies["marlthon.OdinShip"] = Assembly.LoadFrom(odinPath);
         Assembly impact = assemblies["MidnightsFX.ImpactfulSkills"];
         Test("BepInEx plugin identity and optional dependencies are valid", () =>
         {
             BepInEx.BepInPlugin identity = typeof(Plugin).GetCustomAttribute<BepInEx.BepInPlugin>()!;
             Check(identity.GUID == "DeepNorthCompat" && identity.Name == "DeepNorthCompat"
-                && identity.Version.ToString() == "1.2.2"
+                && identity.Version.ToString() == "1.2.3"
                 && typeof(Plugin).Assembly.GetName().Name == "DeepNorthCompat", "plugin identity");
             Check(typeof(BepInEx.BaseUnityPlugin).IsAssignableFrom(typeof(Plugin)), "BepInEx entry point");
             var dependencies = typeof(Plugin).GetCustomAttributes<BepInEx.BepInDependency>().ToArray();
-            Check(dependencies.Length == 10 && dependencies.All(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.SoftDependency),
+            Check(dependencies.Length == 11 && dependencies.All(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.SoftDependency)
+                && dependencies.Any(d => d.DependencyGUID == "marlthon.OdinShip"),
                 "optional dependencies");
             Check(!typeof(Plugin).Assembly.GetReferencedAssemblies().Any(reference =>
                 assemblies.Values.Any(vendor => reference.Name == vendor.GetName().Name)), "hard vendor reference");
@@ -276,7 +279,7 @@ internal static class Program
             try
             {
                 deferring = true;
-                CompatibilityInstaller.Install(guid => guid.StartsWith("marlthon.") ? assemblies[guid] : null,
+                CompatibilityInstaller.Install(guid => guid.StartsWith("marlthon.") && assemblies.TryGetValue(guid, out Assembly value) ? value : null,
                     _ => { }, _ => { }, errors.Add);
                 deferring = false;
                 CompatibilityInstaller.Verify();
@@ -288,11 +291,15 @@ internal static class Program
                 new Harmony("DeepNorthCompat.Drops.SeaAnimals").UnpatchSelf();
                 new Harmony("DeepNorthCompat.Drops.AirAnimals").UnpatchSelf();
             }
-            Check(errors.Count == 3 && errors.Count(e => e.Contains("did not run")) == 2
+            Check(errors.Count == (odinPath == null ? 3 : 6) && errors.Count(e => e.Contains("did not run")) == 2
                 && errors.Count(e => e.StartsWith("UI.TabAudio: NOT APPLIED")) == 1,
                 string.Join(Environment.NewLine, errors));
             Check(!Harmony.GetAllPatchedMethods().Any(m => Harmony.GetPatchInfo(m)!.Owners.Contains("DeepNorthCompat.UI.TabAudio")),
                 "unverified UI group rolled back after deferred wrappers were skipped");
+            if (odinPath != null)
+                Check(new[] { "Core", "Input", "FishPress" }.All(group => errors.Count(e => e.StartsWith("OdinShip." + group + ": NOT APPLIED")) == 1)
+                    && !Harmony.GetAllPatchedMethods().Any(m => Harmony.GetPatchInfo(m)!.Owners.Any(o => o.StartsWith("DeepNorthCompat.OdinShip."))),
+                    "deferred OdinShip groups roll back together with accurate status");
         });
         Test("installed BepInEx/Harmony load and every compatibility patch installs", () =>
         {
