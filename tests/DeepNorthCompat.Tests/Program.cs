@@ -32,7 +32,7 @@ internal static class Program
     }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static void RunServer() { TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); ChestTests.Run(Lab, Test); }
+    private static void RunServer() { TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); ChestTests.Run(Lab, Test); TabAudioTests.RunServer(Test); }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void RunChests() => ChestTests.Run(Lab, Test);
@@ -263,6 +263,10 @@ internal static class Program
         });
         Test("deferred patching reports a parser transpiler that never ran", () =>
         {
+            // This fixture needs a fresh UI registration as well as fresh vendor parsers.
+            new Harmony("DeepNorthCompat.UI.TabAudio").UnpatchSelf();
+            Type tabAudio = typeof(Plugin).Assembly.GetType("DeepNorthCompat.TabAudioPatch", true)!;
+            foreach (string field in new[] { "pending", "enabled" }) AccessTools.Field(tabAudio, field).SetValue(null, false);
             // Models StartupAccelerator, which skips Harmony wrapper updates during plugin
             // loading and applies them in one batch after every Awake has run.
             var defer = new Harmony("DeepNorthCompat.Tests.Defer");
@@ -284,7 +288,11 @@ internal static class Program
                 new Harmony("DeepNorthCompat.Drops.SeaAnimals").UnpatchSelf();
                 new Harmony("DeepNorthCompat.Drops.AirAnimals").UnpatchSelf();
             }
-            Check(errors.Count == 2 && errors.All(e => e.Contains("did not run")), string.Join(Environment.NewLine, errors));
+            Check(errors.Count == 3 && errors.Count(e => e.Contains("did not run")) == 2
+                && errors.Count(e => e.StartsWith("UI.TabAudio: NOT APPLIED")) == 1,
+                string.Join(Environment.NewLine, errors));
+            Check(!Harmony.GetAllPatchedMethods().Any(m => Harmony.GetPatchInfo(m)!.Owners.Contains("DeepNorthCompat.UI.TabAudio")),
+                "unverified UI group rolled back after deferred wrappers were skipped");
         });
         Test("installed BepInEx/Harmony load and every compatibility patch installs", () =>
         {
@@ -387,6 +395,7 @@ internal static class Program
 
         PipelineTests.Run(impact, assemblies["Azumatt.AzuCraftyBoxes"], Test);
         PreviewTests.Run(Lab, Test);
+        TabAudioTests.Run(Test);
 
         foreach (string owner in Harmony.GetAllPatchedMethods().SelectMany(m => Harmony.GetPatchInfo(m)!.Owners)
             .Where(id => id.StartsWith("DeepNorthCompat.")).Distinct().ToArray())

@@ -75,6 +75,7 @@ namespace DeepNorthCompat
                 AzuEpiPreviewPatch.Prepare(resolve(AzuEpiPreviewPatch.Owner));
             });
             InstallGroup("VPO.Burst", () => VpoBurstPatch.Prepare(resolve("dev.ontrigger.vpo")));
+            InstallGroup("UI.TabAudio", TabAudioPatch.Prepare);
             InstallGroup("Tune.Client", () => TuneClientPatch.Prepare(resolve("akoozie.valheimtune")));
             // The registry also answers crafting handoffs, so every peer serves other peers'
             // requests even when its own crafting hooks or MultiUserChest guards fail.
@@ -90,6 +91,7 @@ namespace DeepNorthCompat
             DropRangePatch.Verify();
             AzuEpiPreviewPatch.Verify();
             VpoBurstPatch.Verify();
+            TabAudioPatch.Verify();
             TuneClientPatch.Verify();
         }
 
