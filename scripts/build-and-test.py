@@ -4,7 +4,6 @@ import argparse
 import hashlib
 import json
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -12,14 +11,18 @@ import sys
 from thunderstore import check_sources
 from provenance import source_files, fingerprint
 from tooling import ROOT, child_environment, installation_paths, reference_assemblies
+from validation import check_validation, read_summary
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--build-only", action="store_true", help="Build without running the offline suite.")
     parser.add_argument("--no-package", action="store_true", help="Run the suite without packaging the DLL.")
+    parser.add_argument("--allow-inactive-bettermap", action="store_true", help="Allow absence validation; cannot approve a package.")
     args = parser.parse_args()
     packaging = not (args.build_only or args.no_package)
+    if packaging and args.allow_inactive_bettermap:
+        parser.error("--allow-inactive-bettermap requires --no-package or --build-only.")
     if packaging:
         for variable in ("DEEPNORTHCOMPAT_SERVER_PATH", "DEEPNORTHCOMPAT_VENDOR_PATH"):
             if not os.environ.get(variable):
@@ -31,6 +34,7 @@ def main():
         raise FileNotFoundError("Install the .NET SDK version pinned in global.json and put dotnet on PATH.")
     lab, game = installation_paths()
     environment = child_environment(lab, game)
+    environment["DEEPNORTHCOMPAT_ALLOW_INACTIVE_BETTERMAP"] = "1" if args.allow_inactive_bettermap else "0"
     project = "tests/DeepNorthCompat.Tests/DeepNorthCompat.Tests.csproj"
     framework = "-p:TargetFrameworkRootPath=" + reference_assemblies()
     # Regenerate assets after relocation rather than reusing absolute paths from another checkout.
@@ -41,11 +45,12 @@ def main():
                    cwd=ROOT, env=environment, check=True)
     if args.build_only:
         return
-    passed = run_suite(environment)
-    subprocess.run([sys.executable, "-B", str(ROOT / "scripts/test-provenance.py")], cwd=ROOT, check=True)
+    validation = run_suite(environment)
+    for script in ("test-provenance.py", "test-validation.py"):
+        subprocess.run([sys.executable, "-B", str(ROOT / "scripts" / script)], cwd=ROOT, check=True)
     if not packaging:
         return
-    approve(passed)
+    approve(validation)
     for script in ("package.py", "validate-package.py"):
         subprocess.run([sys.executable, "-B", str(ROOT / "scripts" / script)], cwd=ROOT, env=environment, check=True)
 
@@ -54,24 +59,23 @@ def run_suite(environment):
     # Mono owns this child process and cannot affect the build process if a native load fails.
     suite = subprocess.Popen([sys.executable, "-B", str(ROOT / "scripts/test-existing-build.py")], cwd=ROOT,
                              env=environment, stdout=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
-    summary = None
+    lines = []
     for line in suite.stdout:
         print(line, end="", flush=True)
-        summary = re.fullmatch(r"PASS: (\d+) test cases", line.strip()) or summary
+        lines.append(line)
     if suite.wait() != 0:
         raise subprocess.CalledProcessError(suite.returncode, suite.args)
-    if summary is None:
-        raise RuntimeError("The offline suite exited cleanly without reporting its pass count.")
-    return int(summary.group(1))
+    return check_validation(read_summary(lines), allow_inactive=environment.get("DEEPNORTHCOMPAT_ALLOW_INACTIVE_BETTERMAP") == "1")
 
 
-def approve(passed):
+def approve(validation):
     """Record the DLL that just passed the full suite as the one packaging may ship."""
+    check_validation(validation, require_server=True)
     manifest = json.loads((ROOT / "package/manifest.json").read_text(encoding="utf-8"))
     built = ROOT / "src/DeepNorthCompat/bin/Release/net48/DeepNorthCompat.dll"
     approved = {"pluginGUID": "DeepNorthCompat", "pluginName": "DeepNorthCompat",
                 "version": manifest["version_number"], "sha256": hashlib.sha256(built.read_bytes()).hexdigest(),
-                "offlineTestsPassed": passed}
+                "offlineTestsPassed": validation["testCasesPassed"], "offlineValidation": validation}
     files = source_files()
     approved["sourceFiles"] = files
     approved["sourceSha256"] = fingerprint(files)

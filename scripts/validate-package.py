@@ -9,6 +9,7 @@ import zipfile
 from thunderstore import check_sources
 from provenance import verify_sources
 from tooling import require
+from validation import check_approval
 
 ROOT = Path(__file__).resolve().parents[1]
 DLL_MEMBER = "BepInEx/plugins/DeepNorthCompat/DeepNorthCompat.dll"
@@ -21,6 +22,7 @@ def main():
     args = parser.parse_args()
     manifest = json.loads((ROOT / "package/manifest.json").read_text(encoding="utf-8"))
     approved = json.loads((ROOT / "package/validated-build.json").read_text(encoding="utf-8"))
+    check_approval(approved)
     verify_sources(approved)
     check_sources(manifest)
     if args.release_tag:

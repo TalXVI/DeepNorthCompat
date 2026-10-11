@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.0
+
+- Adds audited BetterMap 1.1.0 support for Valheim 1.0.17. Preserves CartographySkill 3.2.0 exploration progression after loading skills and changing settings.
+- Flushes BetterMap discovery records before character saves and clears transient map and vehicle state between sessions. Keeps saved discovery, vehicle and death history.
+- Stores stable pin categories through local saves and cartography tables, including optional boss-altar pins. Restores both type and icon after slot changes, preserves hidden filters, and retains pending recovery for older pins across saves.
+- Updates identified automatic portal pins from accepted portal tags without replacing them or changing checked state, author or ownership. Portal destruction preserves nearby manual pins.
+- Stops automatic pins from stacking on a place that already shows one, including pins read from a cartography table. A place is pinned again after a table read removes its shared pin, and an automatic pin removed by hand stays removed.
+- Keeps character saves and map loads running when BetterMap pin data cannot be read or written, and logs the failure.
+- Redraws vehicle pins when remote positions or headings change.
+
 ## 1.2.3
 
 - Supports ImpactfulSkills 0.21.3 while retaining audited 0.21.1 support. Preserves upstream crafting bonus limits and material refund eligibility.

@@ -40,6 +40,7 @@ namespace DeepNorthCompat
         {
             Plugin.Guid, ChestSyncPatch.MucGuid, ChestSyncPatch.QuickGuid, "Azumatt.AzuCraftyBoxes", "Azumatt.AzuAntiArthriticCrafting",
             "MidnightsFX.ImpactfulSkills", "org.serverbound.valheim", "dev.ontrigger.vpo", "MidnightsFX.ValheimCommunityPatch", "akoozie.valheimtune",
+            BetterMapAccess.Guid, "advize.CartographySkill",
         };
         private static readonly object gate = new object();
         private static readonly List<string> startup = new List<string>();

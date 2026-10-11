@@ -9,6 +9,15 @@ namespace DeepNorthCompat
 {
     internal static class ExpectedBuilds
     {
+        internal const string BetterMap = "BB0A0A2E4E9EA2B388CD55F486A61057BF57F982D5647AA649375D4B1E7BAE04";
+        internal const string Cartography = "2379F6884BEC32843DAFA1306F693CAD8FC2FB1208E9D2BEE3D3745EFB2DC529";
+        // BetterMap integration was audited against these 1.0.17 client/server builds.
+        internal static readonly string[] BetterMapGame =
+        {
+            "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
+            "0DFC7E81436F822121148EFED859BA1E661D58B9484BD45E3B6F33B6DD86BFAD",
+            "E7220DC5D9CF9D38270E751352D94918308E59CCA86E56C4BDA0210016C847FA"
+        };
         internal static readonly string[] ImpactfulSkills =
         {
             "D6E0844F3DADE42B23C33A678EB6E3D6DAA288DCC4187F497B8BB2A1F3CF47BA",
@@ -93,6 +102,12 @@ namespace DeepNorthCompat
             InstallGroup("OdinShip.Core", () => OdinShipPatch.Prepare(odin));
             InstallGroup("OdinShip.Input", () => OdinShipInputPatch.Prepare(odin));
             InstallGroup("OdinShip.FishPress", () => OdinShipFishPatch.Prepare(odin));
+            Assembly? betterMap = resolve(BetterMapAccess.Guid);
+            InstallGroup("Map.Cartography", () => BetterMapCartographyPatch.Prepare(betterMap, resolve("advize.CartographySkill")));
+            InstallGroup("Map.Session", () => BetterMapSessionPatch.Prepare(betterMap));
+            InstallGroup("Map.Persistence", () => BetterMapPersistencePatch.Prepare(betterMap));
+            InstallGroup("Map.Portals", () => BetterMapPortalPatch.Prepare(betterMap));
+            InstallGroup("Map.VehicleUpdates", () => BetterMapVehiclePatch.Prepare(betterMap));
             // The registry also answers crafting handoffs, so every peer serves other peers'
             // requests even when its own crafting hooks or MultiUserChest guards fail.
             InstallGroup("Chests.Registry", () => ChestRegistry.Install(crafty));
@@ -112,6 +127,11 @@ namespace DeepNorthCompat
             OdinShipPatch.Verify();
             OdinShipInputPatch.Verify();
             OdinShipFishPatch.Verify();
+            BetterMapCartographyPatch.Verify();
+            BetterMapSessionPatch.Verify();
+            BetterMapPersistencePatch.Verify();
+            BetterMapPortalPatch.Verify();
+            BetterMapVehiclePatch.Verify();
         }
 
         private static void InstallDrops(Assembly? assembly, string hash, string name)

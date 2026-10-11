@@ -12,6 +12,7 @@ import zipfile
 from thunderstore import check_sources
 from provenance import verify_sources
 from tooling import require
+from validation import check_approval
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "package"
@@ -21,6 +22,7 @@ DLL_MEMBER = "BepInEx/plugins/DeepNorthCompat/DeepNorthCompat.dll"
 def main():
     manifest = json.loads((PACKAGE / "manifest.json").read_text(encoding="utf-8"))
     approved = json.loads((PACKAGE / "validated-build.json").read_text(encoding="utf-8"))
+    check_approval(approved)
     check_sources(manifest)
     verify_sources(approved)
     require(manifest["version_number"] == approved["version"], "Manifest version differs from the approved build")

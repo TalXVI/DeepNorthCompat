@@ -6,7 +6,7 @@ using BepInEx.Bootstrap;
 
 namespace DeepNorthCompat
 {
-    [BepInPlugin(Guid, "DeepNorthCompat", "1.2.3")]
+    [BepInPlugin(Guid, "DeepNorthCompat", "1.3.0")]
     [BepInDependency("MidnightsFX.ImpactfulSkills", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuCraftyBoxes", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuAntiArthriticCrafting", BepInDependency.DependencyFlags.SoftDependency)]
@@ -18,6 +18,8 @@ namespace DeepNorthCompat
     [BepInDependency("com.maxsch.valheim.MultiUserChest", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("goldenrevolver.quick_stack_store", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("marlthon.OdinShip", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("xtav1m.BetterMap", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("advize.CartographySkill", BepInDependency.DependencyFlags.SoftDependency)]
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "DeepNorthCompat";
@@ -64,6 +66,7 @@ namespace DeepNorthCompat
             DiagnosticReport.Tick();
             OdinShipPatch.Tick();
             OdinShipFishPatch.Tick();
+            BetterMapPersistencePatch.Tick();
         }
 
         private void OnDestroy() => ChestDiagnostics.Disable();

@@ -1,6 +1,8 @@
 """Run the offline suite in the locally installed Unity Mono runtime."""
 
 import ctypes
+import argparse
+import json
 import os
 from pathlib import Path
 import sys
@@ -8,6 +10,7 @@ import subprocess
 import re
 
 from tooling import ROOT, TEST_EXECUTABLE, child_environment, installation_paths, managed_path
+from validation import check_coverage, check_validation, require
 
 
 def mono_library(game):
@@ -88,6 +91,7 @@ def run_suite(runtime, game, executable):
             ("UnityEngine.Component::get_gameObject_Injected", ctypes.CFUNCTYPE(pointer, pointer)(lambda component: None)),
             ("UnityEngine.Component::get_transform_Injected", ctypes.CFUNCTYPE(pointer, pointer)(lambda component: None)),
             ("UnityEngine.Behaviour::set_enabled_Injected", ctypes.CFUNCTYPE(None, pointer, integer)(lambda component, enabled: None)),
+            ("UnityEngine.GameObject::SetActive_Injected", ctypes.CFUNCTYPE(None, pointer, integer)(lambda game_object, active: None)),
             ("UnityEngine.Transform::get_position_Injected", ctypes.CFUNCTYPE(None, pointer, pointer)(lambda transform, result: vector_zero(result))),
             ("UnityEngine.Transform::get_rotation_Injected", ctypes.CFUNCTYPE(None, pointer, pointer)(quaternion_identity)),
             ("UnityEngine.Quaternion::Internal_ToEulerRad_Injected", ctypes.CFUNCTYPE(None, pointer, pointer)(lambda rotation, result: vector_zero(result))),
@@ -99,6 +103,11 @@ def run_suite(runtime, game, executable):
             ("UnityEngine.Time::get_unscaledTime", ctypes.CFUNCTYPE(ctypes.c_float)(lambda: 0)),
             ("UnityEngine.Time::get_time", ctypes.CFUNCTYPE(ctypes.c_float)(lambda: 0)),
             ("UnityEngine.Time::get_fixedDeltaTime", ctypes.CFUNCTYPE(ctypes.c_float)(lambda: 0.02)),
+            ("UnityEngine.Screen::get_width", ctypes.CFUNCTYPE(integer)(lambda: 1920)),
+            ("UnityEngine.Screen::get_height", ctypes.CFUNCTYPE(integer)(lambda: 1080)),
+            # The BetterMap fixtures replace the managed path getter. Harmony still
+            # compiles its native call when building that wrapper; it is not executed.
+            ("UnityEngine.Application::get_persistentDataPath_Injected", ctypes.CFUNCTYPE(None, pointer)(lambda result: None)),
             ("UnityEngine.LayerMask::NameToLayer_Injected", ctypes.CFUNCTYPE(integer, pointer)(lambda span: 0)),
             ("UnityEngine.Object::Destroy_Injected", ctypes.CFUNCTYPE(None, pointer, ctypes.c_float)(lambda value, delay: None)),
         ]
@@ -115,28 +124,44 @@ def run_suite(runtime, game, executable):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--allow-inactive-bettermap", action="store_true",
+                        default=os.environ.get("DEEPNORTHCOMPAT_ALLOW_INACTIVE_BETTERMAP") == "1",
+                        help="Validate mod absence explicitly; excludes vendor regressions.")
+    args = parser.parse_args()
+    os.environ["DEEPNORTHCOMPAT_ALLOW_INACTIVE_BETTERMAP"] = "1" if args.allow_inactive_bettermap else "0"
     if not os.environ.get("DEEPNORTHCOMPAT_TEST_MODE"):
         lab, game = installation_paths()
         cases = [("client", game)]
         if os.environ.get("DEEPNORTHCOMPAT_SERVER_PATH"):
             cases.append(("server", Path(os.environ["DEEPNORTHCOMPAT_SERVER_PATH"]).resolve()))
         passed = 0
+        roles = {}
         for mode, installation in cases:
             environment = child_environment(lab, installation)
             environment["DEEPNORTHCOMPAT_TEST_MODE"] = mode
             suite = subprocess.Popen([sys.executable, "-B", str(Path(__file__).resolve())], cwd=ROOT,
                                      env=environment, stdout=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
             count = None
+            coverage = []
             for line in suite.stdout:
                 print(line, end="", flush=True)
                 match = re.fullmatch(r"PASS: (\d+) test cases", line.strip())
                 if match:
                     count = int(match.group(1))
+                if line.startswith("COVERAGE: "):
+                    coverage.append(json.loads(line[len("COVERAGE: "):]))
             if suite.wait() != 0:
                 return suite.returncode
             if count is None:
                 raise RuntimeError(f"The {mode} suite did not report its pass count.")
+            require(len(coverage) == 1, f"expected one BetterMap coverage record for {mode}.")
+            check_coverage(coverage[0], mode, args.allow_inactive_bettermap)
+            roles[mode] = {"testCasesPassed": count, "integrations": {"BetterMap": coverage[0]}}
             passed += count
+        summary = {"schemaVersion": 1, "testCasesPassed": passed, "roles": roles}
+        check_validation(summary, allow_inactive=args.allow_inactive_bettermap)
+        print("VALIDATION: " + json.dumps(summary, sort_keys=True))
         print(f"PASS: {passed} test cases")
         return 0
     if ctypes.sizeof(ctypes.c_void_p) != 8:
