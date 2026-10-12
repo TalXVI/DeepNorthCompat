@@ -22,6 +22,8 @@ internal static class ConfigValidation
         Boolean(lab, "ZenDragon.Zen.ModLib.cfg", "General", "Allow Achievements With DevCommands", false);
         Boolean(lab, "MK_BetterUI.cfg", "2 - Character Inventory", "showItemStars", false);
         Shortcut(lab, "Azumatt.HearthBelow.cfg", "4 - Dig Controls", "Dig Controls Modifier", KeyCode.LeftShift);
+        Boolean(lab, "advize.PlantEverything.cfg", "UI", "EnablePlantTimers", false);
+        Boolean(lab, "advize.PlantEverything.cfg", "UI", "EnablePickableTimers", false);
     }
 
     // Binds one entry from the pack's config and fails if that rewrote the file.

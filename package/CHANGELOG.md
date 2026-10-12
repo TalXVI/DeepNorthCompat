@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.3
+
+- PlantEasily 2.3.0 planting grids now check every ingredient of a multi-ingredient recipe, such as PlantEverything's Ashwood sapling. Cells you cannot pay for show as lacking resources. Single-ingredient recipes are unchanged.
+- Keeps placement dust removed from PlantEverything 1.21.3 bushes, pickables, and decorative pieces after joining a server, when NoCultivatorDust 1.0.7 or NoBuildDust 1.0.7 is installed. The placement sound still plays.
+
 ## 1.3.2
 
 - Supports audited AzuCraftyBoxes 1.8.28 while retaining 1.8.27 support. Quality-aware crafting and chest ownership during crafting are unchanged.

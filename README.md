@@ -15,6 +15,8 @@ It currently fixes bugs and incompatibilities involving:
 - OdinShip canoe propulsion, replicated ship names, mounted ammunition refunds, input handling, and manual FishPress payment.
 - BetterMap exploration with CartographySkill, session cleanup, saved pin categories, portal labels, and vehicle map updates.
 - TeleportEverything configuration-panel focus, which left some gameplay hotkeys active while the panel was open.
+- PlantEasily planting grids, which checked only the first ingredient of a multi-ingredient recipe.
+- PlantEverything placement dust, which came back after joining a server with NoCultivatorDust or NoBuildDust installed.
 
 Install the same version on the dedicated server and every client, then restart.
 
@@ -38,6 +40,8 @@ Each fix is written against one exact build of the mods it touches:
 - BetterMap 1.1.0
 - CartographySkill 3.2.0 (for BetterMap's exploration integration)
 - TeleportEverything 3.0.8 (configuration-panel input fix on Valheim 1.0.17 clients)
+- PlantEasily 2.3.0 (grid cost fix on Valheim 1.0.17 clients)
+- PlantEverything 1.21.3 with NoCultivatorDust 1.0.7 or NoBuildDust 1.0.7 (placement dust fix on Valheim 1.0.17 clients)
 
 Mod patches only activate if the corresponding mod and supported version are present.
 
