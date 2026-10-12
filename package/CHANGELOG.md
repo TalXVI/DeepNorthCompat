@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.4
+
+- `/dnc_report` now describes the world where you stand, on your client and on the server: ground height, stored and applied terrain edits, the mods that patch terrain height limits, base protection areas with their radius, and nearby creatures with their owners. Look at a creature before you run the command to mark it in both reports. A server on an earlier version still sends its report, without this section.
+
 ## 1.3.3
 
 - PlantEasily 2.3.0 planting grids now check every ingredient of a multi-ingredient recipe, such as PlantEverything's Ashwood sapling. Cells you cannot pay for show as lacking resources. Single-ingredient recipes are unchanged.

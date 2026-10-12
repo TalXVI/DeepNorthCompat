@@ -25,7 +25,7 @@ internal static class Program
         try
         {
             if (Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_TEST_MODE") == "server") RunServer();
-            else { Run(); TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); RunChests(); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); }
+            else { Run(); TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); RunChests(); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); }
             RunBetterMap();
             SysConsole.WriteLine($"PASS: {passed} test cases"); return 0;
         }
@@ -33,7 +33,7 @@ internal static class Program
     }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static void RunServer() { TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); ChestTests.Run(Lab, Test); TabAudioTests.RunServer(Test); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); }
+    private static void RunServer() { TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); ChestTests.Run(Lab, Test); TabAudioTests.RunServer(Test); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void RunChests() => ChestTests.Run(Lab, Test);
@@ -258,7 +258,7 @@ internal static class Program
         {
             BepInEx.BepInPlugin identity = typeof(Plugin).GetCustomAttribute<BepInEx.BepInPlugin>()!;
             Check(identity.GUID == "DeepNorthCompat" && identity.Name == "DeepNorthCompat"
-                && identity.Version.ToString() == "1.3.3"
+                && identity.Version.ToString() == "1.3.4"
                 && typeof(Plugin).Assembly.GetName().Name == "DeepNorthCompat", "plugin identity");
             Check(typeof(BepInEx.BaseUnityPlugin).IsAssignableFrom(typeof(Plugin)), "BepInEx entry point");
             var dependencies = typeof(Plugin).GetCustomAttributes<BepInEx.BepInDependency>().ToArray();

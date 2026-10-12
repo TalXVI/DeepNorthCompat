@@ -15,7 +15,8 @@ namespace DeepNorthCompat
     // Builds a single Markdown report that a player can share: problems with
     // the events that led to them, errors from every mod, markers, peers and environment.
     // `/dnc_report` in chat writes the client report, fetches the server's, saves both and
-    // copies them to the clipboard. `/dnc_mark <note>` timestamps a problem on both sides.
+    // copies them to the clipboard. Both reports describe the world where the player stands.
+    // `/dnc_mark <note>` timestamps a problem on both sides.
     internal static class DiagnosticReport
     {
         internal enum Access { Nobody, Admins, Everyone }
@@ -32,7 +33,8 @@ namespace DeepNorthCompat
         }
 
         private const string HelloRpc = "DeepNorthCompat.Hello.v1", MarkerRpc = "DeepNorthCompat.Marker.v1",
-            RequestRpc = "DeepNorthCompat.ReportRequest.v1", ReplyRpc = "DeepNorthCompat.ReportReply.v1";
+            RequestRpc = "DeepNorthCompat.ReportRequest.v1", ReplyRpc = "DeepNorthCompat.ReportReply.v1",
+            ProbeRpc = "DeepNorthCompat.ReportProbe.v1";
         private const int ReplyLimit = 96 * 1024, ReportsRetained = 30, ErrorLimit = 40, StartupLimit = 300;
         private static readonly Budget Full = new Budget { Findings = 60, Context = 12, Errors = 30, ErrorText = 2500, Recent = 60 };
         private static readonly Budget Compact = new Budget { Findings = 20, Context = 6, Errors = 12, ErrorText = 1200, Recent = 20 };
@@ -47,6 +49,7 @@ namespace DeepNorthCompat
         private static readonly List<string> startup = new List<string>();
         private static readonly Dictionary<string, Error> errors = new Dictionary<string, Error>(StringComparer.Ordinal);
         private static readonly Dictionary<long, string> hellos = new Dictionary<long, string>();
+        private static readonly Dictionary<long, (Vector3 Point, ZDOID Looked)> probes = new Dictionary<long, (Vector3, ZDOID)>();
         private static readonly Dictionary<string, string> hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private static int droppedErrors, writtenVersion = -1;
         private static string serverHello = "";
@@ -96,7 +99,8 @@ namespace DeepNorthCompat
 
         internal static void RegisterCommands()
         {
-            new Terminal.ConsoleCommand("dnc_report", "DeepNorthCompat: save a diagnostic report with the server's and copy it to the clipboard.",
+            new Terminal.ConsoleCommand("dnc_report", "DeepNorthCompat: save a diagnostic report with the server's and copy it to the clipboard. "
+                + "Both describe the terrain, base areas and creatures where you stand.",
                 (Terminal.ConsoleEvent)(args => Collect(args.Context)));
             new Terminal.ConsoleCommand("dnc_mark", "DeepNorthCompat: mark a problem now, for example: dnc_mark chest showed old items",
                 (Terminal.ConsoleEvent)(args => MarkCommand(args.Context, string.Join(" ", args.Args.Skip(1)))));
@@ -109,7 +113,8 @@ namespace DeepNorthCompat
             ZRoutedRpc.instance.Register<ZPackage>(MarkerRpc, ReceiveMarker);
             ZRoutedRpc.instance.Register<long>(RequestRpc, ReceiveRequest);
             ZRoutedRpc.instance.Register<ZPackage>(ReplyRpc, ReceiveReply);
-            lock (gate) { hellos.Clear(); serverHello = ""; }
+            ZRoutedRpc.instance.Register<ZPackage>(ProbeRpc, ReceiveProbe);
+            lock (gate) { hellos.Clear(); probes.Clear(); serverHello = ""; }
             ChestDiagnostics.Record("world-start", null, Environment(compact: true));
         }
 
@@ -148,7 +153,7 @@ namespace DeepNorthCompat
         {
             if (ZNet.instance == null || !ZNet.instance.IsServer()) return;
             ChestDiagnostics.Record("peer-disconnected", null, "peer=" + peer.m_uid + ";player=" + peer.m_playerName);
-            lock (gate) hellos.Remove(peer.m_uid);
+            lock (gate) { hellos.Remove(peer.m_uid); probes.Remove(peer.m_uid); }
         }
 
         internal static void WorldShutdown()
@@ -195,21 +200,51 @@ namespace DeepNorthCompat
         private static void Collect(Terminal context)
         {
             if (!ChestDiagnostics.Enabled) { context.AddString("DeepNorthCompat diagnostics are disabled in its config."); return; }
-            if (ZNet.instance != null && !ZNet.instance.IsServer() && ZRoutedRpc.instance != null && ZNet.instance.GetServerPeer() != null)
+            ZRoutedRpc? server = ZNet.instance != null && !ZNet.instance.IsServer() && ZNet.instance.GetServerPeer() != null ? ZRoutedRpc.instance : null;
+            string[]? probe = null;
+            Player player = Player.m_localPlayer;
+            if (player != null && ZNet.instance != null)
+            {
+                Vector3 point = player.transform.position;
+                Character looked = player.GetHoverCreature();
+                ZDOID target = looked == null ? ZDOID.None : looked.GetZDOID();
+                probe = WorldProbe.Capture(point, target);
+                if (server != null)
+                {
+                    // An older server ignores this message and still answers the request below.
+                    var packet = new ZPackage(); packet.Write(point); packet.Write(target);
+                    server.InvokeRoutedRPC(ProbeRpc, packet);
+                }
+            }
+            if (server != null)
             {
                 lock (gate) { request = DateTime.UtcNow.Ticks; serverReport = null; serverStatus = "no reply within 10 seconds"; }
-                ZRoutedRpc.instance.InvokeRoutedRPC(RequestRpc, request);
+                server.InvokeRoutedRPC(RequestRpc, request);
                 context.AddString("DeepNorthCompat: collecting the server's report…");
-                Plugin.Instance.StartCoroutine(Finish(context, request));
+                Plugin.Instance.StartCoroutine(Finish(context, request, probe));
             }
             else
             {
                 lock (gate) { serverReport = null; serverStatus = ZNet.instance == null ? "not in a world" : "this peer is the server"; }
-                Deliver(context);
+                Deliver(context, probe);
             }
         }
 
-        private static IEnumerator Finish(Terminal context, long id)
+        // The server keeps the position a peer asks about until that peer's next report request.
+        private static void ReceiveProbe(long sender, ZPackage packet)
+        {
+            if (ZNet.instance == null || !ZNet.instance.IsServer()) return;
+            try
+            {
+                Vector3 point = packet.ReadVector3(); ZDOID looked = packet.ReadZDOID();
+                float sum = point.x + point.y + point.z;
+                if (float.IsNaN(sum) || float.IsInfinity(sum)) return;
+                lock (gate) probes[sender] = (point, looked);
+            }
+            catch (Exception error) { ChestDiagnostics.RecordText("diagnostics-hook-error", "ReceiveProbe: " + error, Severity.Info); }
+        }
+
+        private static IEnumerator Finish(Terminal context, long id, string[]? probe)
         {
             float until = Time.realtimeSinceStartup + 10f;
             while (Time.realtimeSinceStartup < until)
@@ -217,12 +252,12 @@ namespace DeepNorthCompat
                 lock (gate) if (request != id || serverReport != null) break;
                 yield return null;
             }
-            Deliver(context);
+            Deliver(context, probe);
         }
 
-        private static void Deliver(Terminal context)
+        private static void Deliver(Terminal context, string[]? probe)
         {
-            string text = Build(Full, includeServer: true);
+            string text = Build(Full, includeServer: true, probe);
             string? path = Save(text, "combined");
             GUIUtility.systemCopyBuffer = text;
             context.AddString("DeepNorthCompat: report copied to the clipboard (" + (text.Length / 1024 + 1) + " KB)."
@@ -235,9 +270,12 @@ namespace DeepNorthCompat
             ZNetPeer? peer = ZNet.instance.GetPeer(sender);
             bool allowed = ServerAccess == Access.Everyone
                 || ServerAccess == Access.Admins && peer != null && ZNet.instance.IsAdmin(peer.m_socket.GetHostName());
-            string text = Build(Full, includeServer: false);
+            (Vector3 Point, ZDOID Looked) wanted; bool asked;
+            lock (gate) { asked = probes.TryGetValue(sender, out wanted); probes.Remove(sender); }
+            string[]? probe = asked && allowed ? WorldProbe.Capture(wanted.Point, wanted.Looked) : null;
+            string text = Build(Full, includeServer: false, probe);
             Save(text, "requested");
-            if (Encoding.UTF8.GetByteCount(text) > ReplyLimit) text = Build(Compact, includeServer: false);
+            if (Encoding.UTF8.GetByteCount(text) > ReplyLimit) text = Build(Compact, includeServer: false, probe);
             if (Encoding.UTF8.GetByteCount(text) > ReplyLimit) text = text.Substring(0, ReplyLimit / 2) + "\n\n(truncated to fit the network limit)\n";
             ChestDiagnostics.Record("report-request", null, "peer=" + sender + ";player=" + peer?.m_playerName + ";allowed=" + allowed + ";access=" + ServerAccess);
             var reply = new ZPackage();
@@ -296,7 +334,7 @@ namespace DeepNorthCompat
 
         internal static string Build(bool includeServer) => Build(Full, includeServer);
 
-        private static string Build(Budget budget, bool includeServer)
+        private static string Build(Budget budget, bool includeServer, string[]? probe = null)
         {
             var snapshot = ChestDiagnostics.Snapshot(budget.Recent);
             var b = new StringBuilder();
@@ -322,6 +360,13 @@ namespace DeepNorthCompat
                 + (snapshot.Dropped > 0 ? " (" + snapshot.Dropped + " middle findings omitted)" : "") + ". Errors: " + ErrorSummary() + ". Markers: " + snapshot.Markers.Length + ".");
             if (snapshot.Failures.Length > 0) b.AppendLine("- Diagnostics faults: " + string.Join("; ", snapshot.Failures));
             b.AppendLine();
+
+            if (probe != null)
+            {
+                b.AppendLine("## World probe").AppendLine();
+                b.AppendLine(WorldProbe.Legend).AppendLine();
+                Block(b, probe);
+            }
 
             if (snapshot.Markers.Length > 0)
             {
@@ -459,7 +504,7 @@ namespace DeepNorthCompat
         // Clears captured errors and peer state. Used by the offline tests between cases.
         internal static void Clear()
         {
-            lock (gate) { errors.Clear(); droppedErrors = 0; hellos.Clear(); serverHello = ""; serverReport = null; serverStatus = ""; }
+            lock (gate) { errors.Clear(); droppedErrors = 0; hellos.Clear(); probes.Clear(); serverHello = ""; serverReport = null; serverStatus = ""; }
         }
     }
 }
