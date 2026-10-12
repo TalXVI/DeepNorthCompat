@@ -14,6 +14,7 @@ It currently fixes bugs and incompatibilities involving:
 - AzuCraftyBoxes chest ownership during crafting.
 - OdinShip canoe propulsion, replicated ship names, mounted ammunition refunds, input handling, and manual FishPress payment.
 - BetterMap exploration with CartographySkill, session cleanup, saved pin categories, portal labels, and vehicle map updates.
+- TeleportEverything configuration-panel focus, which left some gameplay hotkeys active while the panel was open.
 
 Install the same version on the dedicated server and every client, then restart.
 
@@ -23,7 +24,7 @@ Install the same version on the dedicated server and every client, then restart.
 
 Each fix is written against one exact build of the mods it touches:
 
-- ImpactfulSkills 0.21.1 and 0.21.3
+- ImpactfulSkills 0.21.1, 0.21.3, 0.22.0, and 0.22.1
 - AzuCraftyBoxes 1.8.27
 - AAA Crafting 2.1.11
 - SeaAnimals 0.3.9
@@ -36,6 +37,7 @@ Each fix is written against one exact build of the mods it touches:
 - OdinShip 0.8.7
 - BetterMap 1.1.0
 - CartographySkill 3.2.0 (for BetterMap's exploration integration)
+- TeleportEverything 3.0.8 (configuration-panel input fix on Valheim 1.0.17 clients)
 
 Mod patches only activate if the corresponding mod and supported version are present.
 

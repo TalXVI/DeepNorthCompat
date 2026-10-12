@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.1
+
+- Supports audited ImpactfulSkills 0.22.0 and 0.22.1 while retaining 0.21.1 and 0.21.3 support. Preserves upstream refund eligibility, upgrade refund amounts, crossbow reload fixes, perk thresholds, and unlock messages.
+- Blocks gameplay input while TeleportEverything 3.0.8's configuration panel is open, including OdinShip's customization and turret hotkeys. Closing the panel restores the original input behavior.
+
 ## 1.3.0
 
 - Adds audited BetterMap 1.1.0 support for Valheim 1.0.17. Preserves CartographySkill 3.2.0 exploration progression after loading skills and changing settings.

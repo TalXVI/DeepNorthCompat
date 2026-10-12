@@ -6,7 +6,7 @@ using BepInEx.Bootstrap;
 
 namespace DeepNorthCompat
 {
-    [BepInPlugin(Guid, "DeepNorthCompat", "1.3.0")]
+    [BepInPlugin(Guid, "DeepNorthCompat", "1.3.1")]
     [BepInDependency("MidnightsFX.ImpactfulSkills", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuCraftyBoxes", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuAntiArthriticCrafting", BepInDependency.DependencyFlags.SoftDependency)]
@@ -20,6 +20,7 @@ namespace DeepNorthCompat
     [BepInDependency("marlthon.OdinShip", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("xtav1m.BetterMap", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("advize.CartographySkill", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(TeleportEverythingPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string Guid = "DeepNorthCompat";

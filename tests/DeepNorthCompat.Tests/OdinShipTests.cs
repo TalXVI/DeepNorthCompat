@@ -285,9 +285,84 @@ internal static class OdinShipTests
                     Invoke(input, "GateKeys", code, method); Invoke(input, "Verify");
                     Check(!Ours().Any(), "no partial input gates");
                 });
+                string? teleportPath = Directory.GetFiles(Path.Combine(profile, "BepInEx/plugins"), "TeleportEverything.dll", SearchOption.AllDirectories).SingleOrDefault();
+                if (teleportPath != null)
+                    Case("TeleportEverything panel blocks the Player override and all OdinShip keys", () =>
+                    {
+                        Assembly teleport = Assembly.LoadFrom(teleportPath);
+                        PropertyInfo open = AccessTools.Property(teleport.GetType("TeleportEverything.ConfigurationUi.ConfigurationPanel", true), "IsOpen");
+                        bool previous = (bool)open.GetValue(null, null);
+                        try
+                        {
+                            Type vendor = teleport.GetType("TeleportEverything.Patches.CharacterPatches", true)!;
+                            new Harmony(Fixture + ".Vendor").Patch(AccessTools.Method(typeof(Character), "TakeInput"),
+                                postfix: new HarmonyMethod(AccessTools.Method(vendor, "Postfix")));
+                            Invoke(input, "Prepare", odin); Invoke(input, "Verify");
+                            open.SetValue(null, true, null); downKeys.Add(KeyCode.G);
+                            Check((bool)Invoke(input, "Pressed", KeyCode.G)!, "upstream's base-class hook misses Player.TakeInput");
+                            var errors = new List<string>();
+                            CompatibilityInstaller.Install(guid => guid == "odinplus.TeleportEverything" ? teleport : null,
+                                _ => { }, _ => { }, errors.Add);
+                            Type group = typeof(Plugin).Assembly.GetType("DeepNorthCompat.TeleportEverythingPatch", true)!;
+                            Invoke(group, "Verify");
+                            Check(errors.Count == 0, "audited UI group installs");
+                            var takeInput = (Func<Player, bool>)AccessTools.Field(input, "takeInput").GetValue(null);
+                            Check(takeInput(Fake<Player>("remote input")), "open local panel does not block remote players");
+                            foreach (KeyCode key in new[] { KeyCode.G, KeyCode.H, KeyCode.J, KeyCode.L, KeyCode.K, KeyCode.T })
+                            {
+                                downKeys.Clear(); downKeys.Add(key);
+                                Check(!(bool)Invoke(input, "Pressed", key)!, "open panel blocks " + key);
+                                open.SetValue(null, false, null);
+                                Check((bool)Invoke(input, "Pressed", key)!, "closing the panel restores " + key);
+                                open.SetValue(null, true, null);
+                            }
+                            open.SetValue(null, false, null); allowInput = false;
+                            Check(!(bool)Invoke(input, "Pressed", KeyCode.T)!, "closed panel retains an existing input denial");
+                        }
+                        finally
+                        {
+                            open.SetValue(null, previous, null);
+                            new Harmony("DeepNorthCompat.UI.TeleportEverything").UnpatchSelf();
+                        }
+                    });
+                if (teleportPath != null)
+                    Case("missing TeleportEverything input registration rolls back only its UI group", () =>
+                    {
+                        Invoke(input, "Prepare", odin); Invoke(input, "Verify"); int count = Ours().Count();
+                        var errors = new List<string>();
+                        Assembly teleport = Assembly.LoadFrom(teleportPath);
+                        CompatibilityInstaller.Install(guid => guid == "odinplus.TeleportEverything" ? teleport : null,
+                            _ => { }, _ => { }, errors.Add);
+                        new Harmony("DeepNorthCompat.UI.TeleportEverything").UnpatchSelf();
+                        Type group = typeof(Plugin).Assembly.GetType("DeepNorthCompat.TeleportEverythingPatch", true)!;
+                        Invoke(group, "Verify");
+                        Check(errors.Count == 1 && errors[0].StartsWith("UI.TeleportEverything: NOT APPLIED"), "deferred hook omission is visible");
+                        Check(Ours().Count() == count, "independent input hooks retained after verification failure");
+                    });
+                Case("unsupported TeleportEverything rejects only its UI group", () =>
+                {
+                    Invoke(input, "Prepare", odin); Invoke(input, "Verify"); int count = Ours().Count();
+                    var errors = new List<string>();
+                    CompatibilityInstaller.Install(guid => guid == "odinplus.TeleportEverything" ? typeof(OdinShipTests).Assembly : null,
+                        _ => { }, _ => { }, errors.Add);
+                    Check(errors.Count == 1 && errors[0].StartsWith("UI.TeleportEverything: NOT APPLIED"), "unsupported UI build is visible");
+                    Check(Ours().Count() == count, "independent OdinShip input hooks retained");
+                    Check(!Harmony.GetAllPatchedMethods().Any(method => Harmony.GetPatchInfo(method)!.Owners.Contains("DeepNorthCompat.UI.TeleportEverything")),
+                        "rejected UI group leaves no hooks");
+                });
             }
-            else Case("input group remains inactive on dedicated servers", () =>
-            { Invoke(input, "Prepare", odin); Invoke(input, "Verify"); Check(!Ours().Any(), "no server input hooks"); });
+            else
+            {
+                Case("input group remains inactive on dedicated servers", () =>
+                { Invoke(input, "Prepare", odin); Invoke(input, "Verify"); Check(!Ours().Any(), "no server input hooks"); });
+                Case("TeleportEverything UI group remains inactive on dedicated servers", () =>
+                {
+                    Type group = typeof(Plugin).Assembly.GetType("DeepNorthCompat.TeleportEverythingPatch", true)!;
+                    Invoke(group, "Prepare", typeof(OdinShipTests).Assembly);
+                    Check(!Harmony.GetAllPatchedMethods().Any(method => Harmony.GetPatchInfo(method)!.Owners.Contains("DeepNorthCompat.UI.TeleportEverything")),
+                        "dedicated role leaves Player input untouched");
+                });
+            }
 
             Case("missing fish hooks roll back only the fish group", () =>
             {

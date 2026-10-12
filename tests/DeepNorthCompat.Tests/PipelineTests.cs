@@ -301,6 +301,44 @@ internal static class PipelineTests
             Check(producedQuality == 3 && player.GetInventory().CountItems("fish") == 0, "optional absence");
         });
 
+        if (impact.GetName().Version >= new System.Version(0, 22, 1, 0))
+        {
+            Type crafting = impact.GetType("ImpactfulSkills.patches.Crafting", true)!;
+            test("upstream refund hook remains immediately after the exact resource-consumption call", () =>
+            {
+                List<CodeInstruction> source = PatchProcessor.GetOriginalInstructions(craftMethod);
+                MethodInfo consume = AccessTools.Method(typeof(Player), "ConsumeResources");
+                Check(source.Count(c => c.Calls(consume)) == 1, "audited vanilla resource-consumption anchor");
+                MethodInfo transpiler = AccessTools.Method(impact.GetType("ImpactfulSkills.patches.Crafting+CraftingItemRefundPatch", true), "Transpiler");
+                var patched = ((IEnumerable<CodeInstruction>)transpiler.Invoke(null, new object[] { source })).ToList();
+                int anchor = patched.FindIndex(c => c.Calls(consume));
+                Check(patched.Count == source.Count + 2 && patched[anchor + 1].opcode == OpCodes.Ldarg_0
+                    && patched[anchor + 2].opcode == OpCodes.Call, "refund runs after payment without replacing resource consumption");
+            });
+            test("upstream upgrade refunds use upgrade costs and respect both idol options", () =>
+            {
+                Setup(0, 12, 0, 24, 0, true);
+                ConfigEntry<bool> craftingIdols = Bool(config, valConfig, "RefundIdolsFromCrafting", false);
+                ConfigEntry<bool> refiningIdols = Bool(config, valConfig, "RefundForgeOfPotentialIdols", false);
+                MethodInfo amount = AccessTools.Method(crafting, "RefundableAmount");
+                Piece.Requirement requirement = recipe.m_resources[0];
+                requirement.m_amount = 20; requirement.m_amountPerLevel = 2;
+                CraftingStation station = Fake<CraftingStation>("refund station");
+                int Refund(int quality, bool upgrading) => (int)amount.Invoke(null, new object[] { requirement, station, quality, upgrading });
+                Check(Refund(4, true) == 8, "upgrade refunds use eight spent materials rather than the twenty-material craft cost");
+                requirement.m_upgraderResource = true;
+                Check(Refund(1, false) == 0, "regular crafting does not refund unspent idols by default");
+                craftingIdols.Value = true;
+                Check(Refund(1, false) == 20 && Refund(4, true) == 0, "crafting idol option never refunds an idol from an upgrade");
+                station.m_upgrader = true;
+                Check(Refund(1, false) == 0, "refinement does not refund its idol by default");
+                refiningIdols.Value = true;
+                Check(Refund(1, false) == 20, "refinement option returns only its spent idol");
+                requirement.m_upgraderResource = false;
+                Check(Refund(1, false) == 0, "refinement never refunds unspent ordinary recipe materials");
+            });
+        }
+
         test("real bow drain and tooltip use the same configured formula", () =>
         {
             Hook(fixture, typeof(Player), "GetSkillFactor", nameof(SkillFactor), new[] { typeof(Skills.SkillType) });

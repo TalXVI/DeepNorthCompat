@@ -11,6 +11,7 @@ namespace DeepNorthCompat
     {
         internal const string BetterMap = "BB0A0A2E4E9EA2B388CD55F486A61057BF57F982D5647AA649375D4B1E7BAE04";
         internal const string Cartography = "2379F6884BEC32843DAFA1306F693CAD8FC2FB1208E9D2BEE3D3745EFB2DC529";
+        internal const string TeleportEverything = "9EDAEE8FB6250D8FBFAFCBE80FAC4E70FC9E58EB882BF2185822DE7E2E461922";
         // BetterMap integration was audited against these 1.0.17 client/server builds.
         internal static readonly string[] BetterMapGame =
         {
@@ -21,7 +22,9 @@ namespace DeepNorthCompat
         internal static readonly string[] ImpactfulSkills =
         {
             "D6E0844F3DADE42B23C33A678EB6E3D6DAA288DCC4187F497B8BB2A1F3CF47BA",
-            "52DB5951ADDA57426706A58C9F7C530DFD7519A3E987C73516992111588EF656"
+            "52DB5951ADDA57426706A58C9F7C530DFD7519A3E987C73516992111588EF656",
+            "E74CDE9D2F5EC13DE46A301F4FCE2FB0F66932C234A5E8E6F685FB18D454E6D9",
+            "79345A447506C6AE8D13A36DA8FD1FCDCBD965C5DA110B3953B8EA9517F7889D"
         };
         internal const string CraftyBoxes = "432285A08AA0D43BBD89B36330BEDC19CB6EA93AED439E493D0287EDAECEDEB4";
         internal const string AAACrafting = "316C5B47B449B8172627BD48C12830429E38BBD21A704746F86D1053D38D4830";
@@ -97,6 +100,7 @@ namespace DeepNorthCompat
             });
             InstallGroup("VPO.Burst", () => VpoBurstPatch.Prepare(resolve("dev.ontrigger.vpo")));
             InstallGroup("UI.TabAudio", TabAudioPatch.Prepare);
+            InstallGroup("UI.TeleportEverything", () => TeleportEverythingPatch.Prepare(resolve(TeleportEverythingPatch.Guid)));
             InstallGroup("Tune.Client", () => TuneClientPatch.Prepare(resolve("akoozie.valheimtune")));
             Assembly? odin = resolve("marlthon.OdinShip");
             InstallGroup("OdinShip.Core", () => OdinShipPatch.Prepare(odin));
@@ -123,6 +127,7 @@ namespace DeepNorthCompat
             AzuEpiPreviewPatch.Verify();
             VpoBurstPatch.Verify();
             TabAudioPatch.Verify();
+            TeleportEverythingPatch.Verify();
             TuneClientPatch.Verify();
             OdinShipPatch.Verify();
             OdinShipInputPatch.Verify();

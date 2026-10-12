@@ -227,7 +227,7 @@ internal static class Program
             int inactive = 0;
             CompatibilityInstaller.Install(_ => null, message => { if (message.Contains("inactive")) inactive++; },
                 _ => { }, error => { throw new Exception(error); });
-            Check(inactive == 17, "optional module count");
+            Check(inactive == 18, "optional module count");
         });
         Test("changed ImpactfulSkills assembly rejects bow and quality hooks safely", () =>
         {
@@ -258,12 +258,13 @@ internal static class Program
         {
             BepInEx.BepInPlugin identity = typeof(Plugin).GetCustomAttribute<BepInEx.BepInPlugin>()!;
             Check(identity.GUID == "DeepNorthCompat" && identity.Name == "DeepNorthCompat"
-                && identity.Version.ToString() == "1.3.0"
+                && identity.Version.ToString() == "1.3.1"
                 && typeof(Plugin).Assembly.GetName().Name == "DeepNorthCompat", "plugin identity");
             Check(typeof(BepInEx.BaseUnityPlugin).IsAssignableFrom(typeof(Plugin)), "BepInEx entry point");
             var dependencies = typeof(Plugin).GetCustomAttributes<BepInEx.BepInDependency>().ToArray();
-            Check(dependencies.Length == 13 && dependencies.All(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.SoftDependency)
-                && dependencies.Any(d => d.DependencyGUID == "marlthon.OdinShip"),
+            Check(dependencies.Length == 14 && dependencies.All(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.SoftDependency)
+                && dependencies.Any(d => d.DependencyGUID == "marlthon.OdinShip")
+                && dependencies.Any(d => d.DependencyGUID == "odinplus.TeleportEverything"),
                 "optional dependencies");
             Check(!typeof(Plugin).Assembly.GetReferencedAssemblies().Any(reference =>
                 assemblies.Values.Any(vendor => reference.Name == vendor.GetName().Name)), "hard vendor reference");
