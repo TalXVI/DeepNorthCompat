@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.2
+
+- Supports audited AzuCraftyBoxes 1.8.28 while retaining 1.8.27 support. Quality-aware crafting and chest ownership during crafting are unchanged.
+
 ## 1.3.1
 
 - Supports audited ImpactfulSkills 0.22.0 and 0.22.1 while retaining 0.21.1 and 0.21.3 support. Preserves upstream refund eligibility, upgrade refund amounts, crossbow reload fixes, perk thresholds, and unlock messages.

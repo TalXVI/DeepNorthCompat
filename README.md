@@ -25,7 +25,7 @@ Install the same version on the dedicated server and every client, then restart.
 Each fix is written against one exact build of the mods it touches:
 
 - ImpactfulSkills 0.21.1, 0.21.3, 0.22.0, and 0.22.1
-- AzuCraftyBoxes 1.8.27
+- AzuCraftyBoxes 1.8.27 and 1.8.28
 - AAA Crafting 2.1.11
 - SeaAnimals 0.3.9
 - AirAnimals 0.3.2
