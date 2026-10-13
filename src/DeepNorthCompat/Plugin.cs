@@ -6,7 +6,7 @@ using BepInEx.Bootstrap;
 
 namespace DeepNorthCompat
 {
-    [BepInPlugin(Guid, "DeepNorthCompat", "1.3.4")]
+    [BepInPlugin(Guid, "DeepNorthCompat", "1.3.5")]
     [BepInDependency("MidnightsFX.ImpactfulSkills", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuCraftyBoxes", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuAntiArthriticCrafting", BepInDependency.DependencyFlags.SoftDependency)]
@@ -21,6 +21,7 @@ namespace DeepNorthCompat
     [BepInDependency("xtav1m.BetterMap", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("advize.CartographySkill", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(TeleportEverythingPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(MyLittleUiAmmoPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(PlantEasilyCostPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(PlantEverythingDustPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(PlantEverythingDustPatch.CultivatorDust, BepInDependency.DependencyFlags.SoftDependency)]

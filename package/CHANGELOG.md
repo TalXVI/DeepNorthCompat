@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.5
+
+- My Little UI 1.2.30 ammo labels now skip formatting and redrawing when the displayed count is unchanged. Bait labels keep their existing behavior.
+- Support TeleportEverything 3.0.9 for the configuration-panel input fix, which blocks gameplay hotkeys while the panel is open.
+
 ## 1.3.4
 
 - `/dnc_report` now describes the world where you stand, on your client and on the server: ground height, stored and applied terrain edits, the mods that patch terrain height limits, base protection areas with their radius, and nearby creatures with their owners. Look at a creature before you run the command to mark it in both reports. A server on an earlier version still sends its report, without this section.

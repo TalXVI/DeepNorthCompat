@@ -11,7 +11,7 @@ namespace DeepNorthCompat
     {
         internal const string BetterMap = "BB0A0A2E4E9EA2B388CD55F486A61057BF57F982D5647AA649375D4B1E7BAE04";
         internal const string Cartography = "2379F6884BEC32843DAFA1306F693CAD8FC2FB1208E9D2BEE3D3745EFB2DC529";
-        internal const string TeleportEverything = "9EDAEE8FB6250D8FBFAFCBE80FAC4E70FC9E58EB882BF2185822DE7E2E461922";
+        internal const string TeleportEverything = "7E4B67FAEC0A475312745B3ED06FD7754C14AAC4D6BCECFE56FD93E439DE605B";
         internal const string PlantEverything = "313D57D5D9DF2A27BFF04AB184487D544A0749BBBE2C10CB1C41A0AE964CAC62";
         internal const string PlantEasily = "D5AD697931C97E86DBC72AFA3B9BCAC90F3AE249C3A50FE7AD94302C4C2B8416";
         internal const string NoCultivatorDust = "D3761A25915D573207BF529C7DEF9372E2CABFEBEBFDC932D799837126F4EEB3";
@@ -109,6 +109,7 @@ namespace DeepNorthCompat
             InstallGroup("VPO.Burst", () => VpoBurstPatch.Prepare(resolve("dev.ontrigger.vpo")));
             InstallGroup("UI.TabAudio", TabAudioPatch.Prepare);
             InstallGroup("UI.TeleportEverything", () => TeleportEverythingPatch.Prepare(resolve(TeleportEverythingPatch.Guid)));
+            InstallGroup("MyLittleUI.AmmoCount", () => MyLittleUiAmmoPatch.Prepare(resolve(MyLittleUiAmmoPatch.Guid)));
             InstallGroup("PlantEasily.GridCost", () => PlantEasilyCostPatch.Prepare(resolve(PlantEasilyCostPatch.Guid)));
             InstallGroup("PlantEverything.Dust", () => PlantEverythingDustPatch.Prepare(resolve(PlantEverythingDustPatch.Guid),
                 resolve(PlantEverythingDustPatch.CultivatorDust), resolve(PlantEverythingDustPatch.BuildDust)));
@@ -139,6 +140,7 @@ namespace DeepNorthCompat
             VpoBurstPatch.Verify();
             TabAudioPatch.Verify();
             TeleportEverythingPatch.Verify();
+            MyLittleUiAmmoPatch.Verify();
             PlantEasilyCostPatch.Verify();
             PlantEverythingDustPatch.Verify();
             TuneClientPatch.Verify();

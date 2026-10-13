@@ -17,6 +17,7 @@ It currently fixes bugs and incompatibilities involving:
 - TeleportEverything configuration-panel focus, which left some gameplay hotkeys active while the panel was open.
 - PlantEasily planting grids, which checked only the first ingredient of a multi-ingredient recipe.
 - PlantEverything placement dust, which came back after joining a server with NoCultivatorDust or NoBuildDust installed.
+- My Little UI ammo counts, which redrew every hotbar update even when the number hadn't changed.
 
 Install the same version on the dedicated server and every client, then restart.
 
@@ -39,9 +40,10 @@ Each fix is written against one exact build of the mods it touches:
 - OdinShip 0.8.7
 - BetterMap 1.1.0
 - CartographySkill 3.2.0 (for BetterMap's exploration integration)
-- TeleportEverything 3.0.8 (configuration-panel input fix on Valheim 1.0.17 clients)
+- TeleportEverything 3.0.9 (configuration-panel input fix on Valheim 1.0.17 clients)
 - PlantEasily 2.3.0 (grid cost fix on Valheim 1.0.17 clients)
 - PlantEverything 1.21.3 with NoCultivatorDust 1.0.7 or NoBuildDust 1.0.7 (placement dust fix on Valheim 1.0.17 clients)
+- My Little UI 1.2.30 (ammo count redraw fix on Valheim 1.0.17 clients)
 
 Mod patches only activate if the corresponding mod and supported version are present.
 

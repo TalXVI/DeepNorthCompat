@@ -25,7 +25,7 @@ internal static class Program
         try
         {
             if (Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_TEST_MODE") == "server") RunServer();
-            else { Run(); TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); RunChests(); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); }
+            else { Run(); TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); RunChests(); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); MyLittleUiAmmoTests.Run(Lab, Test); }
             RunBetterMap();
             SysConsole.WriteLine($"PASS: {passed} test cases"); return 0;
         }
@@ -33,7 +33,7 @@ internal static class Program
     }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static void RunServer() { TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); ChestTests.Run(Lab, Test); TabAudioTests.RunServer(Test); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); }
+    private static void RunServer() { TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); ChestTests.Run(Lab, Test); TabAudioTests.RunServer(Test); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); MyLittleUiAmmoTests.RunServer(Lab, Test); }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void RunChests() => ChestTests.Run(Lab, Test);
@@ -227,7 +227,7 @@ internal static class Program
             int inactive = 0;
             CompatibilityInstaller.Install(_ => null, message => { if (message.Contains("inactive")) inactive++; },
                 _ => { }, error => { throw new Exception(error); });
-            Check(inactive == 20, "optional module count");
+            Check(inactive == 21, "optional module count");
         });
         Test("changed ImpactfulSkills assembly rejects bow and quality hooks safely", () =>
         {
@@ -258,13 +258,14 @@ internal static class Program
         {
             BepInEx.BepInPlugin identity = typeof(Plugin).GetCustomAttribute<BepInEx.BepInPlugin>()!;
             Check(identity.GUID == "DeepNorthCompat" && identity.Name == "DeepNorthCompat"
-                && identity.Version.ToString() == "1.3.4"
+                && identity.Version.ToString() == "1.3.5"
                 && typeof(Plugin).Assembly.GetName().Name == "DeepNorthCompat", "plugin identity");
             Check(typeof(BepInEx.BaseUnityPlugin).IsAssignableFrom(typeof(Plugin)), "BepInEx entry point");
             var dependencies = typeof(Plugin).GetCustomAttributes<BepInEx.BepInDependency>().ToArray();
-            Check(dependencies.Length == 18 && dependencies.All(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.SoftDependency)
+            Check(dependencies.Length == 19 && dependencies.All(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.SoftDependency)
                 && dependencies.Any(d => d.DependencyGUID == "marlthon.OdinShip")
                 && dependencies.Any(d => d.DependencyGUID == "odinplus.TeleportEverything")
+                && dependencies.Any(d => d.DependencyGUID == "shudnal.MyLittleUI")
                 && new[] { "advize.PlantEasily", "advize.PlantEverything", "Azumatt.NoCultivatorDust", "Azumatt.NoBuildDust" }
                     .All(guid => dependencies.Any(d => d.DependencyGUID == guid)),
                 "optional dependencies");

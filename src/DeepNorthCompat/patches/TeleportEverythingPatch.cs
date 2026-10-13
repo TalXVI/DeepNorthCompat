@@ -26,7 +26,7 @@ namespace DeepNorthCompat
             new Harmony(Owner).Patch(target, postfix: Guard.Hook(typeof(TeleportEverythingPatch), nameof(BlockInput), Priority.Last));
             Guard.Registered(target);
             pending = true;
-            CompatibilityInstaller.Info("UI.TeleportEverything: 3.0.8 build verified; awaiting Player input hook verification.");
+            CompatibilityInstaller.Info("UI.TeleportEverything: 3.0.9 build verified; awaiting Player input hook verification.");
         }
 
         internal static void Verify()
