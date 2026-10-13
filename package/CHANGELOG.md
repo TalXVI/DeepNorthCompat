@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.6
+
+- Support My Little UI 1.2.31 for the ammo count redraw fix. The audited ammo code is unchanged from 1.2.30.
+
 ## 1.3.5
 
 - My Little UI 1.2.30 ammo labels now skip formatting and redrawing when the displayed count is unchanged. Bait labels keep their existing behavior.

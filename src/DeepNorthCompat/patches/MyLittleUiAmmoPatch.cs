@@ -12,7 +12,7 @@ namespace DeepNorthCompat
     {
         internal const string Guid = "shudnal.MyLittleUI";
         internal const string Owner = Plugin.Guid + ".MyLittleUI.AmmoCount";
-        private const string Build = "E9B2B36923D9547D36237D8FEB9408C1753A00D53BE40231C14963BD4BCBD647";
+        private const string Build = "AF4A568F13719421D0FDB3A7984D8A89B05A7672BDD9E3F230A0542E6D978FE2";
         private const string GameHash = "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE";
         private const string TmpHash = "719A2E22767F1A9C7B92F47AEA2F58550FAE2E76189F99181757B04A3595E181";
         private static MethodInfo target = null!;
@@ -32,7 +32,7 @@ namespace DeepNorthCompat
             rewritten = null;
             new Harmony(Owner).Patch(target, transpiler: Guard.Hook(typeof(MyLittleUiAmmoPatch), nameof(Rewrite)));
             pending = true;
-            CompatibilityInstaller.Info("MyLittleUI.AmmoCount: 1.2.30 build verified; awaiting transpiler verification.");
+            CompatibilityInstaller.Info("MyLittleUI.AmmoCount: 1.2.31 build verified; awaiting transpiler verification.");
         }
 
         internal static void Verify()

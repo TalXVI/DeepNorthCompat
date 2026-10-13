@@ -43,7 +43,7 @@ Each fix is written against one exact build of the mods it touches:
 - TeleportEverything 3.0.9 (configuration-panel input fix on Valheim 1.0.17 clients)
 - PlantEasily 2.3.0 (grid cost fix on Valheim 1.0.17 clients)
 - PlantEverything 1.21.3 with NoCultivatorDust 1.0.7 or NoBuildDust 1.0.7 (placement dust fix on Valheim 1.0.17 clients)
-- My Little UI 1.2.30 (ammo count redraw fix on Valheim 1.0.17 clients)
+- My Little UI 1.2.31 (ammo count redraw fix on Valheim 1.0.17 clients)
 
 Mod patches only activate if the corresponding mod and supported version are present.
 
