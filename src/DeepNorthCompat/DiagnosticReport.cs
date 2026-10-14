@@ -260,8 +260,9 @@ namespace DeepNorthCompat
             string text = Build(Full, includeServer: true, probe);
             string? path = Save(text, "combined");
             GUIUtility.systemCopyBuffer = text;
+            // The chat reads `\v` and `\r` in a Windows path as control characters, so show forward slashes.
             context.AddString("DeepNorthCompat: report copied to the clipboard (" + (text.Length / 1024 + 1) + " KB)."
-                + (path == null ? "" : " Saved to " + path));
+                + (path == null ? "" : " Saved to " + path.Replace('\\', '/')));
         }
 
         private static void ReceiveRequest(long sender, long id)

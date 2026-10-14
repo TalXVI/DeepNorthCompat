@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.7
+
+- `/dnc_report` shows the saved report path with forward slashes, so the chat no longer turns `\v` and `\r` in a Windows path into control characters.
+
 ## 1.3.6
 
 - Support My Little UI 1.2.31 for the ammo count redraw fix. The audited ammo code is unchanged from 1.2.30.
