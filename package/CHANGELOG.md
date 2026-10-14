@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.8
+
+- Hoe leveling, raising, and smoothing, and RuneMagic's Foundation Rune, now fill HearthBelow pickaxe cuts under the ground they edit. These edits used to change only the surface height, so the cut came back when the terrain reloaded. A fill follows later height edits, never reaches above the surface the tool leaves, and is removed with the area's other dig records. A player or server without this version shows the original cut.
+
 ## 1.3.7
 
 - `/dnc_report` shows the saved report path with forward slashes, so the chat no longer turns `\v` and `\r` in a Windows path into control characters.

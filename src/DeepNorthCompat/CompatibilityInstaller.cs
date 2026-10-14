@@ -114,6 +114,9 @@ namespace DeepNorthCompat
             InstallGroup("PlantEverything.Dust", () => PlantEverythingDustPatch.Prepare(resolve(PlantEverythingDustPatch.Guid),
                 resolve(PlantEverythingDustPatch.CultivatorDust), resolve(PlantEverythingDustPatch.BuildDust)));
             InstallGroup("Tune.Client", () => TuneClientPatch.Prepare(resolve("akoozie.valheimtune")));
+            Assembly? hearth = resolve(HearthTerrainPatch.Guid);
+            InstallGroup("Terrain.HearthBelow.Replay", () => HearthTerrainPatch.PrepareReplay(hearth));
+            InstallGroup("Terrain.HearthBelow", () => HearthTerrainPatch.Prepare(hearth, resolve(HearthTerrainPatch.RuneGuid)));
             Assembly? odin = resolve("marlthon.OdinShip");
             InstallGroup("OdinShip.Core", () => OdinShipPatch.Prepare(odin));
             InstallGroup("OdinShip.Input", () => OdinShipInputPatch.Prepare(odin));
@@ -144,6 +147,7 @@ namespace DeepNorthCompat
             PlantEasilyCostPatch.Verify();
             PlantEverythingDustPatch.Verify();
             TuneClientPatch.Verify();
+            HearthTerrainPatch.Verify();
             OdinShipPatch.Verify();
             OdinShipInputPatch.Verify();
             OdinShipFishPatch.Verify();

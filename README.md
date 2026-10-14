@@ -18,6 +18,7 @@ It currently fixes bugs and incompatibilities involving:
 - PlantEasily planting grids, which checked only the first ingredient of a multi-ingredient recipe.
 - PlantEverything placement dust, which came back after joining a server with NoCultivatorDust or NoBuildDust installed.
 - My Little UI ammo counts, which redrew every hotbar update even when the number hadn't changed.
+- HearthBelow pickaxe cuts, which came back after Hoe leveling, raising, or smoothing, or a RuneMagic Foundation Rune, filled them.
 
 Install the same version on the dedicated server and every client, then restart.
 
@@ -44,6 +45,7 @@ Each fix is written against one exact build of the mods it touches:
 - PlantEasily 2.3.0 (grid cost fix on Valheim 1.0.17 clients)
 - PlantEverything 1.21.3 with NoCultivatorDust 1.0.7 or NoBuildDust 1.0.7 (placement dust fix on Valheim 1.0.17 clients)
 - My Little UI 1.2.31 (ammo count redraw fix on Valheim 1.0.17 clients)
+- HearthBelow 0.7.0, with RuneMagic 1.5.1 for the Foundation Rune (cut filling on Valheim 1.0.17 clients and servers)
 
 Mod patches only activate if the corresponding mod and supported version are present.
 
