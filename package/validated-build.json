@@ -63,10 +63,10 @@
     ".gitignore": "9d38957cb217a0af36f309d9954a700e544c6165643e7bd033f0da9b7a3dcbb4",
     "Directory.Build.props": "71269911e5cc1a5914868565b28040e601fcda19149f3bcdb28213734f2d60bb",
     "LICENSE": "966986d1e900bc9df9931249a795c872f0abdbabcca90cbf687b1b134dc0abb4",
-    "README.md": "11d3eb0377bfed951b6c0950a14ca4176ab40c87e47fbd858f9a5e5ca0f455f1",
+    "README.md": "60a4802a3fc284ffa6824dc0a042fdc1c5f27f05f6eea54d2d62a894841c36b6",
     "global.json": "3df4ce55234dc6fd7b966086616b126278aa90858a78d9c2a7f5445f14712d29",
     "justfile": "5567e41c2d448eb02a5be34faf21831cf40441d65cb244df09b7ab2b29aa71b4",
-    "package/CHANGELOG.md": "83c2731f02a6afe03fdab9f7e3e2f2ce721a041833f06554ab28ed3665a0f6b3",
+    "package/CHANGELOG.md": "e0bf033111d98eac886ed71ee4c41bb25e611ae3f0df8fd7ae453d84d95be990",
     "package/icon.png": "3f96bea2b17d577d0d6ed352fafbbd89a438a9795fbdb825aac588fd95b2b584",
     "package/manifest.json": "efbb0b3e97cc1774c897fee3b5a697a07357f8a7ca5bf259973708a841ae6b7d",
     "scripts/build-and-test.py": "25eb4f13ec6e05bd190c4de32c31a4e5917cb1f2f8f1f47f7e26d7fefb2c720d",
@@ -132,5 +132,5 @@
     "tests/DeepNorthCompat.Tests/VpoBurstTests.cs": "06ae26b49d4ca35bbea4e74825c503bc6c30553369773de32a038aea742f835f",
     "tests/DeepNorthCompat.Tests/WorldProbeTests.cs": "6c01be7d97300c28d977a06e7110ac470a4cfa7f670a658d18fad5b43c92f546"
   },
-  "sourceSha256": "07c7eb02cd2e90ae45442b7356b2dda84a725289602b800208b0b24c7416a0f5"
+  "sourceSha256": "007322b4228ff88019c15e0e4eef62b5d633177b82b61cffccf4a0b408e68400"
 }
