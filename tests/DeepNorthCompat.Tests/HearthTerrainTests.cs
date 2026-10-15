@@ -387,6 +387,51 @@ internal static class HearthTerrainTests
                 }
                 finally { Install(); }
             });
+            test("Hearth terrain: the replay decoder passes other records through unchanged and allocates nothing", () =>
+            {
+                Install(); Reset(); Cut(); Cave(); Level(10); Reload();
+                MethodInfo bounds = AccessTools.Method(typeof(VoxelZone), "ComputeOpBounds"), density = AccessTools.Method(typeof(VoxelZone), "ApplyOpDensity");
+                foreach (MethodInfo target in new[] { bounds, density })
+                {
+                    Patches info = Harmony.GetPatchInfo(target)!;
+                    Check(info.Transpilers.Count(p => p.owner == ReplayOwner) == 1
+                        && !info.Prefixes.Concat(info.Postfixes).Concat(info.Finalizers).Any(p => p.owner == ReplayOwner), "one replay transpiler on " + target.Name);
+                }
+                List<CarveOp> saved = Saved();
+                CarveOp repair = saved.First(op => op.Type == 200);
+                var others = saved.Where(op => op.Type != 200).ToList();
+                for (byte type = 0; type <= 5; type++)
+                    foreach (byte shape in new byte[] { 0, 1, 2 })
+                        others.Add(new CarveOp { Type = type, Shape = shape, Point = new Vector3(1.3f, 8.6f, -2.2f), Radius = 1.7f, Depth = 1.2f,
+                            Direction = new Vector3(.3f, -1, .2f), FloorHeight = float.NegativeInfinity });
+                string Results()
+                {
+                    var text = new System.Text.StringBuilder();
+                    foreach (CarveOp op in others)
+                        foreach (bool owned in new[] { false, true })
+                        {
+                            object?[] args = { op, 0, 18, 0, 18, owned, null, null, null, null, null, null };
+                            text.Append(bounds.Invoke(zone, args)).Append(string.Join(",", args.Skip(6))).Append(';');
+                        }
+                    // Planes prepare floor columns even on a dry run.
+                    foreach (CarveOp op in others.Where(op => !op.IsPlane)) text.Append(density.Invoke(zone, new object[] { op, 0, 18, 0, 18, true })).Append(';');
+                    return text.ToString();
+                }
+                string decoded = Results();
+                new Harmony(ReplayOwner).UnpatchSelf();
+                try { Check(Results() == decoded, "other records match HearthBelow without the decoder"); }
+                finally { Install(); }
+                // The decoder once boxed each record and read it by reflection, which allocated on every call.
+                Func<VoxelZone, CarveOp, int, int> boundsCalls = Repeat("ComputeOpBounds", true), densityCalls = Repeat("ApplyOpDensity", false);
+                foreach (CarveOp op in new[] { saved.First(op => op.Type == 3), repair })
+                {
+                    boundsCalls(zone, op, 100); densityCalls(zone, op, 100);
+                    long before = GC.GetTotalMemory(false);
+                    boundsCalls(zone, op, 2000); densityCalls(zone, op, 2000);
+                    long allocated = GC.GetTotalMemory(false) - before;
+                    Check(allocated < 4000, "type " + op.Type + " records allocated " + allocated + " bytes in 4000 calls");
+                }
+            });
         }
         finally
         {
@@ -401,6 +446,24 @@ internal static class HearthTerrainTests
         }
     }
 
+    // Calls a VoxelZone method count times over every column without reflection; ApplyOpDensity runs dry.
+    private static Func<VoxelZone, CarveOp, int, int> Repeat(string name, bool bounds)
+    {
+        MethodInfo target = AccessTools.Method(typeof(VoxelZone), name);
+        var method = new DynamicMethod("Repeat" + name, typeof(int), new[] { typeof(VoxelZone), typeof(CarveOp), typeof(int) }, typeof(VoxelZone), true);
+        ILGenerator il = method.GetILGenerator();
+        LocalBuilder i = il.DeclareLocal(typeof(int)), sum = il.DeclareLocal(typeof(int)), output = il.DeclareLocal(typeof(int));
+        Label top = il.DefineLabel(), check = il.DefineLabel();
+        il.Emit(OpCodes.Br, check); il.MarkLabel(top);
+        il.Emit(OpCodes.Ldarg_0); il.Emit(OpCodes.Ldarg_1); il.Emit(OpCodes.Ldc_I4_0); il.Emit(OpCodes.Ldc_I4, 18); il.Emit(OpCodes.Ldc_I4_0); il.Emit(OpCodes.Ldc_I4, 18);
+        if (bounds) { il.Emit(OpCodes.Ldc_I4_0); for (int k = 0; k < 6; k++) il.Emit(OpCodes.Ldloca, output); }
+        else il.Emit(OpCodes.Ldc_I4_1);
+        il.Emit(OpCodes.Call, target); il.Emit(OpCodes.Ldloc, sum); il.Emit(OpCodes.Add); il.Emit(OpCodes.Stloc, sum);
+        il.Emit(OpCodes.Ldloc, i); il.Emit(OpCodes.Ldc_I4_1); il.Emit(OpCodes.Add); il.Emit(OpCodes.Stloc, i);
+        il.MarkLabel(check); il.Emit(OpCodes.Ldloc, i); il.Emit(OpCodes.Ldarg_2); il.Emit(OpCodes.Blt, top);
+        il.Emit(OpCodes.Ldloc, sum); il.Emit(OpCodes.Ret);
+        return (Func<VoxelZone, CarveOp, int, int>)method.CreateDelegate(typeof(Func<VoxelZone, CarveOp, int, int>));
+    }
     private static int nextIdAsInt = 100000;
     private static void Install()
     {

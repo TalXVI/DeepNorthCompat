@@ -26,7 +26,7 @@ namespace DeepNorthCompat
         // Sequence holds "DNC" and the format version above the offset's float bits.
         private const byte RepairType = 200;
         private const long RepairTag = 0x444E4301L;
-        private static readonly Dictionary<MethodBase, bool> rewrites = new Dictionary<MethodBase, bool>();
+        private static readonly Dictionary<MethodBase, bool> rewrites = new Dictionary<MethodBase, bool>(), replays = new Dictionary<MethodBase, bool>();
         private static readonly AccessTools.FieldRef<TerrainComp, Heightmap> heightmap = AccessTools.FieldRefAccess<TerrainComp, Heightmap>("m_hmap");
         private static readonly AccessTools.FieldRef<TerrainComp, ZNetView> netView = AccessTools.FieldRefAccess<TerrainComp, ZNetView>("m_nview");
         private static readonly AccessTools.FieldRef<TerrainComp, float[]> smoothDelta = AccessTools.FieldRefAccess<TerrainComp, float[]>("m_smoothDelta");
@@ -39,8 +39,13 @@ namespace DeepNorthCompat
         private static readonly OpCode[] shortLoads = { OpCodes.Ldloc_0, OpCodes.Ldloc_1, OpCodes.Ldloc_2, OpCodes.Ldloc_3 };
         private static Type operationType = null!;
         private static MethodInfo getZone = null!, sync = null!, zoneKey = null!, newId = null!, bounds = null!, applyDensity = null!;
-        private static MethodInfo ensureDensity = null!, height = null!, applyOp = null!, rush = null!, dirtyNeighbors = null!, read = null!, serialize = null!;
-        private static FieldInfo density = null!, origin = null!, nx = null!, ny = null!, nz = null!, spacing = null!, ownedX = null!, ownedZ = null!;
+        private static MethodInfo ensureDensity = null!, applyOp = null!, rush = null!, dirtyNeighbors = null!, read = null!, serialize = null!;
+        // Replay reads a zone's layout for every fill record, so it uses typed accessors instead of reflection.
+        private static AccessTools.FieldRef<object, float[]> density = null!;
+        private static AccessTools.FieldRef<object, Vector3> origin = null!;
+        private static AccessTools.FieldRef<object, float> spacing = null!;
+        private static AccessTools.FieldRef<object, int> nx = null!, ny = null!, nz = null!, ownedX = null!, ownedZ = null!;
+        private static Func<object, int, int, float> heightAt = null!;
         private static FieldInfo opId = null!, opSequence = null!, opType = null!, opPoint = null!, opRadius = null!, floorHeight = null!;
         private static FieldInfo cap = null!, holder = null!, bases = null!;
         private static int dataKey;
@@ -71,7 +76,7 @@ namespace DeepNorthCompat
         internal static void PrepareReplay(Assembly? hearth)
         {
             new Harmony(ReplayOwner).UnpatchSelf();
-            replayPending = replayEnabled = enabled = false;
+            replays.Clear(); replayPending = replayEnabled = enabled = false;
             if (hearth == null) { CompatibilityInstaller.Info("Terrain.HearthBelow.Replay: optional mod absent; inactive."); return; }
             Guard.Build(hearth, HearthBuild);
             Guard.Build(typeof(TerrainComp).Assembly,
@@ -95,22 +100,27 @@ namespace DeepNorthCompat
                 integerRef, integerRef, integerRef, integerRef, integerRef, integerRef);
             applyDensity = Guard.Method(zone, "ApplyOpDensity", typeof(bool), op, typeof(int), typeof(int), typeof(int), typeof(int), typeof(bool));
             ensureDensity = Guard.Method(zone, "EnsureDensity", typeof(void));
-            height = Guard.Method(zone, "H", typeof(float), typeof(int), typeof(int));
+            MethodInfo height = Guard.Method(zone, "H", typeof(float), typeof(int), typeof(int));
+            var call = new DynamicMethod("DNC_HearthHeight", typeof(float), new[] { typeof(object), typeof(int), typeof(int) }, typeof(HearthTerrainPatch), true);
+            ILGenerator il = call.GetILGenerator();
+            il.Emit(OpCodes.Ldarg_0); il.Emit(OpCodes.Castclass, zone); il.Emit(OpCodes.Ldarg_1); il.Emit(OpCodes.Ldarg_2); il.Emit(OpCodes.Call, height); il.Emit(OpCodes.Ret);
+            heightAt = (Func<object, int, int, float>)call.CreateDelegate(typeof(Func<object, int, int, float>));
             applyOp = Guard.Method(zone, "ApplyOp", typeof(bool), op);
             rush = Guard.Method(zone, "Rush", typeof(void));
             read = Guard.Method(data, "Read", Guard.Type(hearth, "HearthBelow.VoxelMagic.CarveDataState"), typeof(byte[]), list.MakeByRefType());
             serialize = Guard.Method(data, "Serialize", typeof(byte[]), list);
             dataKey = (int)Field(data, "ZdoKey", typeof(int)).GetValue(null);
             cap = Field(plugin, "MaxOpsPerZone", typeof(ConfigEntry<int>));
-            density = Field(zone, "Density", typeof(float[])); origin = Field(zone, "Origin", typeof(Vector3));
-            nx = Field(zone, "NX", typeof(int)); ny = Field(zone, "NY", typeof(int)); nz = Field(zone, "NZ", typeof(int));
-            spacing = Field(zone, "HorizontalSpacing", typeof(float));
-            ownedX = Field(zone, "_ownedMaximumX", typeof(int)); ownedZ = Field(zone, "_ownedMaximumZ", typeof(int));
+            density = Ref<float[]>(zone, "Density"); origin = Ref<Vector3>(zone, "Origin");
+            nx = Ref<int>(zone, "NX"); ny = Ref<int>(zone, "NY"); nz = Ref<int>(zone, "NZ");
+            spacing = Ref<float>(zone, "HorizontalSpacing");
+            ownedX = Ref<int>(zone, "_ownedMaximumX"); ownedZ = Ref<int>(zone, "_ownedMaximumZ");
             opId = Field(op, "Id", typeof(int)); opSequence = Field(op, "Sequence", typeof(long)); opType = Field(op, "Type", typeof(byte));
             opPoint = Field(op, "Point", typeof(Vector3)); opRadius = Field(op, "Radius", typeof(float)); floorHeight = Field(op, "FloorHeight", typeof(float));
             var harmony = new Harmony(ReplayOwner);
-            harmony.Patch(bounds, postfix: Guard.Hook(typeof(HearthTerrainPatch), nameof(RepairBounds)));
-            harmony.Patch(applyDensity, prefix: Guard.Hook(typeof(HearthTerrainPatch), nameof(RepairDensity)));
+            replays.Add(bounds, false); replays.Add(applyDensity, false);
+            harmony.Patch(bounds, transpiler: Guard.Hook(typeof(HearthTerrainPatch), nameof(RewriteBounds)));
+            harmony.Patch(applyDensity, transpiler: Guard.Hook(typeof(HearthTerrainPatch), nameof(RewriteDensity)));
             replayPending = true;
         }
 
@@ -149,6 +159,8 @@ namespace DeepNorthCompat
             return field;
         }
 
+        private static AccessTools.FieldRef<object, T> Ref<T>(Type type, string name) => AccessTools.FieldRefAccess<object, T>(Field(type, name, typeof(T)));
+
         private static void Add(Harmony harmony, MethodInfo target, string rewrite)
         {
             rewrites.Add(target, false);
@@ -162,8 +174,8 @@ namespace DeepNorthCompat
             if (replayPending)
             {
                 replayPending = false;
-                replayEnabled = Harmony.GetPatchInfo(bounds)?.Postfixes.Count(p => p.owner == ReplayOwner) == 1
-                    && Harmony.GetPatchInfo(applyDensity)?.Prefixes.Count(p => p.owner == ReplayOwner) == 1;
+                replayEnabled = replays.Count == 2 && replays.All(pair => pair.Value
+                    && Harmony.GetPatchInfo(pair.Key)?.Transpilers.Count(p => p.owner == ReplayOwner) == 1);
                 if (replayEnabled) CompatibilityInstaller.Info("Terrain.HearthBelow.Replay: APPLIED; saved terrain repairs fill their pickaxe cuts.");
                 else
                 {
@@ -250,12 +262,62 @@ namespace DeepNorthCompat
                 return true;
             });
 
+        // HearthBelow computes a fill record's columns as it does any record's. Each return then tests the
+        // record's type inline, so other records pass without a call, and a fill record takes its rows and
+        // result from RepairBounds. HearthBelow's result stays on the stack until that test.
+        private static IEnumerable<CodeInstruction> RewriteBounds(IEnumerable<CodeInstruction> instructions, MethodBase __originalMethod, ILGenerator generator) =>
+            Transpile(instructions, __originalMethod, code =>
+            {
+                if (!Parameters(__originalMethod, "operation", "minimumColumnX", "maximumColumnX", "minimumColumnZ", "maximumColumnZ", "ownedOnly",
+                        "minX", "minY", "minZ", "maxX", "maxY", "maxZ")
+                    || !code.Any(i => i.opcode == OpCodes.Ret) || code.Any(i => i.blocks.Count > 0)) return false;
+                Label exit = generator.DefineLabel(), repair = generator.DefineLabel();
+                foreach (CodeInstruction ret in code.Where(i => i.opcode == OpCodes.Ret)) { ret.opcode = OpCodes.Br; ret.operand = exit; }
+                List<CodeInstruction> test = IsRepair(OpCodes.Beq, repair);
+                test[0].labels.Add(exit);
+                code.AddRange(test);
+                code.Add(new CodeInstruction(OpCodes.Ret));
+                code.Add(new CodeInstruction(OpCodes.Pop) { labels = { repair } });
+                code.AddRange(RepairRecord());
+                // minX, maxX, minZ, maxZ by value, then minY and maxY by reference.
+                foreach (int bound in new[] { 7, 10, 9, 12 }) code.AddRange(new[] { Argument(bound), new CodeInstruction(OpCodes.Ldind_I4) });
+                code.AddRange(new[] { Argument(8), Argument(11), new CodeInstruction(OpCodes.Call, Hook(nameof(RepairBounds))), new CodeInstruction(OpCodes.Ret) });
+                return true;
+            }, true);
+
+        // A fill record returns RepairDensity's result before HearthBelow's shapes run.
+        private static IEnumerable<CodeInstruction> RewriteDensity(IEnumerable<CodeInstruction> instructions, MethodBase __originalMethod, ILGenerator generator) =>
+            Transpile(instructions, __originalMethod, code =>
+            {
+                if (code.Count == 0 || !Parameters(__originalMethod, "operation", "minimumColumnX", "maximumColumnX", "minimumColumnZ", "maximumColumnZ", "dryRun")) return false;
+                Label native = generator.DefineLabel();
+                code[0].labels.Add(native);
+                code.InsertRange(0, IsRepair(OpCodes.Bne_Un, native).Concat(RepairRecord()).Concat(Enumerable.Range(2, 5).Select(Argument))
+                    .Append(new CodeInstruction(OpCodes.Call, Hook(nameof(RepairDensity)))).Append(new CodeInstruction(OpCodes.Ret)));
+                return true;
+            }, true);
+
+        private static bool Parameters(MethodBase method, params string[] names) => method.GetParameters().Select(p => p.Name).SequenceEqual(names);
+
+        // operation.Type compared with the fill type, read in place without copying or boxing the record.
+        private static List<CodeInstruction> IsRepair(OpCode branch, Label target) => new List<CodeInstruction> {
+            new CodeInstruction(OpCodes.Ldarga_S, (byte)1), new CodeInstruction(OpCodes.Ldfld, opType),
+            new CodeInstruction(OpCodes.Ldc_I4, (int)RepairType), new CodeInstruction(branch, target) };
+
+        // The zone, then the record's sequence, point, and floor.
+        private static IEnumerable<CodeInstruction> RepairRecord() => new[] { new CodeInstruction(OpCodes.Ldarg_0) }.Concat(new[] { opSequence, opPoint, floorHeight }
+            .SelectMany(field => new[] { new CodeInstruction(OpCodes.Ldarga_S, (byte)1), new CodeInstruction(OpCodes.Ldfld, field) }));
+
+        private static CodeInstruction Argument(int index) => new CodeInstruction(OpCodes.Ldarg_S, (byte)index);
+
         // Edits a copy of the IL. When edit rejects the shape, the original instructions run unchanged.
-        private static IEnumerable<CodeInstruction> Transpile(IEnumerable<CodeInstruction> instructions, MethodBase method, Func<List<CodeInstruction>, bool> edit)
+        // Without the replay rewrites, HearthBelow replays fill records as no-ops, so the tool rewrites stop with them.
+        private static IEnumerable<CodeInstruction> Transpile(IEnumerable<CodeInstruction> instructions, MethodBase method, Func<List<CodeInstruction>, bool> edit, bool replay = false)
         {
             List<CodeInstruction> original = instructions.ToList(), code = original.Select(i => new CodeInstruction(i)).ToList();
-            bool match = rewrites[method] = edit(code);
+            bool match = (replay ? replays : rewrites)[method] = edit(code);
             if (match) return code;
+            if (replay && replayEnabled) { replayEnabled = false; CompatibilityInstaller.Error("Terrain.HearthBelow.Replay: NO LONGER APPLIED; terrain IL changed on " + method.Name); }
             if (enabled) { enabled = false; CompatibilityInstaller.Error("Terrain.HearthBelow: NO LONGER APPLIED; terrain IL changed on " + method.Name); }
             return original;
         }
@@ -459,21 +521,17 @@ namespace DeepNorthCompat
             return operation;
         }
 
-        private static bool IsRepair(object operation) => (byte)opType.GetValue(operation) == RepairType;
-
         // The samples a record fills in its column: from the first at or above its floor to one above its target.
         private struct Fill { internal int X, Z, First, Last; internal float Target; }
 
         // Replay reads the column's current heightmap height, so later heightmap edits show through.
         // While this action applies its own records, the zone still holds the heights from before it.
-        private static bool Decode(VoxelGrid grid, object operation, out Fill fill)
+        private static bool Decode(VoxelGrid grid, long sequence, Vector3 point, float floor, out Fill fill)
         {
             fill = default;
-            long sequence = (long)opSequence.GetValue(operation);
             if (sequence >> 32 != RepairTag) return false;
-            float offset = new Bits { Raw = (int)sequence }.Value, floor = (float)floorHeight.GetValue(operation);
+            float offset = new Bits { Raw = (int)sequence }.Value;
             if (float.IsNaN(offset) || float.IsInfinity(offset) || offset > 0 || float.IsNaN(floor) || float.IsInfinity(floor)) return false;
-            Vector3 point = (Vector3)opPoint.GetValue(operation);
             grid.Column(point, out int x, out int z);
             if (x < 0 || x >= grid.NX || z < 0 || z >= grid.NZ) return false;
             float target = applying ? point.y : grid.Surface(x, z) + offset;
@@ -484,24 +542,22 @@ namespace DeepNorthCompat
             return true;
         }
 
-        private static void RepairBounds(object __instance, object operation, int minX, int maxX, int minZ, int maxZ,
-            ref int minY, ref int maxY, ref bool __result)
+        // ComputeOpBounds for a fill record, after HearthBelow set its columns.
+        private static bool RepairBounds(object zone, long sequence, Vector3 point, float floor, int minX, int maxX, int minZ, int maxZ,
+            ref int minY, ref int maxY)
         {
-            if (!IsRepair(operation)) return;
-            if (!Decode(new VoxelGrid(__instance), operation, out Fill fill)) { __result = false; return; }
+            if (!Decode(new VoxelGrid(zone), sequence, point, floor, out Fill fill)) return false;
             minY = fill.First; maxY = fill.Last;
-            __result = minX <= maxX && minZ <= maxZ && minY <= maxY;
+            return minX <= maxX && minZ <= maxZ && minY <= maxY;
         }
 
-        // Raises samples above the saved cut floor to the target surface and never removes material.
-        // A cut removed later leaves the record over intact ground, where it changes nothing.
-        private static bool RepairDensity(object __instance, object operation, int minimumColumnX, int maximumColumnX,
-            int minimumColumnZ, int maximumColumnZ, bool dryRun, ref bool __result)
+        // ApplyOpDensity for a fill record. Raises samples above the saved cut floor to the target surface and
+        // never removes material. A cut removed later leaves the record over intact ground, where it changes nothing.
+        private static bool RepairDensity(object zone, long sequence, Vector3 point, float floor, int minimumColumnX, int maximumColumnX,
+            int minimumColumnZ, int maximumColumnZ, bool dryRun)
         {
-            if (!IsRepair(operation)) return true;
-            __result = false;
-            var grid = new VoxelGrid(__instance);
-            if (!Decode(grid, operation, out Fill fill)) return false;
+            var grid = new VoxelGrid(zone);
+            if (!Decode(grid, sequence, point, floor, out Fill fill)) return false;
             int x = fill.X, z = fill.Z;
             if (x < Math.Max(1, minimumColumnX) || x > Math.Min(grid.OwnedX, maximumColumnX)
                 || z < Math.Max(1, minimumColumnZ) || z > Math.Min(grid.OwnedZ, maximumColumnZ) || fill.First > fill.Last) return false;
@@ -510,6 +566,7 @@ namespace DeepNorthCompat
             float bottom = grid.Origin.y, target = fill.Target, surface = grid.Surface(x, z);
             int cell = Mathf.FloorToInt(target - bottom);
             float Sample(int y) => values == null ? Mathf.Clamp(surface - (bottom + y), -8f, 8f) : values[grid.Index(x, y, z)];
+            bool changed = false;
             for (int y = fill.First; y <= fill.Last; y++)
             {
                 float value = Mathf.Clamp(target - bottom - y, -8f, 8f);
@@ -520,12 +577,12 @@ namespace DeepNorthCompat
                     value = Sample(cell) * (fraction - 1f) / fraction;
                 }
                 if (value <= Sample(y)) continue;
-                __result = true;
-                if (dryRun) return false;
+                changed = true;
+                if (dryRun) return true;
                 values ??= grid.Materialize();
                 values[grid.Index(x, y, z)] = value;
             }
-            return false;
+            return changed;
         }
 
         // A VoxelZone's samples: columns Spacing apart from Origin, each holding NY samples 1 m apart.
@@ -539,16 +596,16 @@ namespace DeepNorthCompat
             internal VoxelGrid(object zone)
             {
                 Zone = zone;
-                Origin = (Vector3)origin.GetValue(zone); Spacing = (float)spacing.GetValue(zone);
-                NX = (int)nx.GetValue(zone); NY = (int)ny.GetValue(zone); NZ = (int)nz.GetValue(zone);
-                OwnedX = (int)ownedX.GetValue(zone); OwnedZ = (int)ownedZ.GetValue(zone);
+                Origin = origin(zone); Spacing = spacing(zone);
+                NX = nx(zone); NY = ny(zone); NZ = nz(zone);
+                OwnedX = ownedX(zone); OwnedZ = ownedZ(zone);
             }
 
-            internal float[]? Density => (float[]?)density.GetValue(Zone);
-            internal float[] Materialize() { ensureDensity.Invoke(Zone, null); return (float[])density.GetValue(Zone); }
+            internal float[]? Density => density(Zone);
+            internal float[] Materialize() { ensureDensity.Invoke(Zone, null); return density(Zone); }
             internal int Index(int x, int y, int z) => (y * NZ + z) * NX + x;
             internal bool Owns(int x, int z) => x >= 1 && x <= OwnedX && z >= 1 && z <= OwnedZ;
-            internal float Surface(int x, int z) => (float)height.Invoke(Zone, new object[] { x, z });
+            internal float Surface(int x, int z) => heightAt(Zone, x, z);
             internal void Column(Vector3 point, out int x, out int z)
             { x = Mathf.RoundToInt((point.x - Origin.x) / Spacing); z = Mathf.RoundToInt((point.z - Origin.z) / Spacing); }
         }

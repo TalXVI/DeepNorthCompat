@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.10
+
+Performance improvements:
+
+- Startup no longer re-hashes the game files for each check.
+- HearthBelow terrain rebuilds no longer allocate per record.
+
 ## 1.3.9
 
 - Supports Valheim 1.0.20 Windows clients and dedicated servers and ImpactfulSkills 0.23.0. Previously supported builds remain supported.

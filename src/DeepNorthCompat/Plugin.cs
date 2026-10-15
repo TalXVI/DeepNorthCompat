@@ -6,7 +6,7 @@ using BepInEx.Bootstrap;
 
 namespace DeepNorthCompat
 {
-    [BepInPlugin(Guid, "DeepNorthCompat", "1.3.9")]
+    [BepInPlugin(Guid, "DeepNorthCompat", "1.3.10")]
     [BepInDependency("MidnightsFX.ImpactfulSkills", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuCraftyBoxes", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuAntiArthriticCrafting", BepInDependency.DependencyFlags.SoftDependency)]
@@ -65,6 +65,7 @@ namespace DeepNorthCompat
         private void Start()
         {
             CompatibilityInstaller.Verify();
+            DiagnosticReport.Prewarm();
             if (Chainloader.PluginInfos.ContainsKey("MVP.Valheim_Serverside_Simulations"))
                 Logger.LogWarning("Simulation compatibility moved to Serverbound in DeepNorthCompat 1.2.0. The predecessor simulation is loaded without the retired takeover and skill bridge. Stop and follow the coordinated migration guide before using those integrations.");
         }

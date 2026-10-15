@@ -493,6 +493,9 @@ internal static class ChestTests
                     Check(text.Contains("PROBLEM NON_OWNER_WRITE") && text.Contains("stack: "), "non-owner save with its caller");
                     Check(text.Contains("tester: chest showed old items") && text.Contains("from OtherMod, 2x") && text.Contains("Chests: APPLIED; fixture"), "marker, deduplicated error and own log");
                     Check(text.Contains("PROBLEM server-hello") && text.Contains("Server: DeepNorthCompat 0.0.1"), "version mismatch");
+                    string reports = Path.Combine(directory, "reports");
+                    Invoke(report, "Prewarm");
+                    Check(!Directory.Exists(reports) || Directory.GetFiles(reports).Length == 0, "startup prewarm saves no report");
                     Invoke(report, "WorldShutdown");
                     Check(File.Exists(Path.Combine(directory, "reports", "DeepNorthCompat-report-client-latest.md")), "latest report saved");
                     for (int i = 0; i < 25; i++)

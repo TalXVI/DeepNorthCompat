@@ -74,6 +74,36 @@ internal static class Program
 
     private static void Run()
     {
+        Test("file hashes are reused until the file's size or write time changes", () =>
+        {
+            MethodInfo sha256 = AccessTools.Method(typeof(Guard), "Sha256");
+            MethodInfo report = AccessTools.Method(typeof(Plugin).Assembly.GetType("DeepNorthCompat.DiagnosticReport", true), "Hash");
+            string Hash(string file) => (string)sha256.Invoke(null, new object[] { file });
+            string Expected(byte[] data) { using (var sha = System.Security.Cryptography.SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(data)).Replace("-", ""); }
+            string directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "sandbox");
+            Directory.CreateDirectory(directory);
+            string path = Path.Combine(directory, "hash-" + Guid.NewGuid().ToString("N") + ".bin");
+            byte[] first = { 1, 2, 3, 4 }, second = { 5, 6, 7, 8 }, longer = { 9, 9, 9, 9, 9 };
+            var written = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            try
+            {
+                File.WriteAllBytes(path, first); File.SetLastWriteTimeUtc(path, written);
+                Check(Hash(path) == Expected(first), "first hash");
+                Check((string)report.Invoke(null, new object[] { path }) == Expected(first).Substring(0, 16), "report shares the hash");
+                // The same size and write time reuse the stored hash without reading the file.
+                File.WriteAllBytes(path, second); File.SetLastWriteTimeUtc(path, written);
+                Check(Hash(path) == Expected(first), "unchanged file reuses its hash");
+                File.SetLastWriteTimeUtc(path, written.AddSeconds(1));
+                Check(Hash(path) == Expected(second), "new write time rehashes");
+                File.WriteAllBytes(path, longer); File.SetLastWriteTimeUtc(path, written.AddSeconds(1));
+                Check(Hash(path) == Expected(longer), "new size rehashes");
+                File.Delete(path);
+                try { Hash(path); throw new Exception("missing file hashed"); }
+                catch (TargetInvocationException error) { Check(error.InnerException is FileNotFoundException, "missing file throws like File.OpenRead"); }
+                Check((string)report.Invoke(null, new object[] { path }) == "unreadable", "report marks a missing file unreadable");
+            }
+            finally { File.Delete(path); }
+        });
         Test("bow zero is vanilla at every skill", () =>
         {
             for (int level = 0; level <= 100; level++)
@@ -262,7 +292,7 @@ internal static class Program
         {
             BepInEx.BepInPlugin identity = typeof(Plugin).GetCustomAttribute<BepInEx.BepInPlugin>()!;
             Check(identity.GUID == "DeepNorthCompat" && identity.Name == "DeepNorthCompat"
-                && identity.Version.ToString() == "1.3.9"
+                && identity.Version.ToString() == "1.3.10"
                 && typeof(Plugin).Assembly.GetName().Name == "DeepNorthCompat", "plugin identity");
             Check(typeof(BepInEx.BaseUnityPlugin).IsAssignableFrom(typeof(Plugin)), "BepInEx entry point");
             var dependencies = typeof(Plugin).GetCustomAttributes<BepInEx.BepInDependency>().ToArray();

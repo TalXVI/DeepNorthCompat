@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using BepInEx.Bootstrap;
 using BepInEx.Logging;
@@ -50,7 +49,6 @@ namespace DeepNorthCompat
         private static readonly Dictionary<string, Error> errors = new Dictionary<string, Error>(StringComparer.Ordinal);
         private static readonly Dictionary<long, string> hellos = new Dictionary<long, string>();
         private static readonly Dictionary<long, (Vector3 Point, ZDOID Looked)> probes = new Dictionary<long, (Vector3, ZDOID)>();
-        private static readonly Dictionary<string, string> hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private static int droppedErrors, writtenVersion = -1;
         private static string serverHello = "";
         private static long request;
@@ -160,6 +158,15 @@ namespace DeepNorthCompat
         {
             ChestDiagnostics.Record("world-shutdown", null);
             Save(Build(Full, includeServer: false), "latest");
+        }
+
+        // The first report compiles its builders and hashes the relevant mods, which stalls a frame in play.
+        // Building one during startup, and discarding it, moves that cost behind the loading screen.
+        internal static void Prewarm()
+        {
+            if (!ChestDiagnostics.Enabled) return;
+            try { Build(Full, includeServer: false); }
+            catch (Exception error) { ChestDiagnostics.RecordText("diagnostics-hook-error", "DiagnosticReport.Prewarm: " + error, Severity.Info); }
         }
 
         // Rewrites the latest report every few minutes when something changed, so a crash
@@ -476,21 +483,11 @@ namespace DeepNorthCompat
         private static string RelevantMods() => string.Join(", ", Relevant.Select(guid => Chainloader.PluginInfos.TryGetValue(guid, out var info)
             ? guid + " " + info.Metadata.Version + " sha256:" + Hash(info.Location) : guid + " absent"));
 
+        // Shares the startup checks' hashes, so the report rarely reads a file.
         private static string Hash(string path)
         {
-            lock (gate)
-            {
-                if (hashes.TryGetValue(path, out string cached)) return cached;
-                string hash;
-                try
-                {
-                    using (SHA256 sha = SHA256.Create())
-                    using (FileStream file = File.OpenRead(path))
-                        hash = BitConverter.ToString(sha.ComputeHash(file)).Replace("-", "").Substring(0, 16);
-                }
-                catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is ArgumentException) { hash = "unreadable"; }
-                return hashes[path] = hash;
-            }
+            try { return Guard.Sha256(path).Substring(0, 16); }
+            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is ArgumentException) { return "unreadable"; }
         }
 
         private static void Block(StringBuilder b, IEnumerable<string> lines)

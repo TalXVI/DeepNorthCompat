@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -201,22 +202,34 @@ namespace DeepNorthCompat
 
     public static class Guard
     {
-        internal static bool KnownServerBuild()
-        {
-            using (SHA256 sha = SHA256.Create())
-            using (FileStream file = File.OpenRead(typeof(ZNet).Assembly.Location))
-                return ExpectedBuilds.Server.Contains(BitConverter.ToString(sha.ComputeHash(file)).Replace("-", ""));
-        }
+        private static readonly object gate = new object();
+        private static readonly Dictionary<string, (long Length, DateTime Written, string Hash)> hashes = new Dictionary<string, (long, DateTime, string)>(StringComparer.Ordinal);
+
+        internal static bool KnownServerBuild() => ExpectedBuilds.Server.Contains(Sha256(typeof(ZNet).Assembly.Location));
+
         public static void Build(Assembly assembly, params string[] expectedHashes)
         {
+            string actual = Sha256(assembly.Location);
+            if (!expectedHashes.Contains(actual))
+                throw new NotSupportedException($"{assembly.GetName().Name} build changed; expected "
+                    + $"{string.Join(" or ", expectedHashes)}, found {actual}. Re-audit required.");
+        }
+
+        // A file's SHA-256 in uppercase hexadecimal. Startup checks the game assembly about 30 times, and Mono
+        // hashes it in about 15 ms, so a hash is reused until the file's size or write time changes.
+        internal static string Sha256(string path)
+        {
+            var info = new FileInfo(path);
+            long length = info.Length;
+            DateTime written = info.LastWriteTimeUtc;
+            lock (gate)
+                if (hashes.TryGetValue(path, out var known) && known.Length == length && known.Written == written) return known.Hash;
+            string hash;
             using (SHA256 sha = SHA256.Create())
-            using (FileStream file = File.OpenRead(assembly.Location))
-            {
-                string actual = BitConverter.ToString(sha.ComputeHash(file)).Replace("-", "");
-                if (!expectedHashes.Contains(actual))
-                    throw new NotSupportedException($"{assembly.GetName().Name} build changed; expected "
-                        + $"{string.Join(" or ", expectedHashes)}, found {actual}. Re-audit required.");
-            }
+            using (FileStream file = File.OpenRead(path))
+                hash = BitConverter.ToString(sha.ComputeHash(file)).Replace("-", "");
+            lock (gate) hashes[path] = (length, written, hash);
+            return hash;
         }
 
         internal static Type Type(Assembly assembly, string name) =>
