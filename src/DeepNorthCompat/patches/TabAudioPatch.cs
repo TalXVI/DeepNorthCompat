@@ -13,7 +13,11 @@ namespace DeepNorthCompat
     internal static class TabAudioPatch
     {
         internal const string Owner = Plugin.Guid + ".UI.TabAudio";
-        private const string GameHash = "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE";
+        private static readonly string[] GameHashes =
+        {
+            "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
+            "94998885B103D6E5F5480123EAEE0A093E82AF2DDEEEE37536C15BF555F24F3A"
+        };
         private const string GuiHash = "52846FCAE0C535D733711C13FDB8F214D303603B5DBF23D05B1ED6A8E475C9DD";
         private static bool pending, enabled;
         private static bool? rewritten;
@@ -32,7 +36,7 @@ namespace DeepNorthCompat
                 return;
             }
 
-            Guard.Build(typeof(InventoryGui).Assembly, GameHash);
+            Guard.Build(typeof(InventoryGui).Assembly, GameHashes);
             Guard.Build(typeof(ButtonSfx).Assembly, GuiHash);
 
             var harmony = new Harmony(Owner);
@@ -49,7 +53,7 @@ namespace DeepNorthCompat
                 transpiler: Guard.Hook(typeof(TabAudioPatch), nameof(Rewrite)));
 
             pending = true;
-            CompatibilityInstaller.Info("UI.TabAudio: 1.0.17 builds verified; awaiting transpiler verification.");
+            CompatibilityInstaller.Info("UI.TabAudio: audited builds verified; awaiting transpiler verification.");
         }
 
         internal static void Verify()

@@ -24,11 +24,11 @@ Install the same version on the dedicated server and every client, then restart.
 
 ## Supported versions
 
-- Valheim 1.0.16 and 1.0.17
+- Valheim 1.0.16 and 1.0.17, plus 1.0.20 on Windows clients and dedicated servers
 
 Each fix is written against one exact build of the mods it touches:
 
-- ImpactfulSkills 0.21.1, 0.21.3, 0.22.0, and 0.22.1
+- ImpactfulSkills 0.21.1, 0.21.3, 0.22.0, 0.22.1, and 0.23.0
 - AzuCraftyBoxes 1.8.27 and 1.8.28
 - AAA Crafting 2.1.11
 - SeaAnimals 0.3.9
@@ -41,11 +41,11 @@ Each fix is written against one exact build of the mods it touches:
 - OdinShip 0.8.7
 - BetterMap 1.1.0
 - CartographySkill 3.2.0 (for BetterMap's exploration integration)
-- TeleportEverything 3.0.9 (configuration-panel input fix on Valheim 1.0.17 clients)
-- PlantEasily 2.3.0 (grid cost fix on Valheim 1.0.17 clients)
-- PlantEverything 1.21.3 with NoCultivatorDust 1.0.7 or NoBuildDust 1.0.7 (placement dust fix on Valheim 1.0.17 clients)
-- My Little UI 1.2.31 (ammo count redraw fix on Valheim 1.0.17 clients)
-- HearthBelow 0.7.0, with RuneMagic 1.5.1 for the Foundation Rune (cut filling on Valheim 1.0.17 clients and servers)
+- TeleportEverything 3.0.9 (configuration-panel input fix on Valheim 1.0.17 and 1.0.20 Windows clients)
+- PlantEasily 2.3.0 (grid cost fix on Valheim 1.0.17 and 1.0.20 Windows clients)
+- PlantEverything 1.21.3 with NoCultivatorDust 1.0.7 or NoBuildDust 1.0.7 (placement dust fix on Valheim 1.0.17 and 1.0.20 Windows clients)
+- My Little UI 1.2.31 (ammo count redraw fix on Valheim 1.0.17 and 1.0.20 Windows clients)
+- HearthBelow 0.7.0, with RuneMagic 1.5.1 for the Foundation Rune (cut filling on Valheim 1.0.17 clients and servers, and 1.0.20 Windows clients and dedicated servers)
 
 Mod patches only activate if the corresponding mod and supported version are present.
 
