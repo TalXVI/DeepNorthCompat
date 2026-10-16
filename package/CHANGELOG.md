@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.11
+
+- Supports the Valheim 1.0.20 Linux dedicated build, restoring chest, terrain, map-session, and ship compatibility patches on that build.
+
 ## 1.3.10
 
 Performance improvements:

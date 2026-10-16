@@ -24,6 +24,7 @@ internal static class Program
         AppDomain.CurrentDomain.AssemblyResolve += Resolve;
         try
         {
+            Test("selected game build passes its role guard", CheckGameBuild);
             if (Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_TEST_MODE") == "server") RunServer();
             else { Run(); TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); RunChests(); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); MyLittleUiAmmoTests.Run(Lab, Test); }
             RunTerrain();
@@ -44,6 +45,14 @@ internal static class Program
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void RunTerrain() => HearthTerrainTests.Run(Lab, Test);
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void CheckGameBuild()
+    {
+        string role = Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_TEST_MODE") == "server" ? "Server" : "Valheim";
+        var builds = typeof(Plugin).Assembly.GetType("DeepNorthCompat.ExpectedBuilds", true)!;
+        Guard.Build(typeof(ZNet).Assembly, (string[])AccessTools.Field(builds, role).GetValue(null));
+    }
 
     private static Assembly? Resolve(object sender, ResolveEventArgs args)
     {
@@ -292,7 +301,7 @@ internal static class Program
         {
             BepInEx.BepInPlugin identity = typeof(Plugin).GetCustomAttribute<BepInEx.BepInPlugin>()!;
             Check(identity.GUID == "DeepNorthCompat" && identity.Name == "DeepNorthCompat"
-                && identity.Version.ToString() == "1.3.10"
+                && identity.Version.ToString() == "1.3.11"
                 && typeof(Plugin).Assembly.GetName().Name == "DeepNorthCompat", "plugin identity");
             Check(typeof(BepInEx.BaseUnityPlugin).IsAssignableFrom(typeof(Plugin)), "BepInEx entry point");
             var dependencies = typeof(Plugin).GetCustomAttributes<BepInEx.BepInDependency>().ToArray();

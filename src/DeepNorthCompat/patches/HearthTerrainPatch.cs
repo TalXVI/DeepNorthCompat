@@ -84,7 +84,8 @@ namespace DeepNorthCompat
                 "0DFC7E81436F822121148EFED859BA1E661D58B9484BD45E3B6F33B6DD86BFAD",
                 "E7220DC5D9CF9D38270E751352D94918308E59CCA86E56C4BDA0210016C847FA",
                 "94998885B103D6E5F5480123EAEE0A093E82AF2DDEEEE37536C15BF555F24F3A",
-                "EF8C8D3A1F45694EF7A701E8E2A25BF8A3874C951A2639C81DFE614CE3AA5FA3");
+                "EF8C8D3A1F45694EF7A701E8E2A25BF8A3874C951A2639C81DFE614CE3AA5FA3",
+                "C36B81C1733C48D00DD567E41010E6DC95F8DAC877E0701CDB6B8C213ADE7812");
             Type world = Guard.Type(hearth, "HearthBelow.VoxelMagic.VoxelWorld"), zone = Guard.Type(hearth, "HearthBelow.VoxelMagic.VoxelZone"),
                 op = Guard.Type(hearth, "HearthBelow.VoxelMagic.CarveOp"), data = Guard.Type(hearth, "HearthBelow.VoxelMagic.CarveData"),
                 plugin = Guard.Type(hearth, "HearthBelow.HearthBelowPlugin");

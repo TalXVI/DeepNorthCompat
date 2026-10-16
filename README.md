@@ -24,7 +24,7 @@ Install the same version on the dedicated server and every client, then restart.
 
 ## Supported versions
 
-- Valheim 1.0.16 and 1.0.17, plus 1.0.20 on Windows clients and dedicated servers
+- Valheim 1.0.16, 1.0.17, and 1.0.20 on Windows clients and Windows/Linux dedicated servers
 
 Each fix is written against one exact build of the mods it touches:
 
@@ -45,7 +45,7 @@ Each fix is written against one exact build of the mods it touches:
 - PlantEasily 2.3.0 (grid cost fix on Valheim 1.0.17 and 1.0.20 Windows clients)
 - PlantEverything 1.21.3 with NoCultivatorDust 1.0.7 or NoBuildDust 1.0.7 (placement dust fix on Valheim 1.0.17 and 1.0.20 Windows clients)
 - My Little UI 1.2.31 (ammo count redraw fix on Valheim 1.0.17 and 1.0.20 Windows clients)
-- HearthBelow 0.7.0, with RuneMagic 1.5.1 for the Foundation Rune (cut filling on Valheim 1.0.17 clients and servers, and 1.0.20 Windows clients and dedicated servers)
+- HearthBelow 0.7.0, with RuneMagic 1.5.1 for the Foundation Rune (cut filling on Valheim 1.0.17 and 1.0.20 Windows clients and Windows/Linux dedicated servers)
 
 Mod patches only activate if the corresponding mod and supported version are present.
 
