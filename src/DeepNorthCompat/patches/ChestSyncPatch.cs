@@ -16,7 +16,11 @@ namespace DeepNorthCompat
         internal const string MucGuid = "com.maxsch.valheim.MultiUserChest";
         internal const string QuickGuid = "goldenrevolver.quick_stack_store";
         internal const string MucHash = "AFE0D6B437495FB6624A049BA72C2393572C8C02E1221AC090F16C0D99914514";
-        internal const string QuickHash = "4296BE5E9FC8941BE1079A1C979F97FCDFDA79BCA9287F29686E4BBC9E4F0400";
+        internal static readonly string[] QuickHashes =
+        {
+            "4296BE5E9FC8941BE1079A1C979F97FCDFDA79BCA9287F29686E4BBC9E4F0400",
+            "71CCC644DA95D4FA94897968D5D90331210A574A6C65129DC8EC6032E3CF6EEB"
+        };
         private static readonly FieldInfo inUse = AccessTools.Field(typeof(Container), "m_inUse");
         private static FieldInfo? stackRange, restockRange;
         private static bool muc;
@@ -29,7 +33,7 @@ namespace DeepNorthCompat
         {
             if (!ChestRegistry.Installed) throw new InvalidOperationException("Chests.Registry is not installed.");
             if (multiUser != null) Guard.Build(multiUser, MucHash);
-            if (quick != null) Guard.Build(quick, QuickHash);
+            if (quick != null) Guard.Build(quick, QuickHashes);
             muc = multiUser != null;
             var harmony = new Harmony(Owner);
             harmony.Patch(Guard.Method(typeof(Container), "SetInUse", typeof(void), typeof(bool)), prefix: Guard.Hook(typeof(ChestSyncPatch), nameof(Use), Priority.First));

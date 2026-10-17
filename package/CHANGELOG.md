@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.12
+
+- Supports ImpactfulSkills 0.24.0, Quick Stack 1.4.16, ValheimTune 0.7.10, and TeleportEverything 3.0.10 while retaining the previously supported builds.
+
 ## 1.3.11
 
 - Supports the Valheim 1.0.20 Linux dedicated build, restoring chest, terrain, map-session, and ship compatibility patches on that build.

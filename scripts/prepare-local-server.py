@@ -111,9 +111,11 @@ def main():
                "-public", "0", "-savedir", str(private / "saves"), "-logFile", str(runtime / "unity.log")]
     options = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" else {"start_new_session": True}
     log = bepinex / "LogOutput.log"
-    required = ("Simulation: APPLIED", "OwnerSkills: APPLIED", "Serverbound installed", "[ValheimTune] 0.7.9 loaded",
+    required = ("Simulation: APPLIED", "OwnerSkills: APPLIED", "Serverbound installed",
                 "Removed ValheimCommunityPatch's spawn queue from ZNetScene.CreateObjectsSorted",
                 "Removed ValheimCommunityPatch's zone-diff unload from ZNetScene.RemoveObjects")
+    # Tune's load line names its version; accept each audited build the current pack can install.
+    tune = tuple(f"[ValheimTune] {version} loaded" for version in ("0.7.9", "0.7.10"))
     if os.name == "nt" and list((bepinex / "plugins").rglob("ValheimPerformanceOptimizations.dll")):
         required += ("VPO.Burst: APPLIED",)
     ready = False
@@ -125,7 +127,8 @@ def main():
             while process.poll() is None and time.monotonic() < deadline:
                 text = log.read_text(encoding="utf-8", errors="replace") if log.exists() else ""
                 unity = (runtime / "unity.log").read_text(encoding="utf-8", errors="replace") if (runtime / "unity.log").exists() else ""
-                if all(message in text for message in required) and "Game server connected" in text + unity:
+                if all(message in text for message in required) and any(message in text for message in tune) \
+                        and "Game server connected" in text + unity:
                     ready = True
                     print("Required compatibility modules applied and Steam server initialized.", flush=True)
                     process.stdin.write("save\nstop\n"); process.stdin.flush()

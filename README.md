@@ -28,20 +28,20 @@ Install the same version on the dedicated server and every client, then restart.
 
 Each fix is written against one exact build of the mods it touches:
 
-- ImpactfulSkills 0.21.1, 0.21.3, 0.22.0, 0.22.1, and 0.23.0
+- ImpactfulSkills 0.21.1, 0.21.3, 0.22.0, 0.22.1, 0.23.0, and 0.24.0
 - AzuCraftyBoxes 1.8.27 and 1.8.28
 - AAA Crafting 2.1.11
 - SeaAnimals 0.3.9
 - AirAnimals 0.3.2
 - AzuEPI 2.6.3
-- ValheimTune 0.7.8 and 0.7.9
+- ValheimTune 0.7.8, 0.7.9, and 0.7.10
 - ValheimPerformanceOptimizations 1.2.3
 - MultiUserChest 0.6.2
-- Quick Stack - Store - Sort - Trash - Restock 1.4.15
+- Quick Stack - Store - Sort - Trash - Restock 1.4.15 and 1.4.16
 - OdinShip 0.8.7
 - BetterMap 1.1.0
 - CartographySkill 3.2.0 (for BetterMap's exploration integration)
-- TeleportEverything 3.0.9 (configuration-panel input fix on Valheim 1.0.17 and 1.0.20 Windows clients)
+- TeleportEverything 3.0.9 and 3.0.10 (configuration-panel input fix on Valheim 1.0.17 and 1.0.20 Windows clients)
 - PlantEasily 2.3.0 (grid cost fix on Valheim 1.0.17 and 1.0.20 Windows clients)
 - PlantEverything 1.21.3 with NoCultivatorDust 1.0.7 or NoBuildDust 1.0.7 (placement dust fix on Valheim 1.0.17 and 1.0.20 Windows clients)
 - My Little UI 1.2.31 (ammo count redraw fix on Valheim 1.0.17 and 1.0.20 Windows clients)
