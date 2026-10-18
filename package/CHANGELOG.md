@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.13
+
+- Prevents RuneMagic 1.5.1 water-walking ice from starting at zero scale, which can corrupt physics and saved vehicle positions on Linux dedicated servers. Ice growth and decay keep their existing behavior. This fix does not repair positions already corrupted in a world save.
+
 ## 1.3.12
 
 - Supports ImpactfulSkills 0.24.0, Quick Stack 1.4.16, ValheimTune 0.7.10, and TeleportEverything 3.0.10 while retaining the previously supported builds.

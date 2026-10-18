@@ -10,6 +10,7 @@ It currently fixes bugs and incompatibilities involving:
 - AzuEPI inventory character preview, which restarted its animation whenever a nearby creature or player changed equipment.
 - Deep North profile policy that disables ValheimTune on clients after its configuration binds.
 - VPO native water-wave initialization on Windows dedicated servers.
+- RuneMagic water-walking ice initialization, which can corrupt physics and saved vehicle positions on Linux dedicated servers.
 - MultiUserChest stale chest inventories after ownership changes.
 - AzuCraftyBoxes chest ownership during crafting.
 - OdinShip canoe propulsion, replicated ship names, mounted ammunition refunds, input handling, and manual FishPress payment.
@@ -36,6 +37,7 @@ Each fix is written against one exact build of the mods it touches:
 - AzuEPI 2.6.3
 - ValheimTune 0.7.8, 0.7.9, and 0.7.10
 - ValheimPerformanceOptimizations 1.2.3
+- RuneMagic 1.5.1 for water-walking ice initialization on Valheim 1.0.20 Windows clients and Windows/Linux dedicated servers
 - MultiUserChest 0.6.2
 - Quick Stack - Store - Sort - Trash - Restock 1.4.15 and 1.4.16
 - OdinShip 0.8.7
