@@ -138,6 +138,7 @@ namespace DeepNorthCompat
             InstallGroup("OdinShip.Core", () => OdinShipPatch.Prepare(odin));
             InstallGroup("OdinShip.Input", () => OdinShipInputPatch.Prepare(odin));
             InstallGroup("OdinShip.FishPress", () => OdinShipFishPatch.Prepare(odin));
+            InstallGroup("OdinShip.Construction", () => OdinShipConstructionPatch.Prepare(odin));
             Assembly? betterMap = resolve(BetterMapAccess.Guid);
             InstallGroup("Map.Cartography", () => BetterMapCartographyPatch.Prepare(betterMap, resolve("advize.CartographySkill")));
             InstallGroup("Map.Session", () => BetterMapSessionPatch.Prepare(betterMap));
@@ -169,6 +170,7 @@ namespace DeepNorthCompat
             OdinShipPatch.Verify();
             OdinShipInputPatch.Verify();
             OdinShipFishPatch.Verify();
+            OdinShipConstructionPatch.Verify();
             BetterMapCartographyPatch.Verify();
             BetterMapSessionPatch.Verify();
             BetterMapPersistencePatch.Verify();

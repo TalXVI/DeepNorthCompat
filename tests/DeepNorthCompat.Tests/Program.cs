@@ -271,7 +271,7 @@ internal static class Program
             int inactive = 0;
             CompatibilityInstaller.Install(_ => null, message => { if (message.Contains("inactive")) inactive++; },
                 _ => { }, error => { throw new Exception(error); });
-            Check(inactive == 24, "optional module count");
+            Check(inactive == 25, "optional module count");
         });
         Test("changed ImpactfulSkills assembly rejects bow and quality hooks safely", () =>
         {
@@ -302,7 +302,7 @@ internal static class Program
         {
             BepInEx.BepInPlugin identity = typeof(Plugin).GetCustomAttribute<BepInEx.BepInPlugin>()!;
             Check(identity.GUID == "DeepNorthCompat" && identity.Name == "DeepNorthCompat"
-                && identity.Version.ToString() == "1.3.14"
+                && identity.Version.ToString() == "1.3.15"
                 && typeof(Plugin).Assembly.GetName().Name == "DeepNorthCompat", "plugin identity");
             Check(typeof(BepInEx.BaseUnityPlugin).IsAssignableFrom(typeof(Plugin)), "BepInEx entry point");
             var dependencies = typeof(Plugin).GetCustomAttributes<BepInEx.BepInDependency>().ToArray();

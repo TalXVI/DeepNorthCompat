@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.15
+
+- Fixes OdinShip 0.8.7's Decorative Ship Construction piece. It no longer raises ground a second time where terrain was already raised, and it no longer lowers the ground above it when placed in a cave, which removed the cave roof. Its hull and supports now block players and creatures, and the hammer can remove it. Pieces already placed get the fix the next time their area loads.
+
 ## 1.3.14
 
 Diagnostics changes. Gameplay is unchanged.

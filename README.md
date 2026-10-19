@@ -13,7 +13,7 @@ It currently fixes bugs and incompatibilities involving:
 - RuneMagic water-walking ice initialization, which can corrupt physics and saved vehicle positions on Linux dedicated servers.
 - MultiUserChest stale chest inventories after ownership changes.
 - AzuCraftyBoxes chest ownership during crafting.
-- OdinShip canoe propulsion, replicated ship names, mounted ammunition refunds, input handling, and manual FishPress payment.
+- OdinShip canoe propulsion, replicated ship names, mounted ammunition refunds, input handling, manual FishPress payment, and the Decorative Ship Construction piece, which no longer reshapes terrain or clears cave roofs and now has hull and support collision.
 - BetterMap exploration with CartographySkill, session cleanup, saved pin categories, portal labels, and vehicle map updates.
 - TeleportEverything configuration-panel focus, which left some gameplay hotkeys active while the panel was open.
 - PlantEasily planting grids, which checked only the first ingredient of a multi-ingredient recipe.
