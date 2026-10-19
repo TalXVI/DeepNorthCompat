@@ -457,6 +457,51 @@ internal static class ChestTests
                 }
                 finally { new Harmony("DeepNorthCompat.Diagnostics").UnpatchSelf(); Invoke(diagnostics, "Disable"); }
             });
+            ClientCase("a settled burst names the nearest chest beyond range holding an item the player kept", () =>
+            {
+                string directory = Sandbox();
+                Invoke(diagnostics, "Configure", directory, false, 1L << 20); Invoke(observer, "Install");
+                try
+                {
+                    MethodInfo quickStack = AccessTools.DeclaredMethod(quick.GetType("QuickStackStore.QuickStackModule", true)!, "DoQuickStack");
+                    Container Placed(float x)
+                    {
+                        Container chest = Chest(100); Payload(chest, "silverore", 5); ChestSync(chest);
+                        AccessTools.Field(typeof(ZDO), "m_position").SetValue(ChestZdo(chest), new Vector3(x, 0, 0)); return chest;
+                    }
+                    Container near = Placed(50), far = Placed(80);
+                    player.GetInventory().GetAllItems().Add(Item("silverore", 7)); InventoryPatch.AddItemPostfix(player.GetInventory());
+                    object?[] args = { quickStack, player, null };
+                    AccessTools.Method(sync, "BeginOperation").Invoke(null, args);
+                    AccessTools.Method(sync, "EndOperation").Invoke(null, new object?[] { null, player, args[2] });
+                    now = 4; Invoke(typeof(Plugin).Assembly.GetType("DeepNorthCompat.ItemLedger", true)!, "Tick");
+                    string settled = Logs(directory).Split('\n').LastOrDefault(line => line.Contains("\toperation-settled\t")) ?? "";
+                    Check(settled.Contains("beyond_range=silverore " + ChestZdo(near).m_uid + " 50m") && !settled.Contains(ChestZdo(far).m_uid.ToString()),
+                        "nearest out-of-range chest named: " + settled);
+                    Check(Logs(directory).Contains("position=(0, 0, 0)"), "press position recorded");
+                }
+                finally { new Harmony("DeepNorthCompat.Diagnostics").UnpatchSelf(); Invoke(diagnostics, "Disable"); }
+            });
+            Case("network arrivals skip a moving container's position syncs but keep static writes", () =>
+            {
+                string directory = Sandbox();
+                Invoke(diagnostics, "Configure", directory, false, 1L << 20); Invoke(observer, "Install");
+                try
+                {
+                    Container chest = Chest(200); ZDO zdo = ChestZdo(chest);
+                    void Arrive(uint revision, Vector3 position)
+                    {
+                        var packet = new ZPackage(); packet.Write(0); packet.Write(zdo.m_uid); packet.Write((ushort)0); packet.Write(revision);
+                        packet.Write(200L); packet.Write(position); packet.Write(new ZPackage()); packet.Write(ZDOID.None);
+                        AccessTools.Method(observer, "Received").Invoke(null, new object?[] { null, new ZPackage(packet.GetArray()) });
+                    }
+                    Arrive(zdo.DataRevision + 5, new Vector3(5, 0, 0));
+                    Arrive(zdo.DataRevision + 7, zdo.GetPosition());
+                    string[] arrivals = Logs(directory).Split('\n').Where(line => line.Contains("\tnetwork-arrival\t")).ToArray();
+                    Check(arrivals.Length == 1 && arrivals[0].Contains("incoming_data_revision=" + (zdo.DataRevision + 7)), "only the static write: " + string.Join(" | ", arrivals));
+                }
+                finally { new Harmony("DeepNorthCompat.Diagnostics").UnpatchSelf(); Invoke(diagnostics, "Disable"); }
+            });
             ClientCase("handoff timeout cancels before consumption", () =>
             {
                 Container chest = Chest(200); Payload(chest, "wood", 10); ChestSync(chest); nearby.Add(Adapter(chest)); InventoryGui gui = Gui();

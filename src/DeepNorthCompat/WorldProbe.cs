@@ -230,6 +230,6 @@ namespace DeepNorthCompat
         private static string YesNo(bool value) => value ? "yes" : "no";
         private static string Number(float value) => value.ToString("0.##", CultureInfo.InvariantCulture);
         private static string Signed(float value) => value.ToString("+0.##;-0.##;0", CultureInfo.InvariantCulture);
-        private static string Text(Vector3 value) => "(" + Number(value.x) + ", " + Number(value.y) + ", " + Number(value.z) + ")";
+        internal static string Text(Vector3 value) => "(" + Number(value.x) + ", " + Number(value.y) + ", " + Number(value.z) + ")";
     }
 }

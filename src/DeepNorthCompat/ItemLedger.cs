@@ -26,6 +26,9 @@ namespace DeepNorthCompat
             internal readonly List<string> Operations = new List<string>();
             internal Dictionary<string, int> Player = null!;
             internal readonly Dictionary<ZDOID, (Container Chest, Dictionary<string, int> Before)> Chests = new Dictionary<ZDOID, (Container, Dictionary<string, int>)>();
+            // From the latest press: the nearest chest beyond range holding each item the
+            // player carried.
+            internal Dictionary<string, (ZDOID Chest, float Distance)> Beyond = new Dictionary<string, (ZDOID, float)>();
         }
 
         private static Burst? burst;
@@ -38,8 +41,9 @@ namespace DeepNorthCompat
             if (watched != null && ReferenceEquals(inventory, watched)) changed = Time.unscaledTime;
         }
 
-        // Returns the chests that joined the burst with this operation.
-        internal static Container[] BeginOperation(string name, Player player, IEnumerable<Container> chests)
+        // Returns the chests that joined the burst with this operation. Quick Stack only reaches
+        // chests within its range, so a matching chest just outside it explains items that stay.
+        internal static Container[] BeginOperation(string name, Player player, IEnumerable<Container> chests, IEnumerable<(Container Chest, float Distance)> outside)
         {
             if (!ReferenceEquals(player, Player.m_localPlayer)) return Array.Empty<Container>();
             Watch(player.GetInventory());
@@ -54,6 +58,14 @@ namespace DeepNorthCompat
                     burst.Chests[id] = (chest, Counts(chest.GetInventory()));
                     joined.Add(chest);
                 }
+            var carried = new HashSet<string>(player.GetInventory().GetAllItems().Where(item => item?.m_shared != null).Select(item => item.m_shared.m_name), StringComparer.Ordinal);
+            burst.Beyond = new Dictionary<string, (ZDOID, float)>(StringComparer.Ordinal);
+            foreach (var entry in outside)
+                if (ChestRegistry.IdOf(entry.Chest) is ZDOID id)
+                    foreach (ItemDrop.ItemData item in entry.Chest.GetInventory().GetAllItems())
+                        if (item?.m_shared != null && carried.Contains(item.m_shared.m_name)
+                            && (!burst.Beyond.TryGetValue(item.m_shared.m_name, out var nearest) || entry.Distance < nearest.Distance))
+                            burst.Beyond[item.m_shared.m_name] = (id, entry.Distance);
             return joined.ToArray();
         }
 
@@ -119,13 +131,17 @@ namespace DeepNorthCompat
             }
             foreach (string key in net.Where(entry => entry.Value == 0).Select(entry => entry.Key).ToArray()) net.Remove(key);
             bool verified = unloaded.Count == 0 && !pending;
+            var kept = new HashSet<string>(player.GetInventory().GetAllItems().Where(item => item?.m_shared != null).Select(item => item.m_shared.m_name), StringComparer.Ordinal);
+            string[] beyond = settled.Beyond.Where(entry => kept.Contains(entry.Key)).OrderBy(entry => entry.Key, StringComparer.Ordinal)
+                .Select(entry => entry.Key + " " + entry.Value.Chest + " " + entry.Value.Distance.ToString("0.#", CultureInfo.InvariantCulture) + "m").ToArray();
             string details = "operations=" + settled.Count + "(" + string.Join(",", settled.Operations) + ")"
                 + ";span=" + (DateTime.UtcNow - settled.Started).TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture) + "s"
                 + ";player_delta=" + ChestDiagnostics.Format(playerDelta)
                 + ";chest_deltas=" + (moved.Count == 0 ? "none" : string.Join(", ", moved))
                 + ";unaccounted=" + ChestDiagnostics.Format(net)
                 + (unloaded.Count == 0 ? "" : ";unchecked_unloaded=" + string.Join(",", unloaded))
-                + (pending ? ";unchecked_not_loaded=true" : "");
+                + (pending ? ";unchecked_not_loaded=true" : "")
+                + (beyond.Length == 0 ? "" : ";beyond_range=" + string.Join(", ", beyond));
             bool unbalanced = net.Count > 0 && verified;
             ChestDiagnostics.Record("operation-settled", null, details, unbalanced ? Severity.Warning : Severity.Info,
                 unbalanced ? "Items appeared or vanished across the player and the chests in range. Negative counts left both; "

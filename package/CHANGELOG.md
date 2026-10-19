@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.14
+
+Diagnostics changes. Gameplay is unchanged.
+
+- Quick Stack and Restock records now include the player's position. When a press leaves items in your inventory, the record names the nearest chest outside the range that holds each one, with its distance. This shows when a chest was simply too far away.
+- Moving ships and carts no longer flood the event log. Their position updates used to be logged as container writes up to 250 times a second, which pushed older events out of the log within an hour.
+
 ## 1.3.13
 
 - Prevents RuneMagic 1.5.1 water-walking ice from starting at zero scale, which can corrupt physics and saved vehicle positions on Linux dedicated servers. Ice growth and decay keep their existing behavior. This fix does not repair positions already corrupted in a world save.

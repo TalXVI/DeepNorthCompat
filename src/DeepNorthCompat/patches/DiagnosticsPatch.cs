@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
+using UnityEngine;
 
 namespace DeepNorthCompat
 {
@@ -147,10 +148,14 @@ namespace DeepNorthCompat
                     ZDOID id = __1.ReadZDOID();
                     if (id.IsNone()) break;
                     ushort ownerRevision = __1.ReadUShort(); uint revision = __1.ReadUInt(); long owner = __1.ReadLong();
-                    __1.ReadVector3(); int size = __1.ReadInt(); __1.SetPos(__1.GetPos() + size);
+                    Vector3 position = __1.ReadVector3(); int size = __1.ReadInt(); __1.SetPos(__1.GetPos() + size);
                     Container? chest = ChestRegistry.Find(id);
                     ZDO? zdo = ChestRegistry.LiveZdo(chest);
-                    if (chest is object && zdo != null && (revision != zdo.DataRevision || owner != zdo.GetOwner()))
+                    // A ship or cart in motion gets a new data revision with every position
+                    // sync, hundreds a second. Its content changes still show as
+                    // inventory-refreshed, so only owner changes are recorded for it.
+                    if (chest is object && zdo != null && (owner != zdo.GetOwner()
+                        || revision != zdo.DataRevision && position == zdo.GetPosition()))
                         ChestDiagnostics.Record("network-arrival", chest, "from_peer=" + PeerOf(__0) + ";incoming_owner=" + owner
                             + ";incoming_owner_revision=" + ownerRevision + ";local_owner_revision=" + zdo.OwnerRevision
                             + ";incoming_data_revision=" + revision + ";applies_data=" + (revision > zdo.DataRevision));

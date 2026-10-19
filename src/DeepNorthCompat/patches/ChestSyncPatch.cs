@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using BepInEx.Configuration;
 using HarmonyLib;
+using UnityEngine;
 
 namespace DeepNorthCompat
 {
@@ -92,24 +93,31 @@ namespace DeepNorthCompat
             __state = new Operation { Previous = ChestDiagnostics.Operation };
             ChestDiagnostics.Operation = __originalMethod.Name;
             float range = __originalMethod.Name == "DoRestock" ? RestockRange : StackRange;
+            Vector3 position = __0.transform.position;
             if (ChestDiagnostics.Enabled)
             {
                 __state.Before = ChestDiagnostics.Counts(new[] { __0.GetInventory() });
-                ChestDiagnostics.Record("operation-start", null, "range=" + range + ";player_items=" + ChestDiagnostics.Items(__0.GetInventory()));
+                ChestDiagnostics.Record("operation-start", null, "range=" + range + ";position=" + WorldProbe.Text(position)
+                    + ";player_items=" + ChestDiagnostics.Items(__0.GetInventory()));
             }
             // Quick Stack reads these inventories directly, so release stale use flags and
             // load current contents first.
             var refreshed = new List<Container>();
+            var outside = new List<(Container, float)>();
             foreach (Container chest in ChestRegistry.Containers)
-                if ((ChestRegistry.LiveZdo(chest)!.GetPosition() - __0.transform.position).sqrMagnitude <= range * range)
+            {
+                float distance = Vector3.Distance(ChestRegistry.LiveZdo(chest)!.GetPosition(), position);
+                if (distance <= range)
                 {
                     ChestRegistry.Refresh(chest);
                     refreshed.Add(chest);
                 }
+                else outside.Add((chest, distance));
+            }
             if (!ChestDiagnostics.Enabled) return;
             // Repeated presses touch the same chests. Record each chest's starting state once
             // per burst; the settled record reports what changed.
-            try { refreshed = ItemLedger.BeginOperation(__originalMethod.Name, __0, refreshed).ToList(); }
+            try { refreshed = ItemLedger.BeginOperation(__originalMethod.Name, __0, refreshed, outside).ToList(); }
             catch (Exception error) { ChestDiagnostics.RecordText("diagnostics-hook-error", "ItemLedger.BeginOperation: " + error, Severity.Info); }
             foreach (Container chest in refreshed) ChestDiagnostics.Record("operation-chest", chest);
         }
