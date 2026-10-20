@@ -131,14 +131,6 @@ internal static class PlantingTests
                 Check(errors.Count == 0 && info.Any(line => line.StartsWith("PlantEasily.GridCost: APPLIED")), "audited grid group installs: " + string.Join(Environment.NewLine, errors));
             }
 
-            Case("upstream grid scales only the first ingredient", () =>
-            {
-                Piece.Requirement[] recipe = Grid(2, 3);
-                update.Invoke(null, new object?[] { null });
-                Check(cells.Count == 502 && cells.Any(cell => cell.Index == 500), "every cell evaluated");
-                Check(cells.All(cell => cell.Amounts[0] == 2 * (cell.Index + 1) && cell.Amounts[1] == 3), "upstream defect changed");
-                Check(recipe[0].m_amount == 2 && recipe[1].m_amount == 3, "upstream restore");
-            });
             Case("grid scales and restores every ingredient", () =>
             {
                 Applied();

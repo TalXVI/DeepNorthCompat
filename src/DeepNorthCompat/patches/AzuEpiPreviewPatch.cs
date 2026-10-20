@@ -13,7 +13,8 @@ namespace DeepNorthCompat
         private const string Namespace = "AzuEPI.Game.PlayerPreview.";
         private const string PatchOwner = Plugin.Guid + ".Preview.AzuEPI";
         private static Assembly? pending;
-        private static FieldInfo previewPlayer = null!, characterAnimator = null!;
+        private static AccessTools.FieldRef<Player> previewPlayer = null!;
+        private static AccessTools.FieldRef<Character, Animator> characterAnimator = null!;
 
         internal static void Prepare(Assembly? assembly)
         {
@@ -58,10 +59,12 @@ namespace DeepNorthCompat
                         "Postfix", typeof(void), typeof(Humanoid)));
                 MethodInfo refresh = Guard.Method(Guard.Type(assembly, Namespace + "PlayerPreviewManager"),
                     "UpdatePlayerPreview", typeof(void), typeof(Humanoid));
-                previewPlayer = AccessTools.Field(Guard.Type(assembly, Namespace + "AzuEPICharacterPanel"), "playerPreviewComp");
-                characterAnimator = AccessTools.Field(typeof(Character), "m_animator");
-                if (previewPlayer?.FieldType != typeof(Player) || characterAnimator?.FieldType != typeof(Animator))
+                FieldInfo preview = AccessTools.Field(Guard.Type(assembly, Namespace + "AzuEPICharacterPanel"), "playerPreviewComp");
+                FieldInfo animator = AccessTools.Field(typeof(Character), "m_animator");
+                if (preview?.FieldType != typeof(Player) || animator?.FieldType != typeof(Animator))
                     throw new MissingFieldException("AzuEPI preview stance fields changed.");
+                previewPlayer = AccessTools.StaticFieldRefAccess<Player>(preview);
+                characterAnimator = AccessTools.FieldRefAccess<Character, Animator>(animator);
 
                 // SetPreviewPose also copied weapon stance. Keep that part, without its pose reset or render.
                 harmony.Patch(refresh, postfix: Guard.Hook(typeof(AzuEpiPreviewPatch), nameof(SyncStance), Priority.Last));
@@ -90,10 +93,10 @@ namespace DeepNorthCompat
         private static void SyncStance(Humanoid __0)
         {
             if (!__0 || __0 != Player.m_localPlayer) return;
-            var clone = previewPlayer.GetValue(null) as Player;
+            Player clone = previewPlayer();
             if (!clone) return;
-            var source = characterAnimator.GetValue(__0) as Animator;
-            var preview = characterAnimator.GetValue(clone) as Animator;
+            Animator source = characterAnimator(__0);
+            Animator preview = characterAnimator(clone);
             if (!source || !preview) return;
 
             int state = source.GetInteger("statei");

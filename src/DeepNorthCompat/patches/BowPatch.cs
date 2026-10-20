@@ -8,18 +8,20 @@ namespace DeepNorthCompat
 {
     internal static class BowPatch
     {
-        private static FieldInfo enabled = null!;
-        private static FieldInfo reduction = null!;
+        private static AccessTools.FieldRef<ConfigEntry<bool>> enabled = null!;
+        private static AccessTools.FieldRef<ConfigEntry<float>> reduction = null!;
 
         internal static void Install(Assembly impact)
         {
             Type config = Guard.Type(impact, "ImpactfulSkills.ValConfig");
-            enabled = AccessTools.Field(config, "EnableWeaponSkill");
-            reduction = AccessTools.Field(config, "WeaponSkillBowDrawStaminaCostReduction");
-            if (enabled?.FieldType != typeof(ConfigEntry<bool>) || reduction?.FieldType != typeof(ConfigEntry<float>))
+            FieldInfo enabledField = AccessTools.Field(config, "EnableWeaponSkill");
+            FieldInfo reductionField = AccessTools.Field(config, "WeaponSkillBowDrawStaminaCostReduction");
+            if (enabledField?.FieldType != typeof(ConfigEntry<bool>) || reductionField?.FieldType != typeof(ConfigEntry<float>))
             {
                 throw new MissingFieldException("ImpactfulSkills bow configuration changed.");
             }
+            enabled = AccessTools.StaticFieldRefAccess<ConfigEntry<bool>>(enabledField);
+            reduction = AccessTools.StaticFieldRefAccess<ConfigEntry<float>>(reductionField);
 
             MethodInfo calculation = Guard.Method(Guard.Type(impact, "ImpactfulSkills.patches.WeaponSkill"),
                 "ModifyStaminaDrainCostForBow", typeof(float));
@@ -36,14 +38,14 @@ namespace DeepNorthCompat
 
         private static bool Coefficient(ref float __result)
         {
-            __result = BowCalculation.Reduction(((ConfigEntry<float>)reduction.GetValue(null)).Value,
-                ((ConfigEntry<bool>)enabled.GetValue(null)).Value && Player.m_localPlayer != null);
+            __result = BowCalculation.Reduction(reduction().Value,
+                enabled().Value && Player.m_localPlayer != null);
             return false;
         }
 
         private static void Report(ItemDrop.ItemData __0, ref string __1)
         {
-            if (!((ConfigEntry<bool>)enabled.GetValue(null)).Value
+            if (!enabled().Value
                 || Player.m_localPlayer == null
                 || !__1.Contains("item_staminahold")) return;
 

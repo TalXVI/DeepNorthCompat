@@ -5,7 +5,6 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.Serialization;
-using BepInEx.Configuration;
 using DeepNorthCompat;
 using HarmonyLib;
 using SysConsole = System.Console;
@@ -69,6 +68,13 @@ internal static class Program
         return file == null ? null : Assembly.LoadFrom(file);
     }
 
+    private static string Repository()
+    {
+        for (DirectoryInfo? directory = new FileInfo(typeof(Program).Assembly.Location).Directory; directory != null; directory = directory.Parent)
+            if (File.Exists(Path.Combine(directory.FullName, "package", "manifest.json"))) return directory.FullName;
+        throw new DirectoryNotFoundException("The test build is outside a DeepNorthCompat checkout.");
+    }
+
     private static void Check(bool condition, string message)
     {
         if (!condition) throw new Exception(message);
@@ -118,21 +124,13 @@ internal static class Program
             }
             finally { File.Delete(path); }
         });
-        Test("bow zero is vanilla at every skill", () =>
-        {
-            for (int level = 0; level <= 100; level++)
-            {
-                float skill = level / 100f;
-                Check(Math.Abs(BowCalculation.Drain(10, skill, 0) - (10 - 10 * 0.33f * skill)) < 0.00001, "zero");
-            }
-        });
         Test("bow configured percentage, disabled feature and boundaries", () =>
         {
-            foreach (float reduction in new[] { 0.1f, 0.33f, 0.5f, 1f })
-                foreach (float skill in new[] { 0f, 0.25f, 0.5f, 1f })
-                    Check(Math.Abs(BowCalculation.Drain(10, skill, reduction) - (10 - 10 * reduction * skill)) < 0.00001, "percentage");
-            Check(BowCalculation.Drain(10, 1, 1, false) == BowCalculation.Drain(10, 1, 0), "disabled");
-            Check(BowCalculation.Reduction(float.NaN, true) == 0.33f, "invalid");
+            foreach (float reduction in new[] { 0.01f, 0.1f, 0.5f, 1f })
+                Check(BowCalculation.Reduction(reduction, true) == reduction, "configured " + reduction);
+            foreach (float invalid in new[] { 0f, -0.5f, 1.01f, float.NaN, float.PositiveInfinity })
+                Check(BowCalculation.Reduction(invalid, true) == 0.33f, "vanilla for " + invalid);
+            Check(BowCalculation.Reduction(0.5f, false) == 0.33f, "disabled");
         });
 
         var cases = new[]
@@ -272,10 +270,13 @@ internal static class Program
             prefix: new HarmonyMethod(AccessTools.Method(typeof(Program), nameof(AnimationHash))));
         Test("optional mods absent: startup remains safe", () =>
         {
-            int inactive = 0;
-            CompatibilityInstaller.Install(_ => null, message => { if (message.Contains("inactive")) inactive++; },
-                _ => { }, error => { throw new Exception(error); });
-            Check(inactive == 26, "optional module count");
+            CompatibilityInstaller.Install(_ => null, _ => { }, _ => { }, error => { throw new Exception(error); });
+            CompatibilityInstaller.Verify();
+            string plugins = Path.GetFullPath(Path.Combine(Lab, "BepInEx", "plugins"));
+            Check(!Harmony.GetAllPatchedMethods().Any(method => Harmony.GetPatchInfo(method)!.Owners
+                    .Any(owner => owner.StartsWith("DeepNorthCompat.") && !owner.StartsWith("DeepNorthCompat.Tests."))
+                && Path.GetFullPath(method.DeclaringType!.Assembly.Location).StartsWith(plugins, StringComparison.OrdinalIgnoreCase)),
+                "an optional integration patched a mod that was not resolved");
         });
         Test("changed ImpactfulSkills assembly rejects bow and quality hooks safely", () =>
         {
@@ -300,19 +301,23 @@ internal static class Program
             ["marlthon.AirAnimals"] = Assembly.LoadFrom(Path.Combine(Lab, "BepInEx", "plugins", "Marlthon-AirAnimals", "AirAnimals.dll"))
         };
         using var aaaConfig = new AaaCraftingFixture(assemblies["Azumatt.AzuAntiArthriticCrafting"]);
-        string? odinPath = Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_ODINSHIP_PATH");
-        if (odinPath != null) assemblies["marlthon.OdinShip"] = Assembly.LoadFrom(odinPath);
+        // The deferral case adds OdinShip; offline, its construction prefab is never registered, so the full install omits it.
+        string? odinPath = Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_ODINSHIP_PATH")
+            ?? Directory.GetFiles(Path.Combine(Lab, "BepInEx", "plugins"), "OdinShip.dll", SearchOption.AllDirectories).SingleOrDefault();
+        Assembly? odin = odinPath == null ? null : Assembly.LoadFrom(odinPath);
         Assembly impact = assemblies["MidnightsFX.ImpactfulSkills"];
         Test("BepInEx plugin identity and optional dependencies are valid", () =>
         {
             BepInEx.BepInPlugin identity = typeof(Plugin).GetCustomAttribute<BepInEx.BepInPlugin>()!;
             Check(identity.GUID == "DeepNorthCompat" && identity.Name == "DeepNorthCompat"
-                && identity.Version.ToString() == "1.3.16"
                 && typeof(Plugin).Assembly.GetName().Name == "DeepNorthCompat", "plugin identity");
+            string manifest = File.ReadAllText(Path.Combine(Repository(), "package", "manifest.json"));
+            Check(System.Text.RegularExpressions.Regex.Match(manifest, "\"version_number\"\\s*:\\s*\"([^\"]+)\"").Groups[1].Value
+                == identity.Version.ToString(), "plugin version differs from the package manifest");
             Check(typeof(BepInEx.BaseUnityPlugin).IsAssignableFrom(typeof(Plugin)), "BepInEx entry point");
             var dependencies = typeof(Plugin).GetCustomAttributes<BepInEx.BepInDependency>().ToArray();
-            Check(dependencies.Length == 22 && dependencies.Count(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.SoftDependency) == 21
-                && dependencies.Single(d => d.DependencyGUID == "_shudnal.ConditionalConfigSync").Flags == BepInEx.BepInDependency.DependencyFlags.HardDependency
+            Check(dependencies.Where(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.HardDependency)
+                    .Select(d => d.DependencyGUID).SequenceEqual(new[] { "_shudnal.ConditionalConfigSync" })
                 && dependencies.Any(d => d.DependencyGUID == "marlthon.OdinShip")
                 && dependencies.Any(d => d.DependencyGUID == "odinplus.TeleportEverything")
                 && dependencies.Any(d => d.DependencyGUID == "shudnal.MyLittleUI")
@@ -337,7 +342,8 @@ internal static class Program
             try
             {
                 deferring = true;
-                CompatibilityInstaller.Install(guid => guid.StartsWith("marlthon.") && assemblies.TryGetValue(guid, out Assembly value) ? value : null,
+                CompatibilityInstaller.Install(guid => guid == "marlthon.OdinShip" ? odin
+                    : guid.StartsWith("marlthon.") && assemblies.TryGetValue(guid, out Assembly value) ? value : null,
                     _ => { }, _ => { }, errors.Add);
                 deferring = false;
                 CompatibilityInstaller.Verify();
@@ -349,13 +355,13 @@ internal static class Program
                 new Harmony("DeepNorthCompat.Drops.SeaAnimals").UnpatchSelf();
                 new Harmony("DeepNorthCompat.Drops.AirAnimals").UnpatchSelf();
             }
-            Check(errors.Count == (odinPath == null ? 3 : 6) && errors.Count(e => e.Contains("did not run")) == 2
+            Check(errors.Count == (odin == null ? 3 : 7) && errors.Count(e => e.Contains("did not run")) == 2
                 && errors.Count(e => e.StartsWith("UI.TabAudio: NOT APPLIED")) == 1,
                 string.Join(Environment.NewLine, errors));
             Check(!Harmony.GetAllPatchedMethods().Any(m => Harmony.GetPatchInfo(m)!.Owners.Contains("DeepNorthCompat.UI.TabAudio")),
                 "unverified UI group rolled back after deferred wrappers were skipped");
-            if (odinPath != null)
-                Check(new[] { "Core", "Input", "FishPress" }.All(group => errors.Count(e => e.StartsWith("OdinShip." + group + ": NOT APPLIED")) == 1)
+            if (odin != null)
+                Check(new[] { "Core", "Input", "FishPress", "Construction" }.All(group => errors.Count(e => e.StartsWith("OdinShip." + group + ": NOT APPLIED")) == 1)
                     && !Harmony.GetAllPatchedMethods().Any(m => Harmony.GetPatchInfo(m)!.Owners.Any(o => o.StartsWith("DeepNorthCompat.OdinShip."))),
                     "deferred OdinShip groups roll back together with accurate status");
         });
@@ -431,31 +437,23 @@ internal static class Program
             }
         });
 
-        Test("quality options work independently and both disabled remain disabled", () =>
-        {
-            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "unsaved-test.cfg");
-            Check(!File.Exists(path), "unexpected test config");
-            var config = new ConfigFile(path, false) { SaveOnConfigSet = false };
-            ConfigEntry<bool> amount = config.Bind("test", "amount", false);
-            ConfigEntry<bool> equipment = config.Bind("test", "equipment", false);
-            Type valConfig = impact.GetType("ImpactfulSkills.ValConfig", true)!;
-            AccessTools.Field(valConfig, "EnableQualityIngredientScaling").SetValue(null, amount);
-            AccessTools.Field(valConfig, "ScaleCraftedEquipmentQuality").SetValue(null, equipment);
-            Type qualityPatch = typeof(BowCalculation).Assembly.GetType("DeepNorthCompat.QualityPatch", true)!;
-            PropertyInfo enabled = qualityPatch.GetProperty("Enabled", BindingFlags.Static | BindingFlags.NonPublic)!;
-            foreach (bool amountValue in new[] { false, true })
-                foreach (bool equipmentValue in new[] { false, true })
-                {
-                    amount.Value = amountValue; equipment.Value = equipmentValue;
-                    Check((bool)enabled.GetValue(null) == (amountValue || equipmentValue), "independent switches");
-                }
-            Check(!File.Exists(path), "configuration was written");
-        });
         Test("AAA preview uses one craft, independent of native modifier state", () =>
         {
             MethodInfo multiplier = impact.GetType("ImpactfulSkills.IngredientQuality", true)!
                 .GetMethod("PanelCraftMultiplier", BindingFlags.Static | BindingFlags.NonPublic)!;
-            Check((int)multiplier.Invoke(null, null) == 1, "AAA preview");
+            var gui = (InventoryGui)FormatterServices.GetUninitializedObject(typeof(InventoryGui));
+            AccessTools.Field(typeof(UnityEngine.Object), "m_CachedPtr").SetValue(gui, new IntPtr(1));
+            gui.m_multiCraftAmount = 4;
+            FieldInfo instance = AccessTools.Field(typeof(InventoryGui), "m_instance");
+            var modifier = new Harmony("DeepNorthCompat.Tests.AltPlace");
+            modifier.Patch(AccessTools.Method(typeof(ZInput), "GetButton", new[] { typeof(string) }),
+                prefix: new HarmonyMethod(AccessTools.Method(typeof(Program), nameof(AltPlaceHeld))));
+            try
+            {
+                instance.SetValue(null, gui);
+                Check((int)multiplier.Invoke(null, null) == 1, "AAA preview counted the native batch");
+            }
+            finally { instance.SetValue(null, null); modifier.UnpatchSelf(); }
         });
 
         PipelineTests.Run(impact, assemblies["Azumatt.AzuCraftyBoxes"], Test);
@@ -473,6 +471,12 @@ internal static class Program
     {
         if (!deferring) return true;
         __result = null;
+        return false;
+    }
+
+    private static bool AltPlaceHeld(string __0, ref bool __result)
+    {
+        __result = __0 == "AltPlace";
         return false;
     }
 

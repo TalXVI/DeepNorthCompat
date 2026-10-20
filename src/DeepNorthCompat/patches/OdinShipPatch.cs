@@ -16,7 +16,10 @@ namespace DeepNorthCompat
         private static bool pending, enabled;
         private static bool? canoeRewrite;
         private static bool observeNames;
-        private static FieldInfo nameView = null!;
+        private static readonly MethodInfo fixedDeltaTime = AccessTools.PropertyGetter(typeof(Time), nameof(Time.fixedDeltaTime));
+        private static readonly MethodInfo step = AccessTools.DeclaredMethod(typeof(OdinShipPatch), nameof(Step));
+        // Tick reads every tracked customization's view four times a second.
+        private static AccessTools.FieldRef<object, ZNetView> nameView = null!;
         private static MethodInfo updateNameplates = null!;
         private static MethodInfo[] targets = Array.Empty<MethodInfo>();
         private static readonly List<NameState> names = new List<NameState>();
@@ -45,8 +48,9 @@ namespace DeepNorthCompat
             canoeRewrite = null;
             MethodInfo canoe = Guard.Method(Guard.Type(assembly, "OdinShip.ShipPatches"), "CustomFixedUpdate", typeof(void), typeof(Ship));
             Type customization = Guard.Type(assembly, "OdinShip.ShipCustomization");
-            nameView = AccessTools.Field(customization, "m_nview");
-            if (nameView == null || nameView.FieldType != typeof(ZNetView)) throw new MissingFieldException(customization.FullName, "m_nview");
+            FieldInfo view = AccessTools.Field(customization, "m_nview");
+            if (view == null || view.FieldType != typeof(ZNetView)) throw new MissingFieldException(customization.FullName, "m_nview");
+            nameView = AccessTools.FieldRefAccess<object, ZNetView>(view);
             updateNameplates = Guard.Method(customization, "UpdateNameplates", typeof(void));
             observeNames = !Guard.KnownServerBuild();
             targets = new[] { Guard.Method(typeof(Ship), "CustomFixedUpdate", typeof(void), typeof(float)), canoe,
@@ -120,11 +124,13 @@ namespace DeepNorthCompat
         private static IEnumerable<CodeInstruction> RewriteCanoe(IEnumerable<CodeInstruction> instructions)
         {
             List<CodeInstruction> code = instructions.ToList();
-            MethodInfo getter = AccessTools.PropertyGetter(typeof(Time), nameof(Time.fixedDeltaTime));
-            canoeRewrite = code.Count(c => c.Calls(getter)) == 1;
-            if (canoeRewrite != true) return code;
-            return code.Select(c => c.Calls(getter)
-                ? new CodeInstruction(c) { opcode = OpCodes.Call, operand = AccessTools.Method(typeof(OdinShipPatch), nameof(Step)) } : c).ToArray();
+            canoeRewrite = code.Count(c => c.Calls(fixedDeltaTime)) == 1;
+            if (canoeRewrite != true)
+            {
+                ILMatch.Lost(ref enabled, "OdinShip.Core", "the canoe force no longer reads Time.fixedDeltaTime once");
+                return code;
+            }
+            return code.Select(c => c.Calls(fixedDeltaTime) ? new CodeInstruction(c) { opcode = OpCodes.Call, operand = step } : c).ToArray();
         }
 
         private sealed class NameState
@@ -137,7 +143,7 @@ namespace DeepNorthCompat
         private static void ObserveName(object __instance)
         {
             if ((!enabled && !pending) || !observeNames) return;
-            ZNetView nview = (ZNetView)nameView.GetValue(__instance);
+            ZNetView nview = nameView(__instance);
             if (nview == null || !nview.IsValid() || nameStates.TryGetValue(__instance, out _)) return;
             var state = new NameState(__instance, nview.GetZDO().GetString("shipName"));
             nameStates.Add(__instance, state); names.Add(state);
@@ -150,7 +156,7 @@ namespace DeepNorthCompat
             {
                 object component = names[i].Component.Target!;
                 if (component == null || (UnityEngine.Object)component == null) { names.RemoveAt(i); continue; }
-                ZNetView nview = (ZNetView)nameView.GetValue(component);
+                ZNetView nview = nameView(component);
                 if (nview == null || !nview.IsValid()) continue;
                 string name = nview.GetZDO().GetString("shipName");
                 if (name == names[i].Name) continue;
@@ -179,12 +185,6 @@ namespace DeepNorthCompat
             Action callback = (Action)Delegate.CreateDelegate(typeof(Action), __instance,
                 Guard.Method(typeof(Turret), "OnDestroyed", typeof(void)));
             Subscribe(parent, __instance, callback);
-        }
-
-        internal static void ResetForTests()
-        {
-            pending = enabled = false; frame = null; names.Clear(); pendingTurrets.Clear();
-            nameStates = new ConditionalWeakTable<object, NameState>(); nextNameTick = 0;
         }
 
         internal static void Subscribe(WearNTear parent, Turret turret, Action callback)

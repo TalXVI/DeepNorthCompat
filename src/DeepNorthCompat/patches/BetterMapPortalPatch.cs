@@ -17,6 +17,7 @@ namespace DeepNorthCompat
         private static Func<string, string> label = null!;
         private static Func<int, bool> isPortal = null!;
         private static MethodInfo mapPins = null!;
+        private static readonly MethodInfo automaticPins = AccessTools.DeclaredMethod(typeof(BetterMapPortalPatch), nameof(AutomaticPins));
         private static bool destructionMatched;
         private static bool pending, enabled;
         internal static void Prepare(Assembly? assembly)
@@ -52,9 +53,12 @@ namespace DeepNorthCompat
         {
             var code = instructions.ToList();
             destructionMatched = code.Count(i => i.Calls(mapPins)) == 1;
-            if (!destructionMatched) return code;
-            MethodInfo filter = AccessTools.Method(typeof(BetterMapPortalPatch), nameof(AutomaticPins));
-            return code.Select(i => i.Calls(mapPins) ? new CodeInstruction(i) { opcode = OpCodes.Call, operand = filter } : i).ToArray();
+            if (!destructionMatched)
+            {
+                ILMatch.Lost(ref enabled, "Map.Portals", "PortalPins.Destroyed no longer reads the map pins once");
+                return code;
+            }
+            return code.Select(i => i.Calls(mapPins) ? new CodeInstruction(i) { opcode = OpCodes.Call, operand = automaticPins } : i).ToArray();
         }
         private static List<Minimap.PinData> AutomaticPins(Minimap map) => enabled
             ? BetterMapAccess.Pins(map).Where(BetterMapPersistencePatch.AutomaticPortal).ToList() : BetterMapAccess.Pins(map);

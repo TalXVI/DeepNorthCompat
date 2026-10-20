@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
+using static DeepNorthCompat.ILMatch;
 
 namespace DeepNorthCompat
 {
@@ -36,18 +37,29 @@ namespace DeepNorthCompat
         private static readonly FieldInfo levelDelta = AccessTools.Field(typeof(TerrainComp), "m_levelDelta");
         private static readonly FieldInfo modifiedHeight = AccessTools.Field(typeof(TerrainComp), "m_modifiedHeight");
         private static readonly FieldInfo vectorY = AccessTools.Field(typeof(Vector3), nameof(Vector3.y));
-        private static readonly OpCode[] shortLoads = { OpCodes.Ldloc_0, OpCodes.Ldloc_1, OpCodes.Ldloc_2, OpCodes.Ldloc_3 };
-        private static Type operationType = null!;
+        private static readonly MethodInfo deltaItem = AccessTools.PropertyGetter(typeof(Dictionary<TerrainComp, float[]>), "Item");
+        private static readonly MethodInfo heightItem = AccessTools.PropertyGetter(typeof(Dictionary<TerrainComp, bool[]>), "Item");
+        private static readonly MethodInfo levelVertex = Hook(nameof(LevelVertex)), raiseVertex = Hook(nameof(RaiseVertex)), raiseSkipped = Hook(nameof(RaiseSkipped));
+        private static readonly MethodInfo smoothVertex = Hook(nameof(SmoothVertex)), foundationVertex = Hook(nameof(FoundationVertex));
+        private static readonly MethodInfo repairBounds = Hook(nameof(RepairBounds)), repairDensity = Hook(nameof(RepairDensity));
         private static MethodInfo getZone = null!, sync = null!, zoneKey = null!, newId = null!, bounds = null!, applyDensity = null!;
-        private static MethodInfo ensureDensity = null!, applyOp = null!, rush = null!, dirtyNeighbors = null!, read = null!, serialize = null!;
+        private static MethodInfo ensureDensity = null!, rush = null!, read = null!, serialize = null!;
+        // Save and Encode run once per filled vertex, so records are built, read, and applied through compiled delegates.
+        private static Func<Vector3, float, long, object> encode = null!;
+        private static Func<object, Vector3> pointOf = null!;
+        private static Action<object, int> setId = null!;
+        private static Func<object, object, bool> applyOp = null!;
+        private static Action<Heightmap, object> dirtyNeighbors = null!;
         // Replay reads a zone's layout for every fill record, so it uses typed accessors instead of reflection.
         private static AccessTools.FieldRef<object, float[]> density = null!;
         private static AccessTools.FieldRef<object, Vector3> origin = null!;
         private static AccessTools.FieldRef<object, float> spacing = null!;
         private static AccessTools.FieldRef<object, int> nx = null!, ny = null!, nz = null!, ownedX = null!, ownedZ = null!;
         private static Func<object, int, int, float> heightAt = null!;
-        private static FieldInfo opId = null!, opSequence = null!, opType = null!, opPoint = null!, opRadius = null!, floorHeight = null!;
-        private static FieldInfo cap = null!, holder = null!, bases = null!;
+        private static FieldInfo opSequence = null!, opType = null!, opPoint = null!, floorHeight = null!;
+        private static FieldInfo cap = null!, holder = null!, levelDeltas = null!, modifiedHeights = null!;
+        // FoundationVertex reads the rune's baseline heights for every selected vertex.
+        private static AccessTools.FieldRef<object, Dictionary<TerrainComp, float[]>> bases = null!;
         private static int dataKey;
         private static bool pending, enabled, replayPending, replayEnabled, applying;
         private static readonly HashSet<long> full = new HashSet<long>();
@@ -90,12 +102,12 @@ namespace DeepNorthCompat
                 op = Guard.Type(hearth, "HearthBelow.VoxelMagic.CarveOp"), data = Guard.Type(hearth, "HearthBelow.VoxelMagic.CarveData"),
                 plugin = Guard.Type(hearth, "HearthBelow.HearthBelowPlugin");
             Type list = typeof(List<>).MakeGenericType(op);
-            operationType = op;
+            if (!op.IsValueType) throw new NotSupportedException("HearthBelow CarveOp is no longer a value type.");
             getZone = Guard.Method(world, "GetZone", zone, typeof(Heightmap));
             sync = Guard.Method(world, "TryApplyData", typeof(bool), typeof(TerrainComp), typeof(long));
             zoneKey = Guard.Method(world, "ZoneKey", typeof(long), typeof(Vector3));
             newId = Guard.Method(world, "NewOpId", typeof(int));
-            dirtyNeighbors = Guard.Method(world, "DirtyNeighborsForOp", typeof(void), typeof(Heightmap), op);
+            MethodInfo dirty = Guard.Method(world, "DirtyNeighborsForOp", typeof(void), typeof(Heightmap), op);
             Type integerRef = typeof(int).MakeByRefType();
             bounds = Guard.Method(zone, "ComputeOpBounds", typeof(bool), op, typeof(int), typeof(int), typeof(int), typeof(int), typeof(bool),
                 integerRef, integerRef, integerRef, integerRef, integerRef, integerRef);
@@ -106,7 +118,7 @@ namespace DeepNorthCompat
             ILGenerator il = call.GetILGenerator();
             il.Emit(OpCodes.Ldarg_0); il.Emit(OpCodes.Castclass, zone); il.Emit(OpCodes.Ldarg_1); il.Emit(OpCodes.Ldarg_2); il.Emit(OpCodes.Call, height); il.Emit(OpCodes.Ret);
             heightAt = (Func<object, int, int, float>)call.CreateDelegate(typeof(Func<object, int, int, float>));
-            applyOp = Guard.Method(zone, "ApplyOp", typeof(bool), op);
+            MethodInfo apply = Guard.Method(zone, "ApplyOp", typeof(bool), op);
             rush = Guard.Method(zone, "Rush", typeof(void));
             read = Guard.Method(data, "Read", Guard.Type(hearth, "HearthBelow.VoxelMagic.CarveDataState"), typeof(byte[]), list.MakeByRefType());
             serialize = Guard.Method(data, "Serialize", typeof(byte[]), list);
@@ -116,8 +128,29 @@ namespace DeepNorthCompat
             nx = Ref<int>(zone, "NX"); ny = Ref<int>(zone, "NY"); nz = Ref<int>(zone, "NZ");
             spacing = Ref<float>(zone, "HorizontalSpacing");
             ownedX = Ref<int>(zone, "_ownedMaximumX"); ownedZ = Ref<int>(zone, "_ownedMaximumZ");
-            opId = Field(op, "Id", typeof(int)); opSequence = Field(op, "Sequence", typeof(long)); opType = Field(op, "Type", typeof(byte));
-            opPoint = Field(op, "Point", typeof(Vector3)); opRadius = Field(op, "Radius", typeof(float)); floorHeight = Field(op, "FloorHeight", typeof(float));
+            FieldInfo opId = Field(op, "Id", typeof(int)), opRadius = Field(op, "Radius", typeof(float));
+            opSequence = Field(op, "Sequence", typeof(long)); opType = Field(op, "Type", typeof(byte));
+            opPoint = Field(op, "Point", typeof(Vector3)); floorHeight = Field(op, "FloorHeight", typeof(float));
+            encode = Emit<Func<Vector3, float, long, object>>("DNC_HearthEncode", typeof(object), new[] { typeof(Vector3), typeof(float), typeof(long) }, il =>
+            {
+                LocalBuilder record = il.DeclareLocal(op);
+                il.Emit(OpCodes.Ldloca_S, record); il.Emit(OpCodes.Initobj, op);
+                void Store(FieldInfo field, Action value) { il.Emit(OpCodes.Ldloca_S, record); value(); il.Emit(OpCodes.Stfld, field); }
+                Store(opType, () => il.Emit(OpCodes.Ldc_I4, (int)RepairType));
+                Store(opPoint, () => il.Emit(OpCodes.Ldarg_0));
+                Store(opRadius, () => il.Emit(OpCodes.Ldc_R4, 0.5f));
+                Store(floorHeight, () => il.Emit(OpCodes.Ldarg_1));
+                Store(opSequence, () => il.Emit(OpCodes.Ldarg_2));
+                il.Emit(OpCodes.Ldloc, record); il.Emit(OpCodes.Box, op); il.Emit(OpCodes.Ret);
+            });
+            pointOf = Emit<Func<object, Vector3>>("DNC_HearthPoint", typeof(Vector3), new[] { typeof(object) }, il =>
+            { il.Emit(OpCodes.Ldarg_0); il.Emit(OpCodes.Unbox, op); il.Emit(OpCodes.Ldfld, opPoint); il.Emit(OpCodes.Ret); });
+            setId = Emit<Action<object, int>>("DNC_HearthSetId", typeof(void), new[] { typeof(object), typeof(int) }, il =>
+            { il.Emit(OpCodes.Ldarg_0); il.Emit(OpCodes.Unbox, op); il.Emit(OpCodes.Ldarg_1); il.Emit(OpCodes.Stfld, opId); il.Emit(OpCodes.Ret); });
+            applyOp = Emit<Func<object, object, bool>>("DNC_HearthApply", typeof(bool), new[] { typeof(object), typeof(object) }, il =>
+            { il.Emit(OpCodes.Ldarg_0); il.Emit(OpCodes.Castclass, zone); il.Emit(OpCodes.Ldarg_1); il.Emit(OpCodes.Unbox_Any, op); il.Emit(OpCodes.Callvirt, apply); il.Emit(OpCodes.Ret); });
+            dirtyNeighbors = Emit<Action<Heightmap, object>>("DNC_HearthDirty", typeof(void), new[] { typeof(Heightmap), typeof(object) }, il =>
+            { il.Emit(OpCodes.Ldarg_0); il.Emit(OpCodes.Ldarg_1); il.Emit(OpCodes.Unbox_Any, op); il.Emit(OpCodes.Call, dirty); il.Emit(OpCodes.Ret); });
             var harmony = new Harmony(ReplayOwner);
             replays.Add(bounds, false); replays.Add(applyDensity, false);
             harmony.Patch(bounds, transpiler: Guard.Hook(typeof(HearthTerrainPatch), nameof(RewriteBounds)));
@@ -142,7 +175,9 @@ namespace DeepNorthCompat
                 Guard.Build(rune, RuneBuild);
                 Type foundation = Guard.Type(rune, "ValheimMod.Monobehaviours.FoundationRune"), terrainHolder = Guard.Type(rune, "ValheimMod.TerrainHolder");
                 holder = Field(foundation, "terrainHolder", terrainHolder);
-                bases = Field(terrainHolder, "heightsWithTerrainMods", typeof(Dictionary<TerrainComp, float[]>));
+                bases = Ref<Dictionary<TerrainComp, float[]>>(terrainHolder, "heightsWithTerrainMods");
+                levelDeltas = Field(terrainHolder, "levelDeltas", typeof(Dictionary<TerrainComp, float[]>));
+                modifiedHeights = Field(terrainHolder, "modifiedHeights", typeof(Dictionary<TerrainComp, bool[]>));
                 adjust = Guard.Method(foundation, "adjustTerrain", typeof(bool), typeof(TerrainComp));
             }
             var harmony = new Harmony(Owner);
@@ -161,6 +196,13 @@ namespace DeepNorthCompat
         }
 
         private static AccessTools.FieldRef<object, T> Ref<T>(Type type, string name) => AccessTools.FieldRefAccess<object, T>(Field(type, name, typeof(T)));
+
+        private static T Emit<T>(string name, Type returns, Type[] parameters, Action<ILGenerator> body) where T : Delegate
+        {
+            var method = new DynamicMethod(name, returns, parameters, typeof(HearthTerrainPatch), true);
+            body(method.GetILGenerator());
+            return (T)method.CreateDelegate(typeof(T));
+        }
 
         private static void Add(Harmony harmony, MethodInfo target, string rewrite)
         {
@@ -213,7 +255,7 @@ namespace DeepNorthCompat
             {
                 int site = LevelClamp(code, 11);
                 if (site < 0 || !Locals(__originalMethod, 12, (7, typeof(int)), (8, typeof(int)), (10, typeof(float)))) return false;
-                Redirect(code, site, nameof(LevelVertex), 8, 7);
+                Redirect(code, site, levelVertex, 8, 7);
                 return true;
             });
 
@@ -227,10 +269,10 @@ namespace DeepNorthCompat
                 if (site < 0 || skip < 0 || skip >= site || !Locals(__originalMethod, 16, (7, typeof(int)), (8, typeof(int)),
                     (10, typeof(float)), (11, typeof(float)), (12, typeof(float)), (13, typeof(int)))) return false;
                 // RaiseTerrain's step (delta times falloff) and its capped target height.
-                Redirect(code, site, nameof(RaiseVertex), 8, 7, 11, 12);
+                Redirect(code, site, raiseVertex, 8, 7, 11, 12);
                 // Vanilla's skip test compares the requested height with the heightmap, which hides a cut
                 // below it. Visit each vertex first with its step, requested height, and heightmap height.
-                code.InsertRange(skip, Arguments(8, 7, 11, 12, 10).Append(new CodeInstruction(OpCodes.Call, Hook(nameof(RaiseSkipped)))));
+                code.InsertRange(skip, Arguments(8, 7, 11, 12, 10).Append(new CodeInstruction(OpCodes.Call, raiseSkipped)));
                 return true;
             });
 
@@ -240,7 +282,7 @@ namespace DeepNorthCompat
                 int site = Site(code, i => code[i].Calls(lerp));
                 if (!Shape(code, site - 3, IsLoad(11), IsLoad(2), IsLoad(12), Calls(lerp), IsLoad(11), Is(OpCodes.Sub))
                     || !Locals(__originalMethod, 15, (7, typeof(int)), (8, typeof(int)), (12, typeof(float)))) return false;
-                Redirect(code, site, nameof(SmoothVertex), 8, 7);
+                Redirect(code, site, smoothVertex, 8, 7);
                 return true;
             });
 
@@ -250,15 +292,16 @@ namespace DeepNorthCompat
             Transpile(instructions, __originalMethod, code =>
             {
                 int site = Site(code, i => code[i].opcode == OpCodes.Stelem_I1);
-                if (!Shape(code, site - 15, Is(OpCodes.Ldarg_0), Loads(holder), Loads(AccessTools.Field(holder.FieldType, "levelDeltas")), Is(OpCodes.Ldarg_1),
-                        Calls(AccessTools.PropertyGetter(typeof(Dictionary<TerrainComp, float[]>), "Item")), IsLoad(12), IsLoad(15), Is(OpCodes.Stelem_R4),
-                        Is(OpCodes.Ldarg_0), Loads(holder), Loads(AccessTools.Field(holder.FieldType, "modifiedHeights")), Is(OpCodes.Ldarg_1),
-                        Calls(AccessTools.PropertyGetter(typeof(Dictionary<TerrainComp, bool[]>), "Item")), IsLoad(12), Is(OpCodes.Ldc_I4_1), Is(OpCodes.Stelem_I1))
+                if (!Shape(code, site - 15, Is(OpCodes.Ldarg_0), Loads(holder), Loads(levelDeltas), Is(OpCodes.Ldarg_1),
+                        Calls(deltaItem), IsLoad(12), IsLoad(15), Is(OpCodes.Stelem_R4),
+                        Is(OpCodes.Ldarg_0), Loads(holder), Loads(modifiedHeights), Is(OpCodes.Ldarg_1),
+                        Calls(heightItem), IsLoad(12), Is(OpCodes.Ldc_I4_1), Is(OpCodes.Stelem_I1))
                     || !Locals(__originalMethod, 16, (7, typeof(bool)), (9, typeof(int)), (10, typeof(int)), (15, typeof(float)))) return false;
-                // changed |= FoundationVertex(terrainHolder, comp, x, z, delta)
+                // changed |= FoundationVertex(terrainHolder, comp, x, z, delta). The insertion point is the loop
+                // increment, whose label the out-of-radius and outside-edge branches target, so skipped vertices never call it.
                 code.InsertRange(site + 1, new[] {
                     Load(7), new CodeInstruction(OpCodes.Ldarg_0), new CodeInstruction(OpCodes.Ldfld, holder), new CodeInstruction(OpCodes.Ldarg_1),
-                    Load(10), Load(9), Load(15), new CodeInstruction(OpCodes.Call, Hook(nameof(FoundationVertex))),
+                    Load(10), Load(9), Load(15), new CodeInstruction(OpCodes.Call, foundationVertex),
                     new CodeInstruction(OpCodes.Or), new CodeInstruction(OpCodes.Stloc_S, (byte)7) });
                 return true;
             });
@@ -282,7 +325,7 @@ namespace DeepNorthCompat
                 code.AddRange(RepairRecord());
                 // minX, maxX, minZ, maxZ by value, then minY and maxY by reference.
                 foreach (int bound in new[] { 7, 10, 9, 12 }) code.AddRange(new[] { Argument(bound), new CodeInstruction(OpCodes.Ldind_I4) });
-                code.AddRange(new[] { Argument(8), Argument(11), new CodeInstruction(OpCodes.Call, Hook(nameof(RepairBounds))), new CodeInstruction(OpCodes.Ret) });
+                code.AddRange(new[] { Argument(8), Argument(11), new CodeInstruction(OpCodes.Call, repairBounds), new CodeInstruction(OpCodes.Ret) });
                 return true;
             }, true);
 
@@ -294,7 +337,7 @@ namespace DeepNorthCompat
                 Label native = generator.DefineLabel();
                 code[0].labels.Add(native);
                 code.InsertRange(0, IsRepair(OpCodes.Bne_Un, native).Concat(RepairRecord()).Concat(Enumerable.Range(2, 5).Select(Argument))
-                    .Append(new CodeInstruction(OpCodes.Call, Hook(nameof(RepairDensity)))).Append(new CodeInstruction(OpCodes.Ret)));
+                    .Append(new CodeInstruction(OpCodes.Call, repairDensity)).Append(new CodeInstruction(OpCodes.Ret)));
                 return true;
             }, true);
 
@@ -323,39 +366,15 @@ namespace DeepNorthCompat
             return original;
         }
 
-        // The only index that matches, if no label or exception block starts there; otherwise -1.
-        private static int Site(List<CodeInstruction> code, Func<int, bool> matches)
-        {
-            int[] sites = Enumerable.Range(0, code.Count).Where(matches).ToArray();
-            return sites.Length == 1 && code[sites[0]].labels.Count == 0 && code[sites[0]].blocks.Count == 0 ? sites[0] : -1;
-        }
-
-        private static bool Shape(List<CodeInstruction> code, int start, params Func<CodeInstruction, bool>[] pattern) =>
-            start >= 0 && start + pattern.Length <= code.Count && Enumerable.Range(0, pattern.Length).All(i => pattern[i](code[start + i]));
-
-        private static bool Locals(MethodBase method, int count, params (int Index, Type Type)[] expected)
-        {
-            IList<LocalVariableInfo> locals = method.GetMethodBody()!.LocalVariables;
-            return locals.Count == count && expected.All(local => locals[local.Index].LocalType == local.Type);
-        }
-
-        private static Func<CodeInstruction, bool> Is(OpCode opcode) => code => code.opcode == opcode;
-        private static Func<CodeInstruction, bool> Loads(FieldInfo field) => code => code.LoadsField(field);
-        private static Func<CodeInstruction, bool> Calls(MethodInfo method) => code => code.Calls(method);
-        private static Func<CodeInstruction, bool> IsLoad(int index) => code => index < shortLoads.Length && code.opcode == shortLoads[index]
-            || (code.opcode == OpCodes.Ldloc || code.opcode == OpCodes.Ldloc_S) && Local(code) == index;
-        private static Func<CodeInstruction, bool> IsStore(int index) => code => (code.opcode == OpCodes.Stloc || code.opcode == OpCodes.Stloc_S) && Local(code) == index;
-        private static int Local(CodeInstruction code) => code.operand is LocalVariableInfo local ? local.LocalIndex : Convert.ToInt32(code.operand);
-
         // Heightmap limit mods replace constants with parameterless float getters.
         private static bool Limit(CodeInstruction code) => code.opcode == OpCodes.Ldc_R4
             || code.opcode == OpCodes.Call && code.operand is MethodInfo method && method.IsStatic
                 && method.ReturnType == typeof(float) && method.GetParameters().Length == 0;
 
         // Points the call at site to hook, which takes the original arguments, then the TerrainComp, the tool target, and locals.
-        private static void Redirect(List<CodeInstruction> code, int site, string hook, params int[] locals)
+        private static void Redirect(List<CodeInstruction> code, int site, MethodInfo hook, params int[] locals)
         {
-            code[site].operand = Hook(hook);
+            code[site].operand = hook;
             code.InsertRange(site, Arguments(locals));
         }
 
@@ -410,7 +429,7 @@ namespace DeepNorthCompat
         private static bool FoundationVertex(object terrainHolder, TerrainComp comp, int x, int z, float delta)
         {
             Heightmap map = heightmap(comp);
-            float baseline = ((Dictionary<TerrainComp, float[]>)bases.GetValue(terrainHolder))[comp][z * (map.m_width + 1) + x];
+            float baseline = bases(terrainHolder)[comp][z * (map.m_width + 1) + x];
             float surface = map.transform.position.y + baseline + delta;
             return Floor(comp, x, z, out float floor) && Queue(comp, x, z, floor, surface, surface);
         }
@@ -493,7 +512,7 @@ namespace DeepNorthCompat
             }
             var saved = (IList)arguments[1]!;
             var points = new HashSet<Vector3>();
-            List<object> added = done.Records.Where(operation => points.Add((Vector3)opPoint.GetValue(operation))).ToList();
+            List<object> added = done.Records.Where(operation => points.Add(pointOf(operation))).ToList();
             if (saved.Count + added.Count > ((ConfigEntry<int>)cap.GetValue(null)).Value)
             {
                 if (full.Add((long)zoneKey.Invoke(null, new object[] { done.Comp.transform.position })))
@@ -501,12 +520,12 @@ namespace DeepNorthCompat
                 return;
             }
             int id = (int)newId.Invoke(null, null);
-            foreach (object operation in added) { opId.SetValue(operation, id); saved.Add(operation); }
+            foreach (object operation in added) { setId(operation, id); saved.Add(operation); }
             // HearthBelow's payload cache sees the changed bytes and reloads them before its next save.
             zdo.Set(dataKey, (byte[])serialize.Invoke(null, new object[] { saved }));
             Heightmap map = heightmap(done.Comp);
             applying = true;
-            try { foreach (object operation in added) { applyOp.Invoke(done.Zone, new[] { operation }); dirtyNeighbors.Invoke(null, new[] { map, operation }); } }
+            try { foreach (object operation in added) { applyOp(done.Zone!, operation); dirtyNeighbors(map, operation); } }
             finally { applying = false; }
             rush.Invoke(done.Zone, null);
         }
@@ -514,13 +533,7 @@ namespace DeepNorthCompat
         [StructLayout(LayoutKind.Explicit)]
         private struct Bits { [FieldOffset(0)] public float Value; [FieldOffset(0)] public int Raw; }
 
-        private static object Encode(Vector3 point, float floor, float offset)
-        {
-            object operation = Activator.CreateInstance(operationType);
-            opType.SetValue(operation, RepairType); opPoint.SetValue(operation, point); opRadius.SetValue(operation, 0.5f); floorHeight.SetValue(operation, floor);
-            opSequence.SetValue(operation, RepairTag << 32 | (uint)new Bits { Value = offset }.Raw);
-            return operation;
-        }
+        private static object Encode(Vector3 point, float floor, float offset) => encode(point, floor, RepairTag << 32 | (uint)new Bits { Value = offset }.Raw);
 
         // The samples a record fills in its column: from the first at or above its floor to one above its target.
         private struct Fill { internal int X, Z, First, Last; internal float Target; }

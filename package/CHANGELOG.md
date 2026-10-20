@@ -1,9 +1,10 @@
 # Changelog
 
-## Unreleased
+## 1.4.0
 
-- Applies AAA Crafting 2.1.11's crafting speed override to the Forge of Potential on Valheim 1.0.20 Windows clients. Adds the enabled-by-default `Crafting` / `Forge of Potential speed` config toggle. Vanilla skill scaling remains in effect.
-- Requires ConditionalConfigSync 1.0.11 or newer to synchronize the forge toggle.
+- Applies AAA Crafting 2.1.11's crafting speed override to the Forge of Potential. Adds `Crafting` / `Forge of Potential speed` config toggle. Enabled by default.
+- Requires ConditionalConfigSync 1.0.11 or newer to sync the forge toggle.
+- The dedicated server and every client must run the same DeepNorthCompat version.
 
 ## 1.3.16
 

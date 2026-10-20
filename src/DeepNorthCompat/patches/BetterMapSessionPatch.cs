@@ -12,6 +12,7 @@ namespace DeepNorthCompat
         private static BetterMapHooks? hooks;
         private static MethodInfo logout = null!, flush = null!, forgetPins = null!, forgetVehicles = null!;
         private static readonly List<Action> resets = new List<Action>();
+        private static readonly AccessTools.FieldRef<Game, bool> shuttingDown = AccessTools.FieldRefAccess<Game, bool>("m_shuttingDown");
         private static Player? pinPlayer, vehiclePlayer;
         private static bool pending, enabled;
 
@@ -125,7 +126,7 @@ namespace DeepNorthCompat
         }
         private static void AfterShutdown(Game __instance)
         {
-            if (enabled && AccessTools.Field(typeof(Game), "m_shuttingDown").GetValue(__instance) is true) Reset();
+            if (enabled && shuttingDown(__instance)) Reset();
         }
         private static void BeforeSession() { if (enabled) Reset(); }
         private static void Reset()

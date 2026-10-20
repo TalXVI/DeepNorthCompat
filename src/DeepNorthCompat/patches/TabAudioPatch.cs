@@ -7,6 +7,7 @@ using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
+using static DeepNorthCompat.ILMatch;
 
 namespace DeepNorthCompat
 {
@@ -19,6 +20,8 @@ namespace DeepNorthCompat
             "94998885B103D6E5F5480123EAEE0A093E82AF2DDEEEE37536C15BF555F24F3A"
         };
         private const string GuiHash = "52846FCAE0C535D733711C13FDB8F214D303603B5DBF23D05B1ED6A8E475C9DD";
+        private static readonly FieldInfo timer = AccessTools.Field(typeof(ButtonSfx), "m_sfxTimer");
+        private static readonly MethodInfo buttonSound = AccessTools.DeclaredMethod(typeof(TabAudioPatch), nameof(CreateButtonSound));
         private static bool pending, enabled;
         private static bool? rewritten;
         [ThreadStatic] private static Scope? scope;
@@ -142,26 +145,30 @@ namespace DeepNorthCompat
         {
             List<CodeInstruction> original = instructions.ToList();
             List<CodeInstruction> code = original.Select(i => new CodeInstruction(i)).ToList();
-            int[] creates = Enumerable.Range(0, code.Count).Where(i => code[i].operand is MethodInfo method &&
-                method.DeclaringType == typeof(Object) && method.Name == "Instantiate" && method.IsGenericMethod &&
-                method.GetGenericArguments().SequenceEqual(new[] { typeof(GameObject) }) && method.GetParameters().Length == 1).ToArray();
+            int[] creates = Enumerable.Range(0, code.Count).Where(i => Instantiate(code[i])).ToArray();
             // The first gated branch is audio; the second is vibration. Both reset their original timers.
-            FieldInfo timer = AccessTools.Field(typeof(ButtonSfx), "m_sfxTimer");
-            bool match = creates.Length == 2 && creates[0] >= 1 && creates[1] >= 1 &&
-                code[creates[0] - 1].opcode == OpCodes.Ldarg_1 && code[creates[1] - 1].opcode == OpCodes.Ldarg_2 &&
-                code.Skip(creates[0] + 1).Take(2).Select(i => i.opcode).SequenceEqual(new[] { OpCodes.Pop, OpCodes.Ldsfld }) &&
-                Equals(code[creates[0] + 2].operand, timer);
+            bool match = creates.Length == 2
+                && Shape(code, creates[0] - 1, Is(OpCodes.Ldarg_1), Instantiate, Is(OpCodes.Pop), Loads(timer))
+                && Shape(code, creates[1] - 1, Is(OpCodes.Ldarg_2), Instantiate);
             rewritten = match;
-            if (!match) return original;
+            if (!match)
+            {
+                Lost(ref enabled, "UI.TabAudio", "the button sound instantiation no longer matches");
+                return original;
+            }
             int index = creates[0];
-            var instance = new CodeInstruction(OpCodes.Ldarg_0);
-            instance.labels.AddRange(code[index].labels); code[index].labels.Clear();
-            instance.blocks.AddRange(code[index].blocks); code[index].blocks.Clear();
+            // Jumps to the instantiation now land on the inserted ButtonSfx argument.
+            var instance = new CodeInstruction(OpCodes.Ldarg_0).MoveLabelsFrom(code[index]).MoveBlocksFrom(code[index]);
             code[index].opcode = OpCodes.Call;
-            code[index].operand = AccessTools.Method(typeof(TabAudioPatch), nameof(CreateButtonSound));
+            code[index].operand = buttonSound;
             code.Insert(index, instance);
             return code;
         }
+
+        // Object.Instantiate<GameObject>(GameObject)
+        private static bool Instantiate(CodeInstruction code) => code.operand is MethodInfo method && method.DeclaringType == typeof(Object)
+            && method.Name == "Instantiate" && method.IsGenericMethod && method.GetGenericArguments().SequenceEqual(new[] { typeof(GameObject) })
+            && method.GetParameters().Length == 1;
 
         private static GameObject CreateButtonSound(GameObject prefab, ButtonSfx button)
         {

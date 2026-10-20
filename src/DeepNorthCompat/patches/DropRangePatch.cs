@@ -12,6 +12,7 @@ namespace DeepNorthCompat
         // Parser -> whether its transpiler ran and matched. Null until Harmony runs it, which
         // a startup optimizer can defer until after Awake.
         private static readonly Dictionary<MethodBase, bool?> parsers = new Dictionary<MethodBase, bool?>();
+        private static readonly MethodInfo parse = typeof(int).GetMethod("TryParse", new[] { typeof(string), typeof(int).MakeByRefType() })!;
 
         internal static void Install(Assembly assembly, string name)
         {
@@ -43,12 +44,10 @@ namespace DeepNorthCompat
         {
             List<CodeInstruction> source = instructions.ToList();
             List<CodeInstruction> code = source.Select(i => new CodeInstruction(i)).ToList();
-            MethodInfo parse = typeof(int).GetMethod("TryParse", new[] { typeof(string), typeof(int).MakeByRefType() })!;
             List<int> calls = Enumerable.Range(0, code.Count).Where(i => code[i].Calls(parse)).ToList();
 
-            if (calls.Count != 2 || calls.Any(i => i < 3
-                || code[i - 2].opcode != OpCodes.Ldelem_Ref
-                || code[i - 3].opcode != OpCodes.Ldc_I4_0))
+            // int.TryParse(parts[0], out ...) for both bounds.
+            if (calls.Count != 2 || !calls.All(i => ILMatch.Shape(code, i - 3, ILMatch.Is(OpCodes.Ldc_I4_0), ILMatch.Is(OpCodes.Ldelem_Ref))))
             {
                 CompatibilityInstaller.Error($"Drops: CreatureManager range defect no longer matches in "
                     + $"{original.DeclaringType?.Assembly.GetName().Name}; parser unchanged.");

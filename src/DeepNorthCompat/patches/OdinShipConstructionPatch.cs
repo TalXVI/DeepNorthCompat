@@ -124,7 +124,5 @@ namespace DeepNorthCompat
             if (found.Length != 1) throw new InvalidOperationException($"{Prefab} expected one child '{name}' under '{parent.name}', found {found.Length}.");
             return found[0];
         }
-
-        internal static void ResetForTests() { pending = enabled = false; registered = null; }
     }
 }

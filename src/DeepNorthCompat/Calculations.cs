@@ -15,11 +15,6 @@ namespace DeepNorthCompat
             return !enabled || configured <= 0 || configured > 1 || float.IsNaN(configured)
                 ? VanillaReduction : configured;
         }
-
-        public static float Drain(float baseDrain, float skill, float configured, bool enabled = true)
-        {
-            return baseDrain - baseDrain * Reduction(configured, enabled) * skill;
-        }
     }
 
     public sealed class ResourceStack<TItem, TSource> where TItem : notnull where TSource : notnull

@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
 using TMPro;
+using static DeepNorthCompat.ILMatch;
 
 namespace DeepNorthCompat
 {
@@ -19,6 +20,10 @@ namespace DeepNorthCompat
             "94998885B103D6E5F5480123EAEE0A093E82AF2DDEEEE37536C15BF555F24F3A"
         };
         private const string TmpHash = "719A2E22767F1A9C7B92F47AEA2F58550FAE2E76189F99181757B04A3595E181";
+        private static readonly MethodInfo setText = AccessTools.Method(typeof(TMP_Text), nameof(TMP_Text.SetText), new[] { typeof(string) });
+        private static readonly MethodInfo number = AccessTools.Method(typeof(int), nameof(int.ToString), Type.EmptyTypes);
+        private static readonly MethodInfo setCount = AccessTools.DeclaredMethod(typeof(MyLittleUiAmmoPatch), nameof(SetCount));
+        private static readonly MethodInfo rewrite = AccessTools.DeclaredMethod(typeof(MyLittleUiAmmoPatch), nameof(Rewrite));
         private static MethodInfo target = null!;
         private static bool pending, enabled;
         private static bool? rewritten;
@@ -44,7 +49,7 @@ namespace DeepNorthCompat
             if (!pending) return;
             pending = false;
             if (rewritten != true || Harmony.GetPatchInfo(target)?.Transpilers.Count(p => p.owner == Owner
-                && p.PatchMethod == AccessTools.Method(typeof(MyLittleUiAmmoPatch), nameof(Rewrite))) != 1)
+                && p.PatchMethod == rewrite) != 1)
             {
                 new Harmony(Owner).UnpatchSelf();
                 CompatibilityInstaller.Error("MyLittleUI.AmmoCount: NOT APPLIED; ammo label IL or hook registration did not match; My Little UI behavior retained.");
@@ -58,26 +63,23 @@ namespace DeepNorthCompat
         {
             List<CodeInstruction> original = instructions.ToList();
             List<CodeInstruction> code = original.Select(instruction => new CodeInstruction(instruction)).ToList();
-            MethodInfo setText = AccessTools.Method(typeof(TMP_Text), nameof(TMP_Text.SetText), new[] { typeof(string) });
-            MethodInfo number = AccessTools.Method(typeof(int), nameof(int.ToString), Type.EmptyTypes);
-            int[] writes = code.Select((instruction, index) => (instruction, index))
-                .Where(pair => pair.instruction.Calls(setText)).Select(pair => pair.index).ToArray();
+            int[] writes = Enumerable.Range(0, code.Count).Where(i => code[i].Calls(setText)).ToArray();
             Type cell = __originalMethod.DeclaringType!;
-            FieldInfo ammo = AccessTools.Field(cell, "m_ammo");
-            FieldInfo bait = AccessTools.Field(cell, "baitAmountText");
-            int index = writes.Length == 2 ? writes[0] : -1;
-            bool match = writes.Length == 2 && code.Count(instruction => instruction.Calls(number)) == 2
-                && ammo != null && bait != null && index >= 3 && writes[1] >= 1
-                && code[index - 3].LoadsField(ammo)
-                && CountAddress(code[index - 2])
-                && code[index - 1].Calls(number)
-                && code[index - 1].labels.Count == 0 && code[index - 1].blocks.Count == 0
-                && code[index].labels.Count == 0 && code[index].blocks.Count == 0
-                && code[writes[1] - 1].LoadsField(bait);
+            FieldInfo? ammo = AccessTools.Field(cell, "m_ammo"), bait = AccessTools.Field(cell, "baitAmountText");
+            // m_ammo.SetText(count.ToString()), then baitAmountText.SetText(...)
+            bool match = writes.Length == 2 && code.Count(instruction => instruction.Calls(number)) == 2 && ammo != null && bait != null
+                && Shape(code, writes[0] - 3, Loads(ammo), CountAddress, Calls(number), Calls(setText))
+                && Plain(code[writes[0] - 1]) && Plain(code[writes[0]])
+                && Shape(code, writes[1] - 1, Loads(bait), Calls(setText));
             rewritten = match;
-            if (!match) return original;
+            if (!match)
+            {
+                Lost(ref enabled, "MyLittleUI.AmmoCount", "the ammo label write no longer matches");
+                return original;
+            }
+            int index = writes[0];
             code[index - 2].opcode = OpCodes.Ldloc_S;
-            code[index - 1].operand = AccessTools.Method(typeof(MyLittleUiAmmoPatch), nameof(SetCount));
+            code[index - 1].operand = setCount;
             code.RemoveAt(index);
             return code;
         }

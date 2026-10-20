@@ -11,9 +11,11 @@ namespace DeepNorthCompat
     internal static class OdinShipInputPatch
     {
         internal const string Owner = Plugin.Guid + ".OdinShip.Input";
-        private static readonly KeyCode[] keys = { KeyCode.G, KeyCode.H, KeyCode.J, KeyCode.L, KeyCode.K, KeyCode.T };
+        private static readonly KeyCode[] customizationKeys = { KeyCode.G, KeyCode.H, KeyCode.J, KeyCode.L, KeyCode.K }, turretKeys = { KeyCode.T };
+        private static readonly MethodInfo getKeyDown = AccessTools.Method(typeof(Input), nameof(Input.GetKeyDown), new[] { typeof(KeyCode) });
+        private static readonly MethodInfo pressed = AccessTools.DeclaredMethod(typeof(OdinShipInputPatch), nameof(Pressed));
         private static readonly Dictionary<string, bool> rewrites = new Dictionary<string, bool>();
-        private static readonly List<MethodInfo> targets = new List<MethodInfo>();
+        private static readonly List<(MethodInfo Target, MethodInfo Gate)> targets = new List<(MethodInfo, MethodInfo)>();
         private static Func<Player, bool> takeInput = null!;
         private static bool pending, enabled;
 
@@ -28,12 +30,12 @@ namespace DeepNorthCompat
             rewrites.Clear();
             targets.Clear();
             var harmony = new Harmony(Owner);
-            foreach (string type in new[] { "ShipCustomizationPatch", "TurretModePatch" })
+            foreach ((string type, string gate) in new[] { ("ShipCustomizationPatch", nameof(GateCustomizationKeys)), ("TurretModePatch", nameof(GateTurretKeys)) })
             {
-                Type vendor = Guard.Type(assembly, "OdinShip." + type);
-                MethodInfo target = Guard.Method(vendor, "Player_Update_Postfix", typeof(void), typeof(Player));
-                targets.Add(target);
-                harmony.Patch(target, transpiler: Guard.Hook(typeof(OdinShipInputPatch), nameof(GateKeys)));
+                MethodInfo target = Guard.Method(Guard.Type(assembly, "OdinShip." + type), "Player_Update_Postfix", typeof(void), typeof(Player));
+                HarmonyMethod hook = Guard.Hook(typeof(OdinShipInputPatch), gate);
+                targets.Add((target, hook.method));
+                harmony.Patch(target, transpiler: hook);
             }
             pending = true;
             CompatibilityInstaller.Info("OdinShip.Input: 0.8.7 build verified; awaiting input gate verification.");
@@ -42,9 +44,8 @@ namespace DeepNorthCompat
         {
             if (!pending) return;
             pending = false;
-            if (rewrites.Count != 2 || rewrites.Values.Any(v => !v) || targets.Any(method =>
-                Harmony.GetPatchInfo(method)?.Transpilers.Count(p => p.owner == Owner
-                    && p.PatchMethod == AccessTools.Method(typeof(OdinShipInputPatch), nameof(GateKeys))) != 1))
+            if (rewrites.Count != 2 || rewrites.Values.Any(v => !v) || targets.Any(pair =>
+                Harmony.GetPatchInfo(pair.Target)?.Transpilers.Count(p => p.owner == Owner && p.PatchMethod == pair.Gate) != 1))
             {
                 new Harmony(Owner).UnpatchSelf();
                 CompatibilityInstaller.Error("OdinShip.Input: NOT APPLIED; input gate IL or hooks did not match; vendor controls retained.");
@@ -53,19 +54,23 @@ namespace DeepNorthCompat
             enabled = true;
             CompatibilityInstaller.Info("OdinShip.Input: APPLIED; original vendor keys respect gameplay/text/map/radial input.");
         }
-        private static KeyCode[] Expected(MethodBase method) => method.DeclaringType!.Name == "ShipCustomizationPatch" ? keys.Take(5).ToArray() : new[] { KeyCode.T };
-        private static IEnumerable<CodeInstruction> GateKeys(IEnumerable<CodeInstruction> instructions, MethodBase __originalMethod)
+        private static IEnumerable<CodeInstruction> GateCustomizationKeys(IEnumerable<CodeInstruction> instructions) =>
+            GateKeys(instructions, "ShipCustomizationPatch", customizationKeys);
+        private static IEnumerable<CodeInstruction> GateTurretKeys(IEnumerable<CodeInstruction> instructions) =>
+            GateKeys(instructions, "TurretModePatch", turretKeys);
+        // Each Input.GetKeyDown call must follow its audited key constant, in order.
+        private static IEnumerable<CodeInstruction> GateKeys(IEnumerable<CodeInstruction> instructions, string target, KeyCode[] expected)
         {
             List<CodeInstruction> code = instructions.ToList();
-            MethodInfo get = Guard.Method(typeof(Input), "GetKeyDown", typeof(bool), typeof(KeyCode));
-            var calls = code.Select((c, i) => (c, i)).Where(p => p.c.Calls(get)).ToArray();
-            KeyCode[] expected = Expected(__originalMethod);
-            bool match = calls.Length == expected.Length && calls.Select(p => p.i > 0 ? Constant(code[p.i - 1]) : null)
+            int[] calls = Enumerable.Range(0, code.Count).Where(i => code[i].Calls(getKeyDown)).ToArray();
+            bool match = rewrites[target] = calls.Length == expected.Length && calls.Select(i => i > 0 ? Constant(code[i - 1]) : null)
                 .SequenceEqual(expected.Select(k => (int?)k));
-            rewrites[__originalMethod.DeclaringType!.Name] = match;
-            if (!match) return code;
-            return code.Select(c => c.Calls(get) ? new CodeInstruction(c) { opcode = OpCodes.Call,
-                operand = AccessTools.Method(typeof(OdinShipInputPatch), nameof(Pressed)) } : c).ToArray();
+            if (!match)
+            {
+                ILMatch.Lost(ref enabled, "OdinShip.Input", $"{target}.Player_Update_Postfix no longer reads its audited keys");
+                return code;
+            }
+            return code.Select(c => c.Calls(getKeyDown) ? new CodeInstruction(c) { opcode = OpCodes.Call, operand = pressed } : c).ToArray();
         }
         private static int? Constant(CodeInstruction c) => c.opcode == OpCodes.Ldc_I4 || c.opcode == OpCodes.Ldc_I4_S ? Convert.ToInt32(c.operand) : (int?)null;
         internal static bool Available()
@@ -74,6 +79,7 @@ namespace DeepNorthCompat
             return player != null && takeInput(player) && !TextInput.IsVisible() && !Minimap.IsOpen() && !Hud.InRadial()
                 && (TextViewer.instance == null || !TextViewer.instance.IsVisible());
         }
-        private static bool Pressed(KeyCode key) => enabled && Available() && Input.GetKeyDown(key);
+        // A late rewrite failure in one handler clears enabled while the other keeps calling Pressed.
+        private static bool Pressed(KeyCode key) => (!enabled || Available()) && Input.GetKeyDown(key);
     }
 }

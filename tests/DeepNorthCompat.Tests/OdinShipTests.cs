@@ -29,7 +29,7 @@ internal static class OdinShipTests
     private static WearNTear parentWear = null!;
     private static WearNTear? childWear;
     private static readonly List<string> paintedNames = new List<string>();
-    private static readonly HashSet<KeyCode> heldKeys = new HashSet<KeyCode>(), downKeys = new HashSet<KeyCode>();
+    private static readonly HashSet<KeyCode> downKeys = new HashSet<KeyCode>();
     private static readonly List<IntPtr> pointers = new List<IntPtr>();
     private static Assembly odin = null!;
     private static ZDOMan man = null!;
@@ -83,7 +83,7 @@ internal static class OdinShipTests
             Hook(fixture, typeof(Turret), "Awake", nameof(Skip));
             Hook(fixture, odin.GetType("OdinShip.ShipCustomization", true)!, "UpdateNameplates", nameof(Paint));
             fixture.Patch(AccessTools.Method(core, "TurretAwake"), transpiler: new HarmonyMethod(typeof(OdinShipTests), nameof(SceneLookups)));
-            Hook(fixture, typeof(Input), "GetKey", nameof(KeyHeld), new[] { typeof(KeyCode) });
+            Hook(fixture, typeof(Input), "GetKey", nameof(False), new[] { typeof(KeyCode) });
             Hook(fixture, typeof(Input), "GetKeyDown", nameof(KeyDown), new[] { typeof(KeyCode) });
             Hook(fixture, typeof(Player), "GetPlayer", nameof(FindPlayer), new[] { typeof(long) });
 
@@ -113,7 +113,7 @@ internal static class OdinShipTests
                 allowInput = playerLoaded = true; text = map = radial = failSend = dead = false; Peer(200);
                 SetView(typeof(Player), player, View(100)); SetView(typeof(Character), player, View(100)); Player.m_localPlayer = player;
                 AccessTools.Field(typeof(Player), "m_isLoading").SetValue(player, false);
-                paintedNames.Clear(); heldKeys.Clear(); downKeys.Clear(); childWear = null;
+                paintedNames.Clear(); downKeys.Clear(); childWear = null;
                 onSend = null; failAfterFeed = false;
                 selectSlot = null;
                 AccessTools.Field(typeof(PrivateArea), "m_allAreas").SetValue(null, new List<PrivateArea>());
@@ -231,19 +231,7 @@ internal static class OdinShipTests
                     nview.GetZDO().Set("shipName", "next name"); NameTick();
                     Check(paintedNames.Last() == "next name", "consecutive name update observed without an RPC");
                 });
-                Case("original vendor keys work while movement and modifier keys are held", () =>
-                {
-                    Invoke(input, "Prepare", odin); Invoke(input, "Verify");
-                    heldKeys.Add(KeyCode.W); heldKeys.Add(KeyCode.LeftShift);
-                    foreach (KeyCode key in new[] { KeyCode.G, KeyCode.H, KeyCode.J, KeyCode.L, KeyCode.K, KeyCode.T })
-                    {
-                        downKeys.Clear(); downKeys.Add(key);
-                        Check((bool)Invoke(input, "Pressed", key)!, "original " + key + " works without a modifier requirement");
-                        downKeys.Clear(); downKeys.UnionWith(new[] { KeyCode.Keypad7, KeyCode.Keypad8, KeyCode.Keypad9, KeyCode.Keypad0 });
-                        Check(!(bool)Invoke(input, "Pressed", key)!, "keypad alternatives do not replace " + key);
-                    }
-                });
-                Case("input gating preserves all six vendor key constants and original hover hints", () =>
+                Case("input gating preserves all six vendor key constants", () =>
                 {
                     Invoke(input, "Prepare", odin); Invoke(input, "Verify");
                     Check((bool)AccessTools.Field(input, "enabled").GetValue(null), "all exact IL anchors verified");
@@ -257,12 +245,6 @@ internal static class OdinShipTests
                             : new[] { (int)KeyCode.T };
                         Check(code.Select((c, i) => (c, i)).Where(p => p.c.Calls(AccessTools.Method(input, "Pressed")))
                             .Select(p => Convert.ToInt32(code[p.i - 1].operand)).SequenceEqual(expected), "vendor key constants preserved");
-                        MethodInfo hover = AccessTools.Method(vendor, type == "ShipCustomizationPatch"
-                            ? "ShipControlls_GetHoverText_Postfix" : "Turret_GetHoverText_Postfix");
-                        Check(!(Harmony.GetPatchInfo(hover)?.Transpilers.Any(p => p.owner == "DeepNorthCompat.OdinShip.Input") ?? false), "no DNC hint rewriting");
-                        List<CodeInstruction> hints = PatchProcessor.GetCurrentInstructions(hover);
-                        foreach (int key in expected)
-                            Check(hints.Any(c => c.opcode == OpCodes.Ldstr && ((string)c.operand).Contains("<b>" + (KeyCode)key + "</b>")), "original hover key retained");
                     }
                 });
                 Case("vendor keypresses are blocked by gameplay and UI input gates", () =>
@@ -280,10 +262,20 @@ internal static class OdinShipTests
                 Case("input IL mismatch rolls back all input hooks", () =>
                 {
                     Invoke(input, "Prepare", odin);
-                    MethodInfo method = AccessTools.Method(odin.GetType("OdinShip.ShipCustomizationPatch", true), "Player_Update_Postfix");
                     var code = new[] { new CodeInstruction(OpCodes.Ret) };
-                    Invoke(input, "GateKeys", code, method); Invoke(input, "Verify");
+                    Invoke(input, "GateCustomizationKeys", (object)code); Invoke(input, "Verify");
                     Check(!Ours().Any(), "no partial input gates");
+                });
+                Case("late input IL mismatch restores vendor keys in the unaffected handler", () =>
+                {
+                    Invoke(input, "Prepare", odin); Invoke(input, "Verify");
+                    var code = new[] { new CodeInstruction(OpCodes.Ret) };
+                    Check(((IEnumerable<CodeInstruction>)Invoke(input, "GateTurretKeys", (object)code)!).Single() == code[0], "turret IL returned unchanged");
+                    Check(!(bool)AccessTools.Field(input, "enabled").GetValue(null), "group no longer applied");
+                    downKeys.Add(KeyCode.G); text = true;
+                    Check((bool)Invoke(input, "Pressed", KeyCode.G)!, "customization key follows vendor input");
+                    downKeys.Clear();
+                    Check(!(bool)Invoke(input, "Pressed", KeyCode.G)!, "no keypress stays unpressed");
                 });
                 string? teleportPath = Directory.GetFiles(Path.Combine(profile, "BepInEx/plugins"), "TeleportEverything.dll", SearchOption.AllDirectories).SingleOrDefault();
                 if (teleportPath != null)
@@ -741,7 +733,13 @@ internal static class OdinShipTests
         new Harmony(Fixture + ".Vendor").UnpatchSelf();
         foreach (Type type in new[] { core, input, fishPatch })
             foreach (string name in new[] { "pending", "enabled" }) AccessTools.Field(type, name)?.SetValue(null, false);
-        Invoke(core, "ResetForTests"); Invoke(fishPatch, "ResetForTests");
+        foreach (string name in new[] { "names", "pendingTurrets" }) ((System.Collections.IList)AccessTools.Field(core, name).GetValue(null)).Clear();
+        FieldInfo states = AccessTools.Field(core, "nameStates");
+        states.SetValue(null, Activator.CreateInstance(states.FieldType));
+        AccessTools.Field(core, "nextNameTick").SetValue(null, 0d);
+        AccessTools.Field(core, "frame").SetValue(null, null);
+        ((System.Collections.IDictionary)AccessTools.Field(fishPatch, "payments").GetValue(null)).Clear();
+        AccessTools.Field(fishPatch, "target").SetValue(null, 0L);
     }
     private static bool Skip() => false;
     private static bool True(ref bool __result) { __result = true; return false; }
@@ -783,7 +781,6 @@ internal static class OdinShipTests
     }
     private static bool Paint(object __instance) { paintedNames.Add((string)AccessTools.Method(__instance.GetType(), "GetText").Invoke(__instance, null)); return false; }
     private static void NameTick() { AccessTools.Field(core, "nextNameTick").SetValue(null, 0d); Invoke(core, "Tick"); }
-    private static bool KeyHeld(KeyCode __0, ref bool __result) { __result = heldKeys.Contains(__0); return false; }
     private static bool KeyDown(KeyCode __0, ref bool __result) { __result = downKeys.Contains(__0); return false; }
     private static bool SelectSlot(Inventory __instance, ref Vector2i __result)
     {

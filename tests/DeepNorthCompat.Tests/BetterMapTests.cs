@@ -403,21 +403,7 @@ internal static class BetterMapTests
             Check(Pins(map).Count == 1 && !Has(9, new Vector3(50, 0, 50)), "shared boss pin wrote a discovery record");
             Place(9, "Altar of Eikthyr", new Vector3(50, 0, 50)); Check(Pins(map).Count == 1, "shared boss pin lost its automatic identity");
         });
-        Case("shared deduplication retains the first row's checked state, author and automatic identity", () =>
-        {
-            Install(); Minimap map = NewMap(18); NewPlayer(""); portalPosition = new Vector3(10, 0, 10); portalTag = "Old";
-            var package = new ZPackage(); package.Write(3); package.Write(4); for (int i = 0; i < 4; i++) package.Write(false);
-            package.Write(2);
-            for (int i = 0; i < 2; i++)
-            {
-                package.Write(71L); package.Write("Old"); package.Write(portalPosition); package.Write((int)Minimap.PinType.Icon4);
-                package.Write(i == 0); package.Write(i == 0 ? "Steam_76561198000000001" : "Steam_76561198000000002");
-            }
-            map.AddSharedMapData(Metadata(package.GetArray(), new[] { (10, true), (10, false) }));
-            Check(Pins(map).Count == 1 && Pins(map)[0].m_checked, "native deduplication fixture did not retain the first row");
-            portalTag = "Accepted"; Portal();
-            Check(Pins(map).Count == 1 && Pins(map)[0].m_name == portalTag && Pins(map)[0].m_author.ToString() == "Steam_76561198000000001", "deduplicated automatic portal lost its category identity");
-        });
+        Case("shared deduplication retains the first row's checked state, author and automatic identity", () => Deduplicate(false, "Steam_76561198000000002"));
         Case("shared deduplication distinguishes equal checks by author", () => Deduplicate(true, "Steam_76561198000000002"));
         Case("shared deduplication distinguishes equal authors by checked state", () => Deduplicate(false, "Steam_76561198000000001"));
         Case("category recovery waits for a later legend allocation", () =>
@@ -626,8 +612,7 @@ internal static class BetterMapTests
         Case("failed verification rolls back only the affected group and preserves vendor registrations", () =>
         {
             Install(); Type vehicle = Ours("Vehicle");
-            var target = AccessTools.Method(Vendor("Vehicles.VehicleTracker"), "Reconcile");
-            Call(vehicle, "RedrawChanges", new[] { new CodeInstruction(System.Reflection.Emit.OpCodes.Ret) }, target);
+            Call(vehicle, "RedrawReconcile", (object)new[] { new CodeInstruction(System.Reflection.Emit.OpCodes.Ret) });
             Set(vehicle, "pending", true); Call(vehicle, "Verify");
             Check(!(bool)Get(vehicle, "enabled") && !Installed().Any(p => p.owner == "DeepNorthCompat.Map.VehicleUpdates"), "failed group hooks retained");
             Check((bool)Get(Ours("Persistence"), "enabled") && Harmony.GetPatchInfo(AccessTools.Method(typeof(Minimap), "UpdateExplore"))!.Prefixes.Any(p => p.owner == "xtav1m.BetterMap"), "unrelated or vendor hooks removed");
@@ -794,7 +779,8 @@ internal static class BetterMapTests
         map.AddSharedMapData(Metadata(package.GetArray(), new[] { (10, true), (10, false) }));
         Check(Pins(map).Count == 1 && Pins(map)[0].m_checked && Pins(map)[0].m_author.ToString() == "Steam_76561198000000001", "native first row changed");
         portalTag = "Accepted"; Portal();
-        Check(Pins(map).Count == 1 && Pins(map)[0].m_name == portalTag, "deduplicated automatic portal lost its category identity");
+        Check(Pins(map).Count == 1 && Pins(map)[0].m_name == portalTag && Pins(map)[0].m_author.ToString() == "Steam_76561198000000001",
+            "deduplicated automatic portal lost its category identity");
     }
     private static object skillConfig = null!;
     private static void SetCartography(string name, object value) => Set(skillConfig.GetType(), name, value, skillConfig);

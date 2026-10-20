@@ -16,7 +16,7 @@ namespace DeepNorthCompat
         internal readonly Type Category, Rule, PluginType;
         private readonly MethodInfo categoryOf, typeOf, hasType, iconFor;
         private readonly Func<Minimap.PinType> portalType;
-        private readonly Dictionary<string, FieldInfo> settings = new Dictionary<string, FieldInfo>();
+        private readonly Dictionary<string, object> settings = new Dictionary<string, object>();
 
         internal BetterMapAccess(Assembly assembly)
         {
@@ -52,14 +52,15 @@ namespace DeepNorthCompat
                 throw new NotSupportedException(type.FullName + "." + name + " field signature changed.");
             return field;
         }
-        internal FieldInfo SettingField<T>(string name)
+        internal AccessTools.FieldRef<BepInEx.Configuration.ConfigEntry<T>> SettingField<T>(string name)
         {
-            if (!settings.TryGetValue(name, out FieldInfo field))
-                settings[name] = field = RequiredField(PluginType, name, true, typeof(BepInEx.Configuration.ConfigEntry<T>));
-            return field;
+            if (!settings.TryGetValue(name, out object field))
+                settings[name] = field = AccessTools.StaticFieldRefAccess<BepInEx.Configuration.ConfigEntry<T>>(
+                    RequiredField(PluginType, name, true, typeof(BepInEx.Configuration.ConfigEntry<T>)));
+            return (AccessTools.FieldRef<BepInEx.Configuration.ConfigEntry<T>>)field;
         }
-        internal bool Setting(string name) => ((BepInEx.Configuration.ConfigEntry<bool>)SettingField<bool>(name).GetValue(null)).Value;
-        internal float Number(string name) => ((BepInEx.Configuration.ConfigEntry<float>)SettingField<float>(name).GetValue(null)).Value;
+        internal bool Setting(string name) => SettingField<bool>(name)().Value;
+        internal float Number(string name) => SettingField<float>(name)().Value;
         internal int CategoryFor(Minimap.PinType type)
         {
             object[] arguments = { type, Enum.ToObject(Category, 0) };

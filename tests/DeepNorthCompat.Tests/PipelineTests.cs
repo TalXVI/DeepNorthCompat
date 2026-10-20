@@ -356,7 +356,8 @@ internal static class PipelineTests
                 foreach (float skill in new[] { 0f, 0.5f, 1f })
                 {
                     reduction.Value = value; bowSkill = skill;
-                    float expected = BowCalculation.Drain(10, skill, value);
+                    // Zero keeps vanilla's 33% reduction at full skill.
+                    float expected = 10 - 10 * (value == 0 ? 0.33f : value) * skill;
                     Check(Math.Abs(bow.GetDrawStaminaDrain() - expected) < 0.00001, "actual drain");
                     object[] args = { bow, "$item_staminahold: 10" }; report.Invoke(null, args);
                     Check(((string)args[1]).Contains("(" + expected.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + ")"), "actual reporting");

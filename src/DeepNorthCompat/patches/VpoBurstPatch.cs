@@ -14,6 +14,8 @@ namespace DeepNorthCompat
     {
         private const string Owner = Plugin.Guid + ".VPO.Burst";
         private const string VpoHash = "614CD643343E2E2D182BA4B50AA8C96D8FEDB8E09A16C6AA0018BAD222D6EE70";
+        private static readonly MethodInfo platform = AccessTools.PropertyGetter(typeof(Application), nameof(Application.platform));
+        private static readonly MethodInfo libraryPlatform = AccessTools.DeclaredMethod(typeof(VpoBurstPatch), nameof(WindowsLibraryPlatform));
         private static Type? pending;
         private static int rewrites;
 
@@ -65,7 +67,6 @@ namespace DeepNorthCompat
         {
             rewrites = 0;
             var source = instructions.ToList();
-            MethodInfo platform = AccessTools.PropertyGetter(typeof(Application), "platform");
             if (source.Count(i => i.Calls(platform)) != 4) return source;
             var result = new List<CodeInstruction>();
             foreach (CodeInstruction instruction in source)
@@ -73,7 +74,7 @@ namespace DeepNorthCompat
                 result.Add(instruction);
                 if (instruction.Calls(platform))
                 {
-                    result.Add(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(VpoBurstPatch), nameof(WindowsLibraryPlatform))));
+                    result.Add(new CodeInstruction(OpCodes.Call, libraryPlatform));
                     rewrites++;
                 }
             }

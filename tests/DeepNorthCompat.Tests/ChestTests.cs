@@ -52,6 +52,7 @@ internal static class ChestTests
     private static int outputs;
     private static bool failOutput;
     private static bool genericCraft;
+    private static IContainer? arriving;
     private static Recipe? panelRecipe;
     private static bool? panelCraftable;
 
@@ -135,7 +136,7 @@ internal static class ChestTests
         {
             void Case(string name, Action run) => test("chests: " + name, () =>
             {
-                Invoke(registry, "Reset"); Invoke(diagnostics, "Clear"); Invoke(report, "Clear"); Peer(100); now = 0; outputs = 0; failOutput = false; genericCraft = false; panelRecipe = null; panelCraftable = null; messages.Clear(); additions.Clear(); nearby.Clear();
+                Invoke(registry, "Reset"); Invoke(diagnostics, "Clear"); Invoke(report, "Clear"); Peer(100); now = 0; outputs = 0; failOutput = false; genericCraft = false; arriving = null; panelRecipe = null; panelCraftable = null; messages.Clear(); additions.Clear(); nearby.Clear();
                 player.GetInventory().GetAllItems().Clear(); run();
             });
             bool server = (bool)Invoke(typeof(Guard), "KnownServerBuild")!;
@@ -242,15 +243,15 @@ internal static class ChestTests
             });
             ClientCase("consumption excludes new remote sources without changing preview cache", () =>
             {
-                Container owned = Chest(100), remote = Chest(200); nearby.Add(Adapter(owned)); nearby.Add(Adapter(remote));
-                AccessTools.Field(authority, "consuming").SetValue(null, true);
-                try
-                {
-                    var selected = (List<IContainer>)AccessTools.Method(frame, "Get").MakeGenericMethod(typeof(Player))
-                        .Invoke(null, new object[] { player, 60f });
-                    Check(selected.Count == 1 && selected[0].GetInventory() == owned.GetInventory() && nearby.Count == 2, "owned-only snapshot");
-                }
-                finally { AccessTools.Field(authority, "consuming").SetValue(null, false); }
+                genericCraft = true;
+                Container owned = Chest(100), remote = Chest(200); Payload(owned, "wood", 10); Payload(remote, "wood", 10);
+                ChestSync(owned); ChestSync(remote); nearby.Add(Adapter(owned)); InventoryGui gui = Gui();
+                ((Recipe)AccessTools.Field(typeof(InventoryGui), "m_craftRecipe").GetValue(gui)).m_resources[0].m_resItem.m_itemData.m_shared.m_maxQuality = 1;
+                arriving = Adapter(remote);
+                craft.Invoke(gui, new object[] { player });
+                Check(outputs == 1 && messages.Count == 0 && owned.GetInventory().CountItems("wood") == 5
+                    && remote.GetInventory().CountItems("wood") == 10, "consumed a remote chest that joined after planning");
+                Check(nearby.Count == 2, "consumption filter changed the preview cache");
             });
             ClientCase("the crafting panel refreshed after consumption still counts remote chests", () =>
             {
@@ -659,6 +660,8 @@ internal static class ChestTests
     {
         if (value.GetInventory().AddItem("output", 1, 1, 0, 0L, "", new Vector2i(-1, -1), false, false, false) == null || !genericCraft) return;
         Recipe recipe = (Recipe)AccessTools.Field(typeof(InventoryGui), "m_craftRecipe").GetValue(gui);
+        // A chest that comes into range after the handoff plan, ahead of the planned source.
+        if (arriving != null) nearby.Insert(0, arriving);
         Assembly crafty = typeof(VanillaContainer).Assembly;
         Type frame = crafty.GetType("AzuCraftyBoxes.Util.Functions.Boxes+QueryFrame", true)!;
         object containers = AccessTools.Method(frame, "Get").MakeGenericMethod(typeof(Player)).Invoke(null, new object[] { value, 60f });

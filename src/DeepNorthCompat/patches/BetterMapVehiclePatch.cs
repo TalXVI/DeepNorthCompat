@@ -15,6 +15,9 @@ namespace DeepNorthCompat
         private static Func<object, float> heading = null!;
         private static Action<object, float> setHeading = null!;
         private static FieldInfo headingField = null!;
+        private static readonly FieldInfo position = BetterMapAccess.RequiredField(typeof(Minimap.PinData), "m_pos", false, typeof(Vector3));
+        private static readonly MethodInfo positionHook = AccessTools.DeclaredMethod(typeof(BetterMapVehiclePatch), nameof(Position));
+        private static readonly MethodInfo headingHook = AccessTools.DeclaredMethod(typeof(BetterMapVehiclePatch), nameof(Heading));
         private static readonly Dictionary<string, bool> rewrites = new Dictionary<string, bool>();
         private static bool pending, enabled;
 
@@ -32,8 +35,8 @@ namespace DeepNorthCompat
             code = setter.GetILGenerator(); code.Emit(OpCodes.Ldarg_0); code.Emit(OpCodes.Castclass, tracked); code.Emit(OpCodes.Ldarg_1); code.Emit(OpCodes.Stfld, headingField); code.Emit(OpCodes.Ret);
             setHeading = (Action<object, float>)setter.CreateDelegate(typeof(Action<object, float>));
             rewrites.Clear(); hooks = new BetterMapHooks(Owner);
-            foreach (string name in new[] { "Reconcile", "UpdatePositions" })
-                hooks.Add(api.Method("Vehicles.VehicleTracker", name, typeof(void)), typeof(BetterMapVehiclePatch), nameof(RedrawChanges), HarmonyPatchType.Transpiler);
+            hooks.Add(api.Method("Vehicles.VehicleTracker", "Reconcile", typeof(void)), typeof(BetterMapVehiclePatch), nameof(RedrawReconcile), HarmonyPatchType.Transpiler);
+            hooks.Add(api.Method("Vehicles.VehicleTracker", "UpdatePositions", typeof(void)), typeof(BetterMapVehiclePatch), nameof(RedrawPositions), HarmonyPatchType.Transpiler);
             pending = true;
         }
         internal static void Verify()
@@ -43,19 +46,23 @@ namespace DeepNorthCompat
             enabled = hooks!.Complete("Map.VehicleUpdates", rewrites.Count == 2 && rewrites.Values.All(value => value),
                 "loaded and remote vehicle position/heading changes request a redraw.");
         }
-        private static IEnumerable<CodeInstruction> RedrawChanges(IEnumerable<CodeInstruction> instructions, MethodBase __originalMethod)
+        // Reconcile writes a pin's position once and a vehicle's heading twice; UpdatePositions writes each once.
+        private static IEnumerable<CodeInstruction> RedrawReconcile(IEnumerable<CodeInstruction> instructions) => RedrawChanges(instructions, "Reconcile", 2);
+        private static IEnumerable<CodeInstruction> RedrawPositions(IEnumerable<CodeInstruction> instructions) => RedrawChanges(instructions, "UpdatePositions", 1);
+        private static IEnumerable<CodeInstruction> RedrawChanges(IEnumerable<CodeInstruction> instructions, string target, int headingWrites)
         {
             var code = instructions.ToList();
-            FieldInfo position = BetterMapAccess.RequiredField(typeof(Minimap.PinData), "m_pos", false, typeof(Vector3));
             int positions = code.Count(i => i.opcode == OpCodes.Stfld && Equals(i.operand, position));
             int headings = code.Count(i => i.opcode == OpCodes.Stfld && Equals(i.operand, headingField));
-            bool match = positions == 1 && headings == (__originalMethod.Name == "Reconcile" ? 2 : 1);
-            rewrites[__originalMethod.Name] = match;
-            if (!match) return code;
+            bool match = rewrites[target] = positions == 1 && headings == headingWrites;
+            if (!match)
+            {
+                ILMatch.Lost(ref enabled, "Map.VehicleUpdates", $"VehicleTracker.{target} writes {positions} positions and {headings} headings");
+                return code;
+            }
             return code.Select(i => i.opcode != OpCodes.Stfld ? i : Equals(i.operand, position) ?
-                new CodeInstruction(i) { opcode = OpCodes.Call, operand = AccessTools.Method(typeof(BetterMapVehiclePatch), nameof(Position)) } :
-                Equals(i.operand, headingField) ? new CodeInstruction(i) { opcode = OpCodes.Call,
-                    operand = AccessTools.Method(typeof(BetterMapVehiclePatch), nameof(Heading)) } : i).ToArray();
+                new CodeInstruction(i) { opcode = OpCodes.Call, operand = positionHook } :
+                Equals(i.operand, headingField) ? new CodeInstruction(i) { opcode = OpCodes.Call, operand = headingHook } : i).ToArray();
         }
         private static void Position(Minimap.PinData pin, Vector3 value)
         {

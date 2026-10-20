@@ -300,6 +300,5 @@ namespace DeepNorthCompat
                 }
             }
         }
-        internal static void ResetForTests() { payments.Clear(); pending = enabled = false; target = 0; }
     }
 }
