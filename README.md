@@ -34,7 +34,7 @@ Each fix is written against one exact build of the mods it touches:
 - AAA Crafting 2.1.11
 - SeaAnimals 0.3.9
 - AirAnimals 0.3.2
-- AzuEPI 2.6.3
+- AzuEPI 2.6.3 and 2.6.4
 - ValheimTune 0.7.8, 0.7.9, and 0.7.10
 - ValheimPerformanceOptimizations 1.2.3
 - RuneMagic 1.5.1 for water-walking ice initialization on Valheim 1.0.20 Windows clients and Windows/Linux dedicated servers
@@ -45,7 +45,7 @@ Each fix is written against one exact build of the mods it touches:
 - CartographySkill 3.2.0 (for BetterMap's exploration integration)
 - TeleportEverything 3.0.9 and 3.0.10 (configuration-panel input fix on Valheim 1.0.17 and 1.0.20 Windows clients)
 - PlantEasily 2.3.0 (grid cost fix on Valheim 1.0.17 and 1.0.20 Windows clients)
-- PlantEverything 1.21.3 with NoCultivatorDust 1.0.7 or NoBuildDust 1.0.7 (placement dust fix on Valheim 1.0.17 and 1.0.20 Windows clients)
+- PlantEverything 1.21.3 and 1.21.4 with NoCultivatorDust 1.0.7 or NoBuildDust 1.0.7 (placement dust fix on Valheim 1.0.17 and 1.0.20 Windows clients)
 - My Little UI 1.2.31 (ammo count redraw fix on Valheim 1.0.17 and 1.0.20 Windows clients)
 - HearthBelow 0.7.0, with RuneMagic 1.5.1 for the Foundation Rune (cut filling on Valheim 1.0.17 and 1.0.20 Windows clients and Windows/Linux dedicated servers)
 

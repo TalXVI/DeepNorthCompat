@@ -40,7 +40,7 @@ namespace DeepNorthCompat
             new Harmony(Owner).Patch(target, postfix: Guard.Hook(typeof(PlantEverythingDustPatch), nameof(StripDust), Priority.Last));
             Guard.Registered(target);
             pending = true;
-            CompatibilityInstaller.Info("PlantEverything.Dust: 1.21.3 build verified; awaiting piece initialization hook verification.");
+            CompatibilityInstaller.Info("PlantEverything.Dust: audited build verified; awaiting piece initialization hook verification.");
         }
 
         internal static void Verify()
