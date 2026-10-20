@@ -119,12 +119,13 @@ namespace DeepNorthCompat
                 Guard.Build(crafty, ExpectedBuilds.CraftyBoxes);
                 Guard.Build(typeof(InventoryGui).Assembly, ExpectedBuilds.Valheim);
 
-                Assembly? aaa = resolve("Azumatt.AzuAntiArthriticCrafting");
+                Assembly? aaa = resolve(ForgeCraftingPatch.Guid);
                 if (aaa != null) Guard.Build(aaa, ExpectedBuilds.AAACrafting);
 
                 QualityPatch.Install(impact, crafty, aaa != null);
             });
 
+            InstallGroup("Crafting.ForgeOfPotential", () => ForgeCraftingPatch.Prepare(resolve(ForgeCraftingPatch.Guid)));
             InstallGroup("Preview.AzuEPI", () =>
             {
                 if (Guard.KnownServerBuild()) { Info("Preview.AzuEPI: client-only patch; inactive on dedicated server."); return; }
@@ -165,6 +166,7 @@ namespace DeepNorthCompat
         public static void Verify()
         {
             DropRangePatch.Verify();
+            ForgeCraftingPatch.Verify();
             AzuEpiPreviewPatch.Verify();
             VpoBurstPatch.Verify();
             RuneIcePatch.Verify();

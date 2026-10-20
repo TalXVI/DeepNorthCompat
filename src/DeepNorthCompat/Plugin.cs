@@ -3,13 +3,15 @@ using System.Reflection;
 using System.IO;
 using BepInEx;
 using BepInEx.Bootstrap;
+using ConditionalConfigSync;
 
 namespace DeepNorthCompat
 {
     [BepInPlugin(Guid, "DeepNorthCompat", "1.3.16")]
+    [BepInDependency("_shudnal.ConditionalConfigSync", "1.0.11")]
     [BepInDependency("MidnightsFX.ImpactfulSkills", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuCraftyBoxes", BepInDependency.DependencyFlags.SoftDependency)]
-    [BepInDependency("Azumatt.AzuAntiArthriticCrafting", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(ForgeCraftingPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("marlthon.SeaAnimals", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("marlthon.AirAnimals", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuExtendedPlayerInventory", BepInDependency.DependencyFlags.SoftDependency)]
@@ -32,6 +34,7 @@ namespace DeepNorthCompat
     {
         public const string Guid = "DeepNorthCompat";
         internal static Plugin Instance = null!;
+        private ConfigSync sync = null!;
 
         private void Awake()
         {
@@ -44,6 +47,8 @@ namespace DeepNorthCompat
             CompatibilityInstaller.Info = message => Logger.LogInfo(message);
             CompatibilityInstaller.Warning = message => Logger.LogWarning(message);
             CompatibilityInstaller.Error = message => Logger.LogError(message);
+            sync = CreateSync(Info.Metadata.Version.ToString());
+            ForgeCraftingPatch.BindConfig(Config, sync);
             bool diagnostics = Config.Bind("Diagnostics", "Enabled", true,
                 "Record chest, crafting, network and error events, and enable the /dnc_report and /dnc_mark chat commands. Restart after changing.").Value;
             string directory = Config.Bind("Diagnostics", "Directory", "",
@@ -59,6 +64,17 @@ namespace DeepNorthCompat
             }
             CompatibilityInstaller.Install(Resolve, CompatibilityInstaller.Info, CompatibilityInstaller.Warning, CompatibilityInstaller.Error);
             if (ChestDiagnostics.Enabled) DiagnosticReport.RegisterCommands();
+        }
+
+        internal static ConfigSync CreateSync(string version)
+        {
+            return new ConfigSync(Guid)
+            {
+                DisplayName = "DeepNorthCompat",
+                CurrentVersion = version,
+                MinimumRequiredVersion = version,
+                ModRequired = true
+            };
         }
 
         // Runs after BepInEx finishes loading plugins, when deferred Harmony patches are applied.

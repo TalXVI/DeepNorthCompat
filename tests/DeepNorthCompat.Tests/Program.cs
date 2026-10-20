@@ -30,6 +30,7 @@ internal static class Program
             RunTerrain();
             RunBetterMap();
             RuneIceInstallationTests.Run(Lab, Test);
+            RunForge();
             SysConsole.WriteLine($"PASS: {passed} test cases"); return 0;
         }
         catch (Exception exception) { SysConsole.Error.WriteLine(exception); return 1; }
@@ -46,6 +47,9 @@ internal static class Program
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void RunTerrain() => HearthTerrainTests.Run(Lab, Test);
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void RunForge() => ForgeCraftingTests.Run(Lab, Test);
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void CheckGameBuild()
@@ -271,7 +275,7 @@ internal static class Program
             int inactive = 0;
             CompatibilityInstaller.Install(_ => null, message => { if (message.Contains("inactive")) inactive++; },
                 _ => { }, error => { throw new Exception(error); });
-            Check(inactive == 25, "optional module count");
+            Check(inactive == 26, "optional module count");
         });
         Test("changed ImpactfulSkills assembly rejects bow and quality hooks safely", () =>
         {
@@ -295,6 +299,7 @@ internal static class Program
             ["marlthon.SeaAnimals"] = Assembly.LoadFrom(Path.Combine(Lab, "BepInEx", "plugins", "Marlthon-SeaAnimals", "SeaAnimals.dll")),
             ["marlthon.AirAnimals"] = Assembly.LoadFrom(Path.Combine(Lab, "BepInEx", "plugins", "Marlthon-AirAnimals", "AirAnimals.dll"))
         };
+        using var aaaConfig = new AaaCraftingFixture(assemblies["Azumatt.AzuAntiArthriticCrafting"]);
         string? odinPath = Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_ODINSHIP_PATH");
         if (odinPath != null) assemblies["marlthon.OdinShip"] = Assembly.LoadFrom(odinPath);
         Assembly impact = assemblies["MidnightsFX.ImpactfulSkills"];
@@ -306,7 +311,8 @@ internal static class Program
                 && typeof(Plugin).Assembly.GetName().Name == "DeepNorthCompat", "plugin identity");
             Check(typeof(BepInEx.BaseUnityPlugin).IsAssignableFrom(typeof(Plugin)), "BepInEx entry point");
             var dependencies = typeof(Plugin).GetCustomAttributes<BepInEx.BepInDependency>().ToArray();
-            Check(dependencies.Length == 21 && dependencies.All(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.SoftDependency)
+            Check(dependencies.Length == 22 && dependencies.Count(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.SoftDependency) == 21
+                && dependencies.Single(d => d.DependencyGUID == "_shudnal.ConditionalConfigSync").Flags == BepInEx.BepInDependency.DependencyFlags.HardDependency
                 && dependencies.Any(d => d.DependencyGUID == "marlthon.OdinShip")
                 && dependencies.Any(d => d.DependencyGUID == "odinplus.TeleportEverything")
                 && dependencies.Any(d => d.DependencyGUID == "shudnal.MyLittleUI")

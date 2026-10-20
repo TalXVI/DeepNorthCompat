@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Applies AAA Crafting 2.1.11's crafting speed override to the Forge of Potential on Valheim 1.0.20 Windows clients. Adds the enabled-by-default `Crafting` / `Forge of Potential speed` config toggle. Vanilla skill scaling remains in effect.
+- Requires ConditionalConfigSync 1.0.11 or newer to synchronize the forge toggle.
+
 ## 1.3.16
 
 - Supports AzuEPI 2.6.4 while retaining the preview animation fix and 2.6.3 support.

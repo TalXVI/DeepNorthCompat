@@ -23,6 +23,8 @@ def check_sources(manifest):
     require(isinstance(manifest["website_url"], str), "website_url must be a string, even if empty")
     require(all(isinstance(entry, str) and DEPENDENCY.fullmatch(entry) for entry in manifest["dependencies"]),
             "Dependencies must look like Team-Package-1.2.3")
+    require(manifest["dependencies"] == ["denikson-BepInExPack_Valheim-5.4.2351", "shudnal-ConditionalConfigSync-1.0.11"],
+            "Package dependencies changed")
     png = (PACKAGE / "icon.png").read_bytes()
     require(png[:8] == b"\x89PNG\r\n\x1a\n" and png[16:24] == b"\0\0\x01\0\0\0\x01\0", "Icon is not a 256x256 PNG")
     try:

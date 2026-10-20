@@ -31,7 +31,6 @@ def main():
             "Plugin identity changed")
     require(manifest["version_number"] == approved["version"], "Manifest version differs from the approved build")
     require(manifest["website_url"] == "https://github.com/TalXVI/DeepNorthCompat", "Package website changed")
-    require(manifest["dependencies"] == ["denikson-BepInExPack_Valheim-5.4.2351"], "Package dependencies changed")
     archive_path = ROOT / "dist" / (manifest["name"] + "-" + manifest["version_number"] + ".zip")
     members = ["manifest.json", "README.md", "CHANGELOG.md", "LICENSE", "icon.png", DLL_MEMBER]
     with zipfile.ZipFile(archive_path) as archive:

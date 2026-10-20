@@ -8,6 +8,7 @@
   <ItemGroup>
     <Reference Include="BepInEx"><HintPath>$(LabPath)\BepInEx\core\BepInEx.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="0Harmony"><HintPath>$(LabPath)\BepInEx\core\0Harmony.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="ConditionalConfigSync"><HintPath>$(LabPath)\BepInEx\plugins\shudnal-ConditionalConfigSync\ConditionalConfigSync.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="assembly_valheim"><HintPath>$(ValheimManaged)\assembly_valheim.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="assembly_utils"><HintPath>$(ValheimManaged)\assembly_utils.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="assembly_guiutils"><HintPath>$(ValheimManaged)\assembly_guiutils.dll</HintPath><Private>false</Private></Reference>

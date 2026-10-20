@@ -119,7 +119,7 @@ namespace DeepNorthCompat
             harmony.Patch(query, postfix: new HarmonyMethod(AccessTools.Method(typeof(ChestCraftPatch), nameof(OwnedSources))
                 .MakeGenericMethod(adapterInventory.DeclaringType)));
             var before = Guard.Hook(typeof(ChestCraftPatch), nameof(BeforeCraft), Priority.First + 100);
-            before.before = new[] { Plugin.Guid + ".Quality", "MidnightsFX.ImpactfulSkills", "Azumatt.AzuAntiArthriticCrafting" };
+            before.before = new[] { Plugin.Guid + ".Quality", "MidnightsFX.ImpactfulSkills", ForgeCraftingPatch.Guid };
             harmony.Patch(Guard.Method(typeof(InventoryGui), "DoCrafting", typeof(void), typeof(Player)), prefix: before,
                 finalizer: Guard.Hook(typeof(ChestCraftPatch), nameof(EndCraft)));
             harmony.Patch(Guard.Method(typeof(InventoryGui), "UpdateCraftingPanel", typeof(void), typeof(bool)),

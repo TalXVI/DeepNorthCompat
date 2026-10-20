@@ -5,6 +5,7 @@ This is a Valheim mod for a personal Valheim modpack.
 It currently fixes bugs and incompatibilities involving:
 
 - ImpactfulSkills and AzuCraftyBoxes quality-aware ingredient selection and consumption.
+- AAA Crafting's crafting speed setting, which did not apply to the Forge of Potential.
 - ImpactfulSkills bow stamina scaling and tooltip reporting.
 - SeaAnimals and AirAnimals custom creature drop ranges.
 - AzuEPI inventory character preview, which restarted its animation whenever a nearby creature or player changed equipment.
@@ -21,7 +22,7 @@ It currently fixes bugs and incompatibilities involving:
 - My Little UI ammo counts, which redrew every hotbar update even when the number hadn't changed.
 - HearthBelow pickaxe cuts, which came back after Hoe leveling, raising, or smoothing, or a RuneMagic Foundation Rune, filled them.
 
-Install the same version on the dedicated server and every client, then restart.
+Requires ConditionalConfigSync 1.0.11 or newer. Install the same DeepNorthCompat version and ConditionalConfigSync on the dedicated server and every client, then restart.
 
 ## Supported versions
 
@@ -50,6 +51,12 @@ Each fix is written against one exact build of the mods it touches:
 - HearthBelow 0.7.0, with RuneMagic 1.5.1 for the Foundation Rune (cut filling on Valheim 1.0.17 and 1.0.20 Windows clients and Windows/Linux dedicated servers)
 
 Mod patches only activate if the corresponding mod and supported version are present.
+
+On Valheim 1.0.20 Windows clients with AAA Crafting 2.1.11, the Forge of Potential uses AAA Crafting's `Crafting Speed` when `Override Crafting Speed` is on. The existing crafting skill reduction still applies.
+
+The `Forge of Potential speed` setting defaults to `true`. To disable it, set `Forge of Potential speed = false` in the `[Crafting]` section of `BepInEx/config/DeepNorthCompat.cfg`.
+
+ConditionalConfigSync gives the server control of this setting by default. Server policy can allow per-client values. Changes made through a config manager or received from the server take effect immediately.
 
 BetterMap pin categories survive local reloads and cartography-table sharing even when their map slots change. Automatic portal pins follow accepted portal tags while preserving their checked state and ownership. A place that already shows an automatic pin, including one read from a cartography table, gets no second pin. If a later table read removes a shared pin, the place is pinned again as your own the next time you pass it. An automatic pin you remove by hand stays removed. Older pins without category metadata are recovered only when their discovery records and labels identify one category. Ambiguous older pins retain their saved type.
 

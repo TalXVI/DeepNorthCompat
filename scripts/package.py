@@ -26,7 +26,6 @@ def main():
     check_sources(manifest)
     verify_sources(approved)
     require(manifest["version_number"] == approved["version"], "Manifest version differs from the approved build")
-    require(manifest["dependencies"] == ["denikson-BepInExPack_Valheim-5.4.2351"], "Package dependencies changed")
     built = ROOT / "src/DeepNorthCompat/bin/Release/net48/DeepNorthCompat.dll"
     require(approved["pluginGUID"] == manifest["name"] == "DeepNorthCompat", "Plugin identity changed")
     require(hashlib.sha256(built.read_bytes()).hexdigest() == approved["sha256"],
