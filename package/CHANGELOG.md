@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.2
+
+- Supports ImpactfulSkills 0.25.0 while retaining 0.21.1 through 0.24.0 support. The quality-aware crafting integration works unchanged.
+- ImpactfulSkills 0.25.0 fixes the bow draw stamina scaling itself, so DeepNorthCompat's own bow correction stays inactive with it and still applies to the earlier supported builds. `Bow: fixed upstream` in the log is expected.
+
 ## 1.4.1
 
 - Fixes RuneMagic 1.5.1 rune sprites, which left a material loaded after each one faded. Sailing with Ocean Currents added about a thousand materials a second, so Valheim Visuals' material scans, which run every 20 seconds, stalled the game for longer the longer you played. Decumberance had the same leak. Rune colors and fading are unchanged.

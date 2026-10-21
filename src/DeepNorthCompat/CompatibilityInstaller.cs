@@ -35,7 +35,8 @@ namespace DeepNorthCompat
             "EF8C8D3A1F45694EF7A701E8E2A25BF8A3874C951A2639C81DFE614CE3AA5FA3",
             "C36B81C1733C48D00DD567E41010E6DC95F8DAC877E0701CDB6B8C213ADE7812"
         };
-        internal static readonly string[] ImpactfulSkills =
+        // Builds 0.21.1 through 0.24.0 apply the skill factor twice to the bow draw drain; BowPatch corrects it.
+        internal static readonly string[] ImpactfulSkillsBowDefect =
         {
             "D6E0844F3DADE42B23C33A678EB6E3D6DAA288DCC4187F497B8BB2A1F3CF47BA",
             "52DB5951ADDA57426706A58C9F7C530DFD7519A3E987C73516992111588EF656",
@@ -44,6 +45,10 @@ namespace DeepNorthCompat
             "5B9CD6A20531E33BCE52E4EFD37631A82B0F0AA40D66860D8E1CDDC597736F66",
             "C87ACCAF7E710BD2A13E4F766E4EBFACE9495EFDBC7CADB7C847C3707581ADB4"
         };
+        // 0.25.0 divides its bow reduction by the skill factor, so vanilla's multiplication applies it once.
+        internal const string ImpactfulSkillsBowFixed = "928DF592E04F489826DD823619FEDED6A04195CA38103855ED0C3F01C9EFC050";
+        internal static readonly string[] ImpactfulSkills =
+            ImpactfulSkillsBowDefect.Concat(new[] { ImpactfulSkillsBowFixed }).ToArray();
         internal static readonly string[] CraftyBoxes =
         {
             "432285A08AA0D43BBD89B36330BEDC19CB6EA93AED439E493D0287EDAECEDEB4",
@@ -103,6 +108,11 @@ namespace DeepNorthCompat
                 if (impact == null) { Info("Bow: ImpactfulSkills absent; inactive."); return; }
                 if (Guard.KnownServerBuild()) { Info("Bow: client-only patch; inactive on dedicated server."); return; }
                 Guard.Build(impact, ExpectedBuilds.ImpactfulSkills);
+                if (Guard.Sha256(impact.Location) == ExpectedBuilds.ImpactfulSkillsBowFixed)
+                {
+                    Info("Bow: fixed upstream in this ImpactfulSkills build; inactive.");
+                    return;
+                }
                 Guard.Build(typeof(InventoryGui).Assembly, ExpectedBuilds.Valheim);
                 BowPatch.Install(impact);
             });

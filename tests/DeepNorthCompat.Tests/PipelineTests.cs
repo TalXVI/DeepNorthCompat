@@ -343,6 +343,9 @@ internal static class PipelineTests
         {
             Hook(fixture, typeof(Player), "GetSkillFactor", nameof(SkillFactor), new[] { typeof(Skills.SkillType) });
             Bool(config, valConfig, "EnableWeaponSkill", true);
+            Bool(config, valConfig, "WeaponSkillBonusesPastLevel100", false);
+            // 0.25.0 corrects the drain upstream, so DeepNorthCompat leaves it alone and its tooltip rounds to whole numbers.
+            bool upstreamFixed = impact.GetName().Version >= new System.Version(0, 25, 0, 0);
             ConfigEntry<float> reduction = config.Bind("fixture", "bow", 0f);
             AccessTools.Field(valConfig, "WeaponSkillBowDrawStaminaCostReduction").SetValue(null, reduction);
             new Harmony("MidnightsFX.ImpactfulSkills").PatchAll(impact.GetType("ImpactfulSkills.patches.WeaponSkill+ModifyStaimaDrainBows", true)!);
@@ -360,7 +363,9 @@ internal static class PipelineTests
                     float expected = 10 - 10 * (value == 0 ? 0.33f : value) * skill;
                     Check(Math.Abs(bow.GetDrawStaminaDrain() - expected) < 0.00001, "actual drain");
                     object[] args = { bow, "$item_staminahold: 10" }; report.Invoke(null, args);
-                    Check(((string)args[1]).Contains("(" + expected.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + ")"), "actual reporting");
+                    string shown = upstreamFixed ? Math.Round(expected).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        : expected.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                    Check(((string)args[1]).Contains("(" + shown + ")"), "actual reporting");
                 }
         });
         fixture.UnpatchSelf();

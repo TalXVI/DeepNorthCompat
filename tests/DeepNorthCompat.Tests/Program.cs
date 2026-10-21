@@ -381,7 +381,11 @@ internal static class Program
                 SysConsole.WriteLine, error => errors.Add(error));
             CompatibilityInstaller.Verify();
             Check(errors.Count == 0, string.Join(Environment.NewLine, errors));
-            Check(applied.Count == 10, "expected Harmony target count");
+            // ImpactfulSkills 0.25.0 fixes the bow drain upstream, so the two Bow targets are not registered.
+            bool bowFixedUpstream = impact.GetName().Version >= new System.Version(0, 25, 0, 0);
+            Check(applied.Count == (bowFixedUpstream ? 8 : 10), "expected Harmony target count");
+            Check(Harmony.GetAllPatchedMethods().Any(m => Harmony.GetPatchInfo(m)!.Owners.Contains("DeepNorthCompat.Bow")) != bowFixedUpstream,
+                "Bow hooks are installed only for builds that still double the skill factor");
             Check(verified.Count == 2, "expected parser transpiler count");
         });
 

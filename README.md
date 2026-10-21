@@ -6,7 +6,7 @@ It currently fixes bugs and incompatibilities involving:
 
 - ImpactfulSkills and AzuCraftyBoxes quality-aware ingredient selection and consumption.
 - AAA Crafting's crafting speed setting, which did not apply to the Forge of Potential.
-- ImpactfulSkills bow stamina scaling and tooltip reporting.
+- ImpactfulSkills bow stamina scaling and tooltip reporting, in builds before 0.25.0.
 - SeaAnimals and AirAnimals custom creature drop ranges.
 - AzuEPI inventory character preview, which restarted its animation whenever a nearby creature or player changed equipment.
 - Deep North profile policy that disables ValheimTune on clients after its configuration binds.
@@ -31,7 +31,7 @@ Requires ConditionalConfigSync 1.0.11 or newer. Install the same DeepNorthCompat
 
 Each fix is written against one exact build of the mods it touches:
 
-- ImpactfulSkills 0.21.1, 0.21.3, 0.22.0, 0.22.1, 0.23.0, and 0.24.0
+- ImpactfulSkills 0.21.1, 0.21.3, 0.22.0, 0.22.1, 0.23.0, 0.24.0, and 0.25.0
 - AzuCraftyBoxes 1.8.27 and 1.8.28
 - AAA Crafting 2.1.11
 - SeaAnimals 0.3.9
