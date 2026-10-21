@@ -29,6 +29,7 @@ internal static class Program
             RunTerrain();
             RunBetterMap();
             RuneIceInstallationTests.Run(Lab, Test);
+            RuneSpriteMaterialTests.Run(Lab, Test);
             RunForge();
             SysConsole.WriteLine($"PASS: {passed} test cases"); return 0;
         }

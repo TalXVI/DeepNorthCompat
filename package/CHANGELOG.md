@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1
+
+- Fixes RuneMagic 1.5.1 rune sprites, which left a material loaded after each one faded. Sailing with Ocean Currents added about a thousand materials a second, so Valheim Visuals' material scans, which run every 20 seconds, stalled the game for longer the longer you played. Decumberance had the same leak. Rune colors and fading are unchanged.
+
 ## 1.4.0
 
 - Applies AAA Crafting 2.1.11's crafting speed override to the Forge of Potential. Adds `Crafting` / `Forge of Potential speed` config toggle. Enabled by default.

@@ -12,6 +12,7 @@ It currently fixes bugs and incompatibilities involving:
 - Deep North profile policy that disables ValheimTune on clients after its configuration binds.
 - VPO native water-wave initialization on Windows dedicated servers.
 - RuneMagic water-walking ice initialization, which can corrupt physics and saved vehicle positions on Linux dedicated servers.
+- RuneMagic Ocean Currents and Decumberance rune sprites, which each left a material loaded after they faded. Sailing with Ocean Currents added about a thousand materials a second, so Valheim Visuals' material scans stalled the game for longer the longer you played.
 - MultiUserChest stale chest inventories after ownership changes.
 - AzuCraftyBoxes chest ownership during crafting.
 - OdinShip canoe propulsion, replicated ship names, mounted ammunition refunds, input handling, manual FishPress payment, and the Decorative Ship Construction piece, which no longer reshapes terrain or clears cave roofs and now has hull and support collision.
@@ -38,7 +39,7 @@ Each fix is written against one exact build of the mods it touches:
 - AzuEPI 2.6.3 and 2.6.4
 - ValheimTune 0.7.8, 0.7.9, and 0.7.10
 - ValheimPerformanceOptimizations 1.2.3
-- RuneMagic 1.5.1 for water-walking ice initialization on Valheim 1.0.20 Windows clients and Windows/Linux dedicated servers
+- RuneMagic 1.5.1 for water-walking ice initialization and rune sprite materials on Valheim 1.0.20 Windows clients and Windows/Linux dedicated servers
 - MultiUserChest 0.6.2
 - Quick Stack - Store - Sort - Trash - Restock 1.4.15 and 1.4.16
 - OdinShip 0.8.7
