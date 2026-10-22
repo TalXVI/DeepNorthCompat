@@ -198,6 +198,7 @@ namespace DeepNorthCompat
             BetterMapPersistencePatch.Verify();
             BetterMapPortalPatch.Verify();
             BetterMapVehiclePatch.Verify();
+            DiagnosticsPatch.Verify();
         }
 
         private static void InstallDrops(Assembly? assembly, string hash, string name)

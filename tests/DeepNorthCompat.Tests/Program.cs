@@ -25,7 +25,7 @@ internal static class Program
         {
             Test("selected game build passes its role guard", CheckGameBuild);
             if (Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_TEST_MODE") == "server") RunServer();
-            else { Run(); TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); RunChests(); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); MyLittleUiAmmoTests.Run(Lab, Test); }
+            else { Run(); TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); RunChests(); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); ReportUploadTests.Run(Test); MyLittleUiAmmoTests.Run(Lab, Test); }
             RunTerrain();
             RunBetterMap();
             RuneIceInstallationTests.Run(Lab, Test);
@@ -37,7 +37,7 @@ internal static class Program
     }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static void RunServer() { TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); ChestTests.Run(Lab, Test); TabAudioTests.RunServer(Test); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); MyLittleUiAmmoTests.RunServer(Lab, Test); }
+    private static void RunServer() { TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); ChestTests.Run(Lab, Test); TabAudioTests.RunServer(Test); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); ReportUploadTests.Run(Test); MyLittleUiAmmoTests.RunServer(Lab, Test); }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void RunChests() => ChestTests.Run(Lab, Test);

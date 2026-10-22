@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
 
@@ -34,7 +35,21 @@ namespace DeepNorthCompat
             harmony.Patch(Guard.Method(typeof(Player), "OnSpawned", typeof(void), typeof(bool)), postfix: Guard.Hook(typeof(DiagnosticsPatch), nameof(Spawned)));
             harmony.Patch(Guard.Method(typeof(ZNet), "Disconnect", typeof(void), typeof(ZNetPeer)), prefix: Guard.Hook(typeof(DiagnosticsPatch), nameof(Disconnecting)));
             harmony.Patch(Guard.Method(typeof(ZNet), "Shutdown", typeof(void), typeof(bool)), prefix: Guard.Hook(typeof(DiagnosticsPatch), nameof(ShuttingDown)));
+            peerReady = Guard.Method(typeof(ZRoutedRpc), "AddPeer", typeof(void), typeof(ZNetPeer));
+            harmony.Patch(peerReady, postfix: Guard.Hook(typeof(DiagnosticsPatch), nameof(PeerAdded)));
             CompatibilityInstaller.Info("Diagnostics: APPLIED; chest, crafting, network and error events are recorded.");
+        }
+
+        private static MethodInfo? peerReady;
+
+        // Report uploads register their handlers from the AddPeer postfix, so confirm it is in place
+        // once deferred patching has finished. Without it, clients keep their reports local.
+        internal static void Verify()
+        {
+            if (!ChestDiagnostics.Enabled) return;
+            ReportUpload.Hooked = peerReady != null && Harmony.GetPatchInfo(peerReady)?.Postfixes.Any(patch => patch.owner == Owner) == true;
+            if (ReportUpload.Hooked) CompatibilityInstaller.Info("Diagnostics.Uploads: APPLIED; /dnc_mark and /dnc_report can send reports to a server that collects them.");
+            else CompatibilityInstaller.Error("Diagnostics.Uploads: NOT APPLIED; the connection hook is missing. Reports stay on each player's computer.");
         }
 
         // MultiUserChest calls SetInUse(true) every frame while a chest is open, so record an
@@ -179,6 +194,7 @@ namespace DeepNorthCompat
         }
         private static void Disconnecting(ZNetPeer __0) => DiagnosticReport.PeerDisconnecting(__0);
         private static void ShuttingDown() => DiagnosticReport.WorldShutdown();
+        private static void PeerAdded(ZNetPeer __0) => ReportUpload.PeerAdded(__0);
 
         internal static void Forget(ZDOID id) { states.Remove(id); contents.Remove(id); }
         internal static void Reset() { states.Clear(); contents.Clear(); }

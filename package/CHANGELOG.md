@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.5.0
+
+Diagnostics changes. Gameplay is unchanged.
+
+- Diagnostics are now off by default. To keep using `/dnc_mark` and `/dnc_report`, set `Enabled = true` in the `[Diagnostics]` section on the server and on each client.
+- `/dnc_mark` and `/dnc_report` now also send the player's report to the server. The server saves it in `BepInEx/DeepNorthCompat/diagnostics/submissions/` and chat confirms the save, so players no longer need to find and send report files themselves. Each saved report names the player by the character name and Steam or platform ID their connection logged in with.
+- Before sending, the client removes folder paths that contain the player's user name, and network addresses, from the report and the marker note.
+- `/dnc_report last` sends the report from the previous session, for example after a crash. After an unexpected exit, chat suggests it when the player rejoins the same world.
+- Servers keep received reports for 30 days, at most 20 per player and 200 or 100 MiB in total.
+- New settings: `Send reports to server` on clients and `Accept player reports` on servers. Both default to on and only take effect with diagnostics on.
+- The dedicated server and every client must run the same DeepNorthCompat version.
+
 ## 1.4.2
 
 - Supports ImpactfulSkills 0.25.0 while retaining 0.21.1 through 0.24.0 support. The quality-aware crafting integration works unchanged.

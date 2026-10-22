@@ -7,7 +7,7 @@ using ConditionalConfigSync;
 
 namespace DeepNorthCompat
 {
-    [BepInPlugin(Guid, "DeepNorthCompat", "1.4.2")]
+    [BepInPlugin(Guid, "DeepNorthCompat", "1.5.0")]
     [BepInDependency("_shudnal.ConditionalConfigSync", "1.0.11")]
     [BepInDependency("MidnightsFX.ImpactfulSkills", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuCraftyBoxes", BepInDependency.DependencyFlags.SoftDependency)]
@@ -49,18 +49,26 @@ namespace DeepNorthCompat
             CompatibilityInstaller.Error = message => Logger.LogError(message);
             sync = CreateSync(Info.Metadata.Version.ToString());
             ForgeCraftingPatch.BindConfig(Config, sync);
-            bool diagnostics = Config.Bind("Diagnostics", "Enabled", true,
-                "Record chest, crafting, network and error events, and enable the /dnc_report and /dnc_mark chat commands. Restart after changing.").Value;
+            bool diagnostics = Config.Bind("Diagnostics", "Enabled", false,
+                "Record chest, crafting, network and error events, and enable the /dnc_report and /dnc_mark chat commands. "
+                + "Off by default. Every setting in this section needs it on. Restart after changing.").Value;
             string directory = Config.Bind("Diagnostics", "Directory", "",
                 "Empty uses BepInEx/DeepNorthCompat/diagnostics. Otherwise use an absolute directory path. Restart after changing.").Value;
             DiagnosticReport.ServerAccess = Config.Bind("Diagnostics", "Server report access", DiagnosticReport.Access.Admins,
                 "Servers only. Who may fetch the server's report with /dnc_report: Nobody, Admins (adminlist.txt) or Everyone.").Value;
+            ReportUpload.Send = Config.Bind("Diagnostics", "Send reports to server", true,
+                "Clients only. /dnc_mark and /dnc_report also send your report to the server you play on, which saves it for the server's operator. "
+                + "Folder paths and network addresses are removed first. Turn off to keep reports on this computer. Restart after changing.").Value;
+            ReportUpload.Accept = Config.Bind("Diagnostics", "Accept player reports", true,
+                "Servers only. Save the reports players send with /dnc_mark and /dnc_report in the diagnostics folder's submissions folder. "
+                + "Turn off to refuse them. Restart after changing.").Value;
             if (diagnostics)
             {
                 DiagnosticReport.Listen();
                 ChestDiagnostics.Configure(string.IsNullOrWhiteSpace(directory)
                     ? Path.Combine(Paths.BepInExRootPath, "DeepNorthCompat", "diagnostics") : directory,
                     Guard.KnownServerBuild(), 8 * 1024 * 1024);
+                DiagnosticReport.PreservePrevious();
             }
             CompatibilityInstaller.Install(Resolve, CompatibilityInstaller.Info, CompatibilityInstaller.Warning, CompatibilityInstaller.Error);
             if (ChestDiagnostics.Enabled) DiagnosticReport.RegisterCommands();

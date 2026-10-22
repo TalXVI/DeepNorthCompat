@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using BepInEx.Bootstrap;
 using BepInEx.Logging;
 using UnityEngine;
@@ -15,7 +16,9 @@ namespace DeepNorthCompat
     // the events that led to them, errors from every mod, markers, peers and environment.
     // `/dnc_report` in chat writes the client report, fetches the server's, saves both and
     // copies them to the clipboard. Both reports describe the world where the player stands.
-    // `/dnc_mark <note>` timestamps a problem on both sides.
+    // `/dnc_mark <note>` timestamps a problem on both sides. Both commands also send the
+    // client's report to the server through ReportUpload, and `/dnc_report last` sends the
+    // report the previous session left behind.
     internal static class DiagnosticReport
     {
         internal enum Access { Nobody, Admins, Everyone }
@@ -55,6 +58,8 @@ namespace DeepNorthCompat
         private static string? serverReport;
         private static string serverStatus = "";
         private static float nextAutoWrite;
+        private static bool hinted;
+        private static readonly Regex Footer = new Regex(@"<!-- DeepNorthCompat session (\w+) world (-?\d+) clean (yes|no) -->\s*$");
         internal static Access ServerAccess = Access.Admins;
 
         private sealed class Listener : ILogListener
@@ -97,10 +102,15 @@ namespace DeepNorthCompat
 
         internal static void RegisterCommands()
         {
-            new Terminal.ConsoleCommand("dnc_report", "DeepNorthCompat: save a diagnostic report with the server's and copy it to the clipboard. "
-                + "Both describe the terrain, base areas and creatures where you stand.",
-                (Terminal.ConsoleEvent)(args => Collect(args.Context)));
-            new Terminal.ConsoleCommand("dnc_mark", "DeepNorthCompat: mark a problem now, for example: dnc_mark chest showed old items",
+            new Terminal.ConsoleCommand("dnc_report", "DeepNorthCompat: save a diagnostic report, send it to the server operator, and copy it with "
+                + "the server's report to the clipboard. Both describe the terrain, base areas and creatures where you stand. "
+                + "`dnc_report last` sends the report from your previous session instead.",
+                (Terminal.ConsoleEvent)(args =>
+                {
+                    if (args.Args.Length > 1 && string.Equals(args.Args[1], "last", StringComparison.OrdinalIgnoreCase)) SendPrevious(args.Context);
+                    else Collect(args.Context);
+                }));
+            new Terminal.ConsoleCommand("dnc_mark", "DeepNorthCompat: mark a problem now and send it to the server operator, for example: dnc_mark chest showed old items",
                 (Terminal.ConsoleEvent)(args => MarkCommand(args.Context, string.Join(" ", args.Args.Skip(1)))));
         }
 
@@ -113,6 +123,7 @@ namespace DeepNorthCompat
             ZRoutedRpc.instance.Register<ZPackage>(ReplyRpc, ReceiveReply);
             ZRoutedRpc.instance.Register<ZPackage>(ProbeRpc, ReceiveProbe);
             lock (gate) { hellos.Clear(); probes.Clear(); serverHello = ""; }
+            ReportUpload.WorldStarted();
             ChestDiagnostics.Record("world-start", null, Environment(compact: true));
         }
 
@@ -136,14 +147,20 @@ namespace DeepNorthCompat
                     match ? "" : "version-mismatch: server runs DeepNorthCompat " + PluginVersion);
                 var reply = new ZPackage();
                 reply.Write(PluginVersion); reply.Write("server"); reply.Write(0L); reply.Write(PatchSummary());
+                // Older clients stop reading after the patch summary.
+                reply.Write(ReportUpload.Accepting);
                 ZRoutedRpc.instance.InvokeRoutedRPC(sender, HelloRpc, reply);
             }
             else
             {
                 lock (gate) serverHello = "DeepNorthCompat " + version + "; " + patches;
                 bool match = version == PluginVersion;
-                ChestDiagnostics.Record("server-hello", null, "server=" + sender + ";version=" + version + ";" + patches,
+                // A server without upload support sends no flag.
+                bool accepts = packet.GetPos() < packet.Size() && packet.ReadBool();
+                ReportUpload.ServerAccepts = accepts;
+                ChestDiagnostics.Record("server-hello", null, "server=" + sender + ";version=" + version + ";accepts_reports=" + accepts + ";" + patches,
                     match ? Severity.Info : Severity.Problem, match ? "" : "version-mismatch: this client runs DeepNorthCompat " + PluginVersion);
+                if (accepts) HintPrevious();
             }
         }
 
@@ -152,12 +169,96 @@ namespace DeepNorthCompat
             if (ZNet.instance == null || !ZNet.instance.IsServer()) return;
             ChestDiagnostics.Record("peer-disconnected", null, "peer=" + peer.m_uid + ";player=" + peer.m_playerName);
             lock (gate) { hellos.Remove(peer.m_uid); probes.Remove(peer.m_uid); }
+            ReportUpload.PeerGone(peer.m_uid);
         }
 
         internal static void WorldShutdown()
         {
             ChestDiagnostics.Record("world-shutdown", null);
-            Save(Build(Full, includeServer: false), "latest");
+            SaveLatest(clean: true);
+        }
+
+        // The latest report ends with the world it describes and whether that world shut down
+        // cleanly, so the next session can offer a crashed session's report to the same server.
+        private static void SaveLatest(bool clean)
+        {
+            Save(Build(Full, includeServer: false) + "\n<!-- DeepNorthCompat session " + ChestDiagnostics.Session + " world "
+                + CurrentWorld().ToString(CultureInfo.InvariantCulture) + " clean " + (clean ? "yes" : "no") + " -->\n", "latest");
+        }
+
+        private static long CurrentWorld() => ZNet.instance != null && ZNet.World != null ? ZNet.World.m_uid : 0;
+
+        // Keeps the report the last process left behind before this one overwrites it.
+        internal static void PreservePrevious()
+        {
+            if (ChestDiagnostics.Directory == null) return;
+            string latest = ReportPath("latest"), previous = ReportPath("previous"), sent = ReportPath("previous-sent");
+            try
+            {
+                if (!File.Exists(latest)) return;
+                if (File.Exists(previous)) File.Delete(previous);
+                if (File.Exists(sent)) File.Delete(sent);
+                File.Move(latest, previous);
+            }
+            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException)
+            {
+                CompatibilityInstaller.Error("Diagnostics could not keep the previous session's report: " + error);
+            }
+        }
+
+        private static string ReportPath(string suffix) => Path.Combine(ReportDirectory, "DeepNorthCompat-report-" + ChestDiagnostics.Role + "-" + suffix + ".md");
+
+        internal static (string Path, string Text, long World, bool Clean, bool Sent)? Previous()
+        {
+            if (ChestDiagnostics.Directory == null) return null;
+            foreach (var (path, sent) in new[] { (ReportPath("previous"), false), (ReportPath("previous-sent"), true) })
+            {
+                try
+                {
+                    if (!File.Exists(path)) continue;
+                    string text = File.ReadAllText(path);
+                    Match footer = Footer.Match(text);
+                    // A report written before uploads existed has no footer, so it is never offered.
+                    return footer.Success ? (path, text, long.Parse(footer.Groups[2].Value, CultureInfo.InvariantCulture), footer.Groups[3].Value == "yes", sent)
+                        : (path, text, 0L, true, sent);
+                }
+                catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is OverflowException) { return null; }
+            }
+            return null;
+        }
+
+        internal static void MarkPreviousSent(string path)
+        {
+            try { if (path == ReportPath("previous") && File.Exists(path)) File.Move(path, ReportPath("previous-sent")); }
+            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException)
+            {
+                CompatibilityInstaller.Error("Diagnostics could not mark the previous session's report as sent: " + error);
+            }
+        }
+
+        private static void HintPrevious()
+        {
+            if (hinted || !ReportUpload.Send) return;
+            var previous = Previous();
+            if (previous == null || previous.Value.Sent || previous.Value.Clean || previous.Value.World == 0 || previous.Value.World != CurrentWorld()) return;
+            hinted = true;
+            if (Chat.instance != null) Chat.instance.AddString("DeepNorthCompat: your last session in this world ended unexpectedly. "
+                + "Type /dnc_report last to send its report to the server.");
+        }
+
+        private static void SendPrevious(Terminal context)
+        {
+            if (!ChestDiagnostics.Enabled) { context.AddString("DeepNorthCompat diagnostics are disabled in its config."); return; }
+            if (!ReportUpload.Send) { context.AddString("DeepNorthCompat: sending reports is off in this client's config (Send reports to server)."); return; }
+            if (ZNet.instance == null || ZNet.instance.IsServer() || ZNet.instance.GetServerPeer() == null)
+            { context.AddString("DeepNorthCompat: join the server first, then type /dnc_report last."); return; }
+            var previous = Previous();
+            if (previous == null) { context.AddString("DeepNorthCompat: no report from a previous session was found."); return; }
+            if (previous.Value.Sent) { context.AddString("DeepNorthCompat: the previous session's report was already sent to the server."); return; }
+            if (previous.Value.World != 0 && previous.Value.World != CurrentWorld())
+            { context.AddString("DeepNorthCompat: the previous session's report is from a different world. Join that world to send it."); return; }
+            string text = previous.Value.Text;
+            ReportUpload.Submit(context, "last", "", _ => text, null, ZDOID.None, previous.Value.Path);
         }
 
         // The first report compiles its builders and hashes the relevant mods, which stalls a frame in play.
@@ -174,6 +275,7 @@ namespace DeepNorthCompat
         internal static void Tick()
         {
             if (!ChestDiagnostics.Enabled) return;
+            ReportUpload.Tick();
             try { ItemLedger.Tick(); }
             catch (Exception error) { ChestDiagnostics.RecordText("diagnostics-hook-error", "ItemLedger.Tick: " + error, Severity.Info); }
             if (nextAutoWrite == 0) nextAutoWrite = Time.realtimeSinceStartup + 300f;
@@ -181,7 +283,8 @@ namespace DeepNorthCompat
             nextAutoWrite = Time.realtimeSinceStartup + 300f;
             if (ChestDiagnostics.Version == writtenVersion) return;
             writtenVersion = ChestDiagnostics.Version;
-            Save(Build(Full, includeServer: false), "latest");
+            // Outside a world nothing is left to recover, so the report counts as clean.
+            SaveLatest(clean: ZNet.instance == null);
         }
 
         private static void MarkCommand(Terminal context, string note)
@@ -190,12 +293,15 @@ namespace DeepNorthCompat
             if (note.Trim().Length == 0) note = "(no note)";
             string who = Player.m_localPlayer != null ? Player.m_localPlayer.GetPlayerName() : "local";
             ChestDiagnostics.Mark(who, note);
+            // The server records the note in its own events, which also go into saved uploads.
+            string shared = ReportUpload.Redact(note);
             if (ZNet.instance != null && !ZNet.instance.IsServer() && ZRoutedRpc.instance != null)
             {
-                var packet = new ZPackage(); packet.Write(who); packet.Write(note);
+                var packet = new ZPackage(); packet.Write(who); packet.Write(shared);
                 ZRoutedRpc.instance.InvokeRoutedRPC(MarkerRpc, packet);
             }
             context.AddString("DeepNorthCompat: marked \"" + note + "\". Reproduce if you can, then type /dnc_report.");
+            ReportUpload.Submit(context, "marker", shared, compact => Snapshot(compact, null), null, ZDOID.None);
         }
 
         private static void ReceiveMarker(long sender, ZPackage packet)
@@ -209,12 +315,15 @@ namespace DeepNorthCompat
             if (!ChestDiagnostics.Enabled) { context.AddString("DeepNorthCompat diagnostics are disabled in its config."); return; }
             ZRoutedRpc? server = ZNet.instance != null && !ZNet.instance.IsServer() && ZNet.instance.GetServerPeer() != null ? ZRoutedRpc.instance : null;
             string[]? probe = null;
+            Vector3? at = null;
+            ZDOID target = ZDOID.None;
             Player player = Player.m_localPlayer;
             if (player != null && ZNet.instance != null)
             {
                 Vector3 point = player.transform.position;
                 Character looked = player.GetHoverCreature();
-                ZDOID target = looked == null ? ZDOID.None : looked.GetZDOID();
+                target = looked == null ? ZDOID.None : looked.GetZDOID();
+                at = point;
                 probe = WorldProbe.Capture(point, target);
                 if (server != null)
                 {
@@ -223,6 +332,8 @@ namespace DeepNorthCompat
                     server.InvokeRoutedRPC(ProbeRpc, packet);
                 }
             }
+            string[]? captured = probe;
+            ReportUpload.Submit(context, "report", "", compact => Snapshot(compact, captured), at, target);
             if (server != null)
             {
                 lock (gate) { request = DateTime.UtcNow.Ticks; serverReport = null; serverStatus = "no reply within 10 seconds"; }
@@ -328,7 +439,8 @@ namespace DeepNorthCompat
                 string path = Path.Combine(ReportDirectory, name);
                 File.WriteAllText(path, text, new UTF8Encoding(false));
                 foreach (FileInfo old in new DirectoryInfo(ReportDirectory).GetFiles("DeepNorthCompat-report-*.md")
-                    .Where(file => !file.Name.EndsWith("-latest.md", StringComparison.Ordinal))
+                    .Where(file => !file.Name.EndsWith("-latest.md", StringComparison.Ordinal) && !file.Name.EndsWith("-previous.md", StringComparison.Ordinal)
+                        && !file.Name.EndsWith("-previous-sent.md", StringComparison.Ordinal))
                     .OrderByDescending(file => file.LastWriteTimeUtc).Skip(ReportsRetained))
                     old.Delete();
                 return path;
@@ -341,6 +453,7 @@ namespace DeepNorthCompat
         }
 
         internal static string Build(bool includeServer) => Build(Full, includeServer);
+        internal static string Snapshot(bool compact, string[]? probe) => Build(compact ? Compact : Full, includeServer: false, probe);
 
         private static string Build(Budget budget, bool includeServer, string[]? probe = null)
         {
@@ -503,6 +616,8 @@ namespace DeepNorthCompat
         internal static void Clear()
         {
             lock (gate) { errors.Clear(); droppedErrors = 0; hellos.Clear(); probes.Clear(); serverHello = ""; serverReport = null; serverStatus = ""; }
+            hinted = false;
+            ReportUpload.Clear();
         }
     }
 }

@@ -62,3 +62,17 @@ ConditionalConfigSync gives the server control of this setting by default. Serve
 BetterMap pin categories survive local reloads and cartography-table sharing even when their map slots change. Automatic portal pins follow accepted portal tags while preserving their checked state and ownership. A place that already shows an automatic pin, including one read from a cartography table, gets no second pin. If a later table read removes a shared pin, the place is pinned again as your own the next time you pass it. An automatic pin you remove by hand stays removed. Older pins without category metadata are recovered only when their discovery records and labels identify one category. Ambiguous older pins retain their saved type.
 
 Manual FishPress feeding checks that the owner supports the fix before consuming a fish. Rejected fish return to your inventory once space is available. If delivery is unconfirmed, the fish is not automatically restored. Pending refunds are lost when you leave the session or restart.
+
+## Diagnostics
+
+Diagnostics are off by default. To use them, set `Enabled = true` in the `[Diagnostics]` section of `BepInEx/config/DeepNorthCompat.cfg` on the server and on each client, then restart.
+
+With diagnostics on, these chat commands report problems:
+
+- `/dnc_mark <note>` records a problem with a short note, for example `/dnc_mark chest showed old items`.
+- `/dnc_report` saves a full report, copies it to the clipboard, and includes the server's report for admins.
+- `/dnc_report last` sends the report from your previous session, for example after a crash. After an unexpected exit, chat suggests it when you rejoin the same world.
+
+On a server that collects reports, both commands also send your report to the server, and chat confirms when the server saved it. Your report goes to the server's operator. It includes your character name, Steam or platform ID, mod list, recent game events, and errors from your mods. Folder paths that contain your user name, and network addresses, are removed before sending. To keep reports on your computer, set `Send reports to server = false`.
+
+Servers save received reports in `BepInEx/DeepNorthCompat/diagnostics/submissions/`, one file per report, named with the time, the player's character name and their Steam or platform ID. `index.tsv` in the same folder lists every report. Reports are deleted after 30 days, or sooner once a player has more than 20 or the folder holds more than 200 reports or 100 MiB. To refuse reports, set `Accept player reports = false` on the server.
