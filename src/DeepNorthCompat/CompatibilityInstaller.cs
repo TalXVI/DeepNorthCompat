@@ -10,6 +10,8 @@ namespace DeepNorthCompat
 {
     internal static class ExpectedBuilds
     {
+        // The audited Valheim 1.0.20 Windows client. Valheim also accepts the 1.0.16 and 1.0.17 clients.
+        internal const string Valheim1020Client = "94998885B103D6E5F5480123EAEE0A093E82AF2DDEEEE37536C15BF555F24F3A";
         internal const string BetterMap = "BB0A0A2E4E9EA2B388CD55F486A61057BF57F982D5647AA649375D4B1E7BAE04";
         internal const string Cartography = "2379F6884BEC32843DAFA1306F693CAD8FC2FB1208E9D2BEE3D3745EFB2DC529";
         internal static readonly string[] TeleportEverything =
@@ -31,7 +33,7 @@ namespace DeepNorthCompat
             "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
             "0DFC7E81436F822121148EFED859BA1E661D58B9484BD45E3B6F33B6DD86BFAD",
             "E7220DC5D9CF9D38270E751352D94918308E59CCA86E56C4BDA0210016C847FA",
-            "94998885B103D6E5F5480123EAEE0A093E82AF2DDEEEE37536C15BF555F24F3A",
+            Valheim1020Client,
             "EF8C8D3A1F45694EF7A701E8E2A25BF8A3874C951A2639C81DFE614CE3AA5FA3",
             "C36B81C1733C48D00DD567E41010E6DC95F8DAC877E0701CDB6B8C213ADE7812"
         };
@@ -62,7 +64,7 @@ namespace DeepNorthCompat
         {
             "96CFC004F7F4A6F30D070BEF39EAFD79C466A137121C4665A2F19FB9C15C6127",
             "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
-            "94998885B103D6E5F5480123EAEE0A093E82AF2DDEEEE37536C15BF555F24F3A"
+            Valheim1020Client
         };
         internal static readonly string[] AzuEpi =
         {
@@ -76,7 +78,7 @@ namespace DeepNorthCompat
             "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
             "0DFC7E81436F822121148EFED859BA1E661D58B9484BD45E3B6F33B6DD86BFAD",
             "E7220DC5D9CF9D38270E751352D94918308E59CCA86E56C4BDA0210016C847FA",
-            "94998885B103D6E5F5480123EAEE0A093E82AF2DDEEEE37536C15BF555F24F3A",
+            Valheim1020Client,
             "EF8C8D3A1F45694EF7A701E8E2A25BF8A3874C951A2639C81DFE614CE3AA5FA3",
             "C36B81C1733C48D00DD567E41010E6DC95F8DAC877E0701CDB6B8C213ADE7812"
         };
@@ -93,6 +95,8 @@ namespace DeepNorthCompat
 
     public static class CompatibilityInstaller
     {
+        internal const string ImpactGuid = "MidnightsFX.ImpactfulSkills";
+        internal const string CraftyGuid = "Azumatt.AzuCraftyBoxes";
         internal static Action<string> Info = _ => { };
         internal static Action<string> Warning = _ => { };
         internal static Action<string> Error = _ => { };
@@ -101,8 +105,8 @@ namespace DeepNorthCompat
             Action<string> warning, Action<string> error)
         {
             Info = info; Warning = warning; Error = error;
-            Assembly? impact = resolve("MidnightsFX.ImpactfulSkills");
-            Assembly? crafty = resolve("Azumatt.AzuCraftyBoxes");
+            Assembly? impact = resolve(ImpactGuid);
+            Assembly? crafty = resolve(CraftyGuid);
             InstallGroup("Bow", () =>
             {
                 if (impact == null) { Info("Bow: ImpactfulSkills absent; inactive."); return; }
@@ -136,6 +140,7 @@ namespace DeepNorthCompat
             });
 
             InstallGroup("Crafting.ForgeOfPotential", () => ForgeCraftingPatch.Prepare(resolve(ForgeCraftingPatch.Guid)));
+            InstallGroup("Crafting.ReforgedPotential", () => ReforgedPotentialPatch.Prepare(resolve(ReforgedPotentialPatch.Guid)));
             InstallGroup("Preview.AzuEPI", () =>
             {
                 if (Guard.KnownServerBuild()) { Info("Preview.AzuEPI: client-only patch; inactive on dedicated server."); return; }
@@ -178,6 +183,7 @@ namespace DeepNorthCompat
         {
             DropRangePatch.Verify();
             ForgeCraftingPatch.Verify();
+            ReforgedPotentialPatch.Verify();
             AzuEpiPreviewPatch.Verify();
             VpoBurstPatch.Verify();
             RuneIcePatch.Verify();
@@ -293,6 +299,40 @@ namespace DeepNorthCompat
         {
             CompatibilityInstaller.Info($"Registered: {Name(target)}");
         }
+
+        // HarmonyX unpatches a method from every patch kind and owner, so a vendor hook that DNC
+        // replaces must be the only registration of that method on the target.
+        internal static Patch Sole(MethodBase target, MethodInfo hook, string owner, HarmonyPatchType kind)
+        {
+            Patches? info = Harmony.GetPatchInfo(target);
+            Patch[] matches = info == null ? Array.Empty<Patch>() : All(info).Where(p => p.PatchMethod == hook).ToArray();
+            if (matches.Length != 1 || matches[0].owner != owner || !Of(info!, kind).Contains(matches[0]))
+                throw new NotSupportedException($"Expected one {owner} {kind.ToString().ToLowerInvariant()} {Name(hook)} on {Name(target)}.");
+            return matches[0];
+        }
+
+        // Re-registers a vendor hook that a failed replacement removed, with its original owner and ordering.
+        internal static void Restore(MethodBase target, Patch patch, HarmonyPatchType kind)
+        {
+            Patches? info = Harmony.GetPatchInfo(target);
+            if (info != null && All(info).Any(p => p.PatchMethod == patch.PatchMethod)) return;
+            if (kind != HarmonyPatchType.Prefix && kind != HarmonyPatchType.Postfix) throw new ArgumentOutOfRangeException(nameof(kind));
+            var hook = new HarmonyMethod(patch.PatchMethod, patch.priority, patch.before, patch.after, patch.debug);
+            new Harmony(patch.owner).Patch(target, prefix: kind == HarmonyPatchType.Prefix ? hook : null,
+                postfix: kind == HarmonyPatchType.Postfix ? hook : null);
+        }
+
+        private static IEnumerable<Patch> All(Patches info) =>
+            info.Prefixes.Concat(info.Postfixes).Concat(info.Transpilers).Concat(info.Finalizers).Concat(info.ILManipulators);
+
+        private static IEnumerable<Patch> Of(Patches info, HarmonyPatchType kind) => kind switch
+        {
+            HarmonyPatchType.Prefix => info.Prefixes,
+            HarmonyPatchType.Postfix => info.Postfixes,
+            HarmonyPatchType.Transpiler => info.Transpilers,
+            HarmonyPatchType.Finalizer => info.Finalizers,
+            _ => throw new ArgumentOutOfRangeException(nameof(kind))
+        };
 
         internal static string Name(MethodBase target)
         {

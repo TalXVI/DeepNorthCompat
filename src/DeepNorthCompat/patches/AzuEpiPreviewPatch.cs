@@ -75,10 +75,7 @@ namespace DeepNorthCompat
             {
                 try
                 {
-                    foreach ((MethodInfo target, Patch patch) in hooks)
-                        if (!AllPatches(target).Any(p => p.PatchMethod == patch.PatchMethod))
-                            new Harmony(Owner).Patch(target, postfix: new HarmonyMethod(patch.PatchMethod,
-                                patch.priority, patch.before, patch.after, patch.debug));
+                    foreach ((MethodInfo target, Patch patch) in hooks) Guard.Restore(target, patch, HarmonyPatchType.Postfix);
                     harmony.UnpatchSelf();
                 }
                 catch (Exception rollback)
@@ -89,6 +86,9 @@ namespace DeepNorthCompat
                 CompatibilityInstaller.Error($"Preview.AzuEPI: NOT APPLIED; vendor hooks retained. {exception}");
             }
         }
+
+        private static Patch RequirePostfix(MethodInfo target, MethodInfo expected) =>
+            Guard.Sole(target, expected, Owner, HarmonyPatchType.Postfix);
 
         private static void SyncStance(Humanoid __0)
         {
@@ -103,23 +103,6 @@ namespace DeepNorthCompat
             float blend = source.GetFloat("statef");
             if (preview.GetInteger("statei") != state) preview.SetInteger("statei", state);
             if (preview.GetFloat("statef") != blend) preview.SetFloat("statef", blend);
-        }
-
-        // HarmonyX unpatches a method from every patch kind and owner, so the expected
-        // postfix must be the only registration of that method on the target.
-        private static Patch RequirePostfix(MethodInfo target, MethodInfo expected)
-        {
-            Patch[] matches = AllPatches(target).Where(p => p.PatchMethod == expected).ToArray();
-            if (matches.Length != 1 || matches[0].owner != Owner || !Harmony.GetPatchInfo(target)!.Postfixes.Contains(matches[0]))
-                throw new NotSupportedException($"Expected one {Owner} postfix {Guard.Name(expected)} on {Guard.Name(target)}.");
-            return matches[0];
-        }
-
-        private static IEnumerable<Patch> AllPatches(MethodBase target)
-        {
-            Patches? info = Harmony.GetPatchInfo(target);
-            return info == null ? Enumerable.Empty<Patch>() : info.Prefixes.Concat(info.Postfixes)
-                .Concat(info.Transpilers).Concat(info.Finalizers).Concat(info.ILManipulators);
         }
     }
 }

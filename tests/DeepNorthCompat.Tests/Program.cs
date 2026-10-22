@@ -24,6 +24,7 @@ internal static class Program
         try
         {
             Test("selected game build passes its role guard", CheckGameBuild);
+            RunReforged();
             if (Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_TEST_MODE") == "server") RunServer();
             else { Run(); TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); RunChests(); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); ReportUploadTests.Run(Test); MyLittleUiAmmoTests.Run(Lab, Test); }
             RunTerrain();
@@ -50,6 +51,9 @@ internal static class Program
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void RunForge() => ForgeCraftingTests.Run(Lab, Test);
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void RunReforged() => ReforgedPotentialTests.Run(Lab, Test);
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void CheckGameBuild()
@@ -271,7 +275,7 @@ internal static class Program
             prefix: new HarmonyMethod(AccessTools.Method(typeof(Program), nameof(AnimationHash))));
         Test("optional mods absent: startup remains safe", () =>
         {
-            CompatibilityInstaller.Install(_ => null, _ => { }, _ => { }, error => { throw new Exception(error); });
+            CompatibilityInstaller.Install(guid => { resolved.Add(guid); return null; }, _ => { }, _ => { }, error => { throw new Exception(error); });
             CompatibilityInstaller.Verify();
             string plugins = Path.GetFullPath(Path.Combine(Lab, "BepInEx", "plugins"));
             Check(!Harmony.GetAllPatchedMethods().Any(method => Harmony.GetPatchInfo(method)!.Owners
@@ -318,13 +322,11 @@ internal static class Program
             Check(typeof(BepInEx.BaseUnityPlugin).IsAssignableFrom(typeof(Plugin)), "BepInEx entry point");
             var dependencies = typeof(Plugin).GetCustomAttributes<BepInEx.BepInDependency>().ToArray();
             Check(dependencies.Where(d => d.Flags == BepInEx.BepInDependency.DependencyFlags.HardDependency)
-                    .Select(d => d.DependencyGUID).SequenceEqual(new[] { "_shudnal.ConditionalConfigSync" })
-                && dependencies.Any(d => d.DependencyGUID == "marlthon.OdinShip")
-                && dependencies.Any(d => d.DependencyGUID == "odinplus.TeleportEverything")
-                && dependencies.Any(d => d.DependencyGUID == "shudnal.MyLittleUI")
-                && new[] { "advize.PlantEasily", "advize.PlantEverything", "Azumatt.NoCultivatorDust", "Azumatt.NoBuildDust", "Azumatt.HearthBelow", "hyleanlegend.RuneMagic" }
-                    .All(guid => dependencies.Any(d => d.DependencyGUID == guid)),
-                "optional dependencies");
+                    .Select(d => d.DependencyGUID).SequenceEqual(new[] { "_shudnal.ConditionalConfigSync" }), "hard dependencies");
+            // Without a soft dependency, BepInEx can load DNC first and the installer resolves that mod as absent.
+            string[] unordered = resolved.Where(guid => !dependencies.Any(d => d.DependencyGUID == guid
+                && d.Flags == BepInEx.BepInDependency.DependencyFlags.SoftDependency)).ToArray();
+            Check(resolved.Count > 0 && unordered.Length == 0, "resolved without a soft dependency: " + string.Join(", ", unordered));
             Check(!typeof(Plugin).Assembly.GetReferencedAssemblies().Any(reference =>
                 assemblies.Values.Any(vendor => reference.Name == vendor.GetName().Name)), "hard vendor reference");
         });
@@ -471,6 +473,8 @@ internal static class Program
     }
 
     private static bool deferring;
+    // Every GUID the installer resolves during the absent-mods startup case.
+    private static readonly HashSet<string> resolved = new HashSet<string>();
 
     private static bool SkipUpdate(ref MethodInfo? __result)
     {

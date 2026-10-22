@@ -23,7 +23,7 @@ namespace DeepNorthCompat
             Guard.Build(assembly, ExpectedBuilds.PlantEasily);
             Guard.Build(typeof(Player).Assembly,
                 "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
-                "94998885B103D6E5F5480123EAEE0A093E82AF2DDEEEE37536C15BF555F24F3A");
+                ExpectedBuilds.Valheim1020Client);
             Type grid = Guard.Type(assembly, "Advize_PlantEasily.GhostGrid");
             update = Guard.Method(grid, "Update", typeof(void), typeof(Player));
             ghost = Guard.Method(grid, "UpdateGhost", typeof(void), typeof(Player), typeof(Piece), typeof(int), typeof(int), typeof(int));

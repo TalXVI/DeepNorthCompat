@@ -6,6 +6,7 @@ It currently fixes bugs and incompatibilities involving:
 
 - ImpactfulSkills and AzuCraftyBoxes quality-aware ingredient selection and consumption.
 - AAA Crafting's crafting speed setting, which did not apply to the Forge of Potential.
+- ReforgedPotential Forge of Potential upgrades, which removed the item being upgraded before the chests holding the ingredients had handed over their contents.
 - ImpactfulSkills bow stamina scaling and tooltip reporting, in builds before 0.25.0.
 - SeaAnimals and AirAnimals custom creature drop ranges.
 - AzuEPI inventory character preview, which restarted its animation whenever a nearby creature or player changed equipment.
@@ -34,6 +35,7 @@ Each fix is written against one exact build of the mods it touches:
 - ImpactfulSkills 0.21.1, 0.21.3, 0.22.0, 0.22.1, 0.23.0, 0.24.0, and 0.25.0
 - AzuCraftyBoxes 1.8.27 and 1.8.28
 - AAA Crafting 2.1.11
+- ReforgedPotential 2.0.8 (chest crafting wait fix on Valheim 1.0.20 Windows clients)
 - SeaAnimals 0.3.9
 - AirAnimals 0.3.2
 - AzuEPI 2.6.3 and 2.6.4
@@ -55,7 +57,7 @@ Mod patches only activate if the corresponding mod and supported version are pre
 
 On Valheim 1.0.20 Windows clients with AAA Crafting 2.1.11, the Forge of Potential uses AAA Crafting's `Crafting Speed` when `Override Crafting Speed` is on. The existing crafting skill reduction still applies.
 
-The `Forge of Potential speed` setting defaults to `true`. To disable it, set `Forge of Potential speed = false` in the `[Crafting]` section of `BepInEx/config/DeepNorthCompat.cfg`.
+The `Forge of Potential speed` setting defaults to `true`. To disable it, set `Forge of Potential speed = false` in the `[Crafting]` section of `BepInEx/config/DeepNorthCompat.cfg`. With ReforgedPotential installed, turning it off makes the Forge of Potential use ReforgedPotential's upgrade crafting time instead.
 
 ConditionalConfigSync gives the server control of this setting by default. Server policy can allow per-client values. Changes made through a config manager or received from the server take effect immediately.
 

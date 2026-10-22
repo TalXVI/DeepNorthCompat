@@ -13,7 +13,6 @@ namespace DeepNorthCompat
     {
         internal const string Guid = "Azumatt.AzuAntiArthriticCrafting";
         internal const string Owner = Plugin.Guid + ".Crafting.ForgeOfPotential";
-        private const string GameHash = "94998885B103D6E5F5480123EAEE0A093E82AF2DDEEEE37536C15BF555F24F3A";
         private static readonly FieldInfo upgraderDuration = AccessTools.Field(typeof(InventoryGui), "m_upgraderDuration");
         private static readonly FieldInfo upgraderPerLevel = AccessTools.Field(typeof(InventoryGui), "m_upgraderDurationPerLevel");
         private static readonly MethodInfo rewrite = AccessTools.DeclaredMethod(typeof(ForgeCraftingPatch), nameof(Rewrite));
@@ -47,7 +46,7 @@ namespace DeepNorthCompat
                 return;
             }
             Guard.Build(assembly, ExpectedBuilds.AAACrafting);
-            Guard.Build(typeof(InventoryGui).Assembly, GameHash);
+            Guard.Build(typeof(InventoryGui).Assembly, ExpectedBuilds.Valheim1020Client);
             Type plugin = Guard.Type(assembly, "AzuAntiArthriticCrafting.AzuAntiArthriticCraftingPlugin");
             Type toggle = Guard.Type(assembly, plugin.FullName + "+Toggle");
             FieldInfo enabled = AccessTools.Field(plugin, "OverrideCraftingDuration");

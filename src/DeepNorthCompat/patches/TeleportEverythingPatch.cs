@@ -20,7 +20,7 @@ namespace DeepNorthCompat
             Guard.Build(assembly, ExpectedBuilds.TeleportEverything);
             Guard.Build(typeof(Player).Assembly,
                 "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
-                "94998885B103D6E5F5480123EAEE0A093E82AF2DDEEEE37536C15BF555F24F3A");
+                ExpectedBuilds.Valheim1020Client);
             panelOpen = (Func<bool>)Delegate.CreateDelegate(typeof(Func<bool>),
                 Guard.Method(Guard.Type(assembly, "TeleportEverything.ConfigurationUi.ConfigurationPanel"), "get_IsOpen", typeof(bool)));
             target = Guard.Method(typeof(Player), "TakeInput", typeof(bool));

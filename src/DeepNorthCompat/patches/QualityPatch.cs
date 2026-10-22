@@ -17,6 +17,7 @@ namespace DeepNorthCompat
 
     internal static class QualityPatch
     {
+        internal const string Owner = Plugin.Guid + ".Quality";
         internal sealed class Source
         {
             internal readonly Inventory Inventory;
@@ -109,15 +110,15 @@ namespace DeepNorthCompat
             multiCrafting = AccessTools.Field(typeof(InventoryGui), "m_multiCrafting");
             inventoryChanged = Guard.Method(typeof(Inventory), "Changed", typeof(void), typeof(bool), typeof(bool));
 
-            var harmony = new Harmony(Plugin.Guid + ".Quality");
+            var harmony = new Harmony(Owner);
             var prepare = Guard.Hook(typeof(QualityPatch), nameof(Prepare), Priority.First);
-            prepare.before = new[] { "MidnightsFX.ImpactfulSkills" };
+            prepare.before = new[] { CompatibilityInstaller.ImpactGuid };
             harmony.Patch(crafting, prefix: prepare, finalizer: Guard.Hook(typeof(QualityPatch), nameof(Finish)));
             harmony.Patch(prototypeTier, prefix: Guard.Hook(typeof(QualityPatch), nameof(PrototypeTier)));
             harmony.Patch(namedTier, prefix: Guard.Hook(typeof(QualityPatch), nameof(NamedTier)));
             harmony.Patch(process, prefix: Guard.Hook(typeof(QualityPatch), nameof(Consume)));
             var reserve = Guard.Hook(typeof(QualityPatch), nameof(Reserve), Priority.Last);
-            reserve.after = new[] { "MidnightsFX.ImpactfulSkills" };
+            reserve.after = new[] { CompatibilityInstaller.ImpactGuid };
             harmony.Patch(add, prefix: reserve, postfix: Guard.Hook(typeof(QualityPatch), nameof(Added)),
                 finalizer: Guard.Hook(typeof(QualityPatch), nameof(AddFailed)));
             if (hasAaa)

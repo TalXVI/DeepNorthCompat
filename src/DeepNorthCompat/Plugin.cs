@@ -7,11 +7,12 @@ using ConditionalConfigSync;
 
 namespace DeepNorthCompat
 {
-    [BepInPlugin(Guid, "DeepNorthCompat", "1.5.0")]
+    [BepInPlugin(Guid, "DeepNorthCompat", "1.5.1")]
     [BepInDependency("_shudnal.ConditionalConfigSync", "1.0.11")]
-    [BepInDependency("MidnightsFX.ImpactfulSkills", BepInDependency.DependencyFlags.SoftDependency)]
-    [BepInDependency("Azumatt.AzuCraftyBoxes", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(CompatibilityInstaller.ImpactGuid, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(CompatibilityInstaller.CraftyGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(ForgeCraftingPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(ReforgedPotentialPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("marlthon.SeaAnimals", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("marlthon.AirAnimals", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuExtendedPlayerInventory", BepInDependency.DependencyFlags.SoftDependency)]

@@ -17,7 +17,7 @@ namespace DeepNorthCompat
         private static readonly string[] GameHashes =
         {
             "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
-            "94998885B103D6E5F5480123EAEE0A093E82AF2DDEEEE37536C15BF555F24F3A"
+            ExpectedBuilds.Valheim1020Client
         };
         private const string GuiHash = "52846FCAE0C535D733711C13FDB8F214D303603B5DBF23D05B1ED6A8E475C9DD";
         private static readonly FieldInfo timer = AccessTools.Field(typeof(ButtonSfx), "m_sfxTimer");

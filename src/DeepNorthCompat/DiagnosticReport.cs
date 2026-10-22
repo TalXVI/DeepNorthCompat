@@ -42,8 +42,8 @@ namespace DeepNorthCompat
         private static readonly Budget Compact = new Budget { Findings = 20, Context = 6, Errors = 12, ErrorText = 1200, Recent = 20 };
         private static readonly string[] Relevant =
         {
-            Plugin.Guid, ChestSyncPatch.MucGuid, ChestSyncPatch.QuickGuid, "Azumatt.AzuCraftyBoxes", ForgeCraftingPatch.Guid,
-            "MidnightsFX.ImpactfulSkills", "org.serverbound.valheim", "dev.ontrigger.vpo", "MidnightsFX.ValheimCommunityPatch", "akoozie.valheimtune",
+            Plugin.Guid, ChestSyncPatch.MucGuid, ChestSyncPatch.QuickGuid, CompatibilityInstaller.CraftyGuid, ForgeCraftingPatch.Guid, ReforgedPotentialPatch.Guid,
+            CompatibilityInstaller.ImpactGuid, "org.serverbound.valheim", "dev.ontrigger.vpo", "MidnightsFX.ValheimCommunityPatch", "akoozie.valheimtune",
             BetterMapAccess.Guid, "advize.CartographySkill",
             TeleportEverythingPatch.Guid,
         };

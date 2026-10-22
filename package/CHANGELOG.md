@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.1
+
+- Fixes ReforgedPotential 2.0.8 Forge of Potential upgrades that use ingredients from chests. ReforgedPotential removed the item being upgraded while DeepNorthCompat was still waiting for the chests to hand over their contents. Now the upgrade waits with the rest of the craft. Upgrade rules and odds don't change.
+- With ReforgedPotential installed, setting `Forge of Potential speed = false` gives the Forge of Potential ReforgedPotential's upgrade crafting time.
+- The dedicated server and every client must run the same DeepNorthCompat version.
+
 ## 1.5.0
 
 Diagnostics changes. Gameplay is unchanged.
