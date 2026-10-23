@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.2
+
+- Fixes a slowdown with AAA Crafting 2.1.11 on Valheim 1.0.20 Windows clients. Each time the Upgrade list refreshed, AAA Crafting hid the recipe rows outside the current page but never deleted them. In one long session they grew into the thousands, and game code that scans the interface had to walk through all of them. This likely caused the stutters of about 200 ms when opening inventories, chests, and crafting stations. Those rows are now deleted. Pages, filters, favorites, and the selected recipe work as before.
+- The dedicated server and every client must run the same DeepNorthCompat version.
+
 ## 1.5.1
 
 - Fixes ReforgedPotential 2.0.8 Forge of Potential upgrades that use ingredients from chests. ReforgedPotential removed the item being upgraded while DeepNorthCompat was still waiting for the chests to hand over their contents. Now the upgrade waits with the rest of the craft. Upgrade rules and odds don't change.

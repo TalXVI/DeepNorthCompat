@@ -6,6 +6,7 @@ It currently fixes bugs and incompatibilities involving:
 
 - ImpactfulSkills and AzuCraftyBoxes quality-aware ingredient selection and consumption.
 - AAA Crafting's crafting speed setting, which did not apply to the Forge of Potential.
+- AAA Crafting's Upgrade pagination, which accumulated hidden recipe rows during repeated refreshes.
 - ReforgedPotential Forge of Potential upgrades, which removed the item being upgraded before the chests holding the ingredients had handed over their contents.
 - ImpactfulSkills bow stamina scaling and tooltip reporting, in builds before 0.25.0.
 - SeaAnimals and AirAnimals custom creature drop ranges.
@@ -34,7 +35,7 @@ Each fix is written against one exact build of the mods it touches:
 
 - ImpactfulSkills 0.21.1, 0.21.3, 0.22.0, 0.22.1, 0.23.0, 0.24.0, and 0.25.0
 - AzuCraftyBoxes 1.8.27 and 1.8.28
-- AAA Crafting 2.1.11
+- AAA Crafting 2.1.11 (forge speed and recipe row fixes on Valheim 1.0.20 Windows clients only)
 - ReforgedPotential 2.0.8 (chest crafting wait fix on Valheim 1.0.20 Windows clients)
 - SeaAnimals 0.3.9
 - AirAnimals 0.3.2

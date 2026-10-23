@@ -140,6 +140,7 @@ namespace DeepNorthCompat
             });
 
             InstallGroup("Crafting.ForgeOfPotential", () => ForgeCraftingPatch.Prepare(resolve(ForgeCraftingPatch.Guid)));
+            InstallGroup("UI.AAARecipeRows", () => AaaRecipeRowsPatch.Prepare(resolve(ForgeCraftingPatch.Guid)));
             InstallGroup("Crafting.ReforgedPotential", () => ReforgedPotentialPatch.Prepare(resolve(ReforgedPotentialPatch.Guid)));
             InstallGroup("Preview.AzuEPI", () =>
             {
@@ -183,6 +184,7 @@ namespace DeepNorthCompat
         {
             DropRangePatch.Verify();
             ForgeCraftingPatch.Verify();
+            AaaRecipeRowsPatch.Verify();
             ReforgedPotentialPatch.Verify();
             AzuEpiPreviewPatch.Verify();
             VpoBurstPatch.Verify();
