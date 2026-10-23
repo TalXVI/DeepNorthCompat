@@ -284,8 +284,21 @@ internal static class OdinShipTests
                         Assembly teleport = Assembly.LoadFrom(teleportPath);
                         PropertyInfo open = AccessTools.Property(teleport.GetType("TeleportEverything.ConfigurationUi.ConfigurationPanel", true), "IsOpen");
                         bool previous = (bool)open.GetValue(null, null);
+                        Type plugin = teleport.GetType("TeleportEverything.TeleportEverythingPlugin", true)!;
+                        FieldInfo? enable = AccessTools.Field(plugin, "_enableMod");
+                        FieldInfo? instance = enable == null ? null : AccessTools.Field(plugin, "_instance");
+                        object? previousInstance = instance?.GetValue(null);
+                        string configPath = Path.Combine(Path.GetTempPath(), "dnc-teleport-" + Guid.NewGuid() + ".cfg");
+                        var settings = new BepInEx.Configuration.ConfigFile(configPath, false) { SaveOnConfigSet = false };
+                        var enabled = settings.Bind("General", "Enable Mod", true);
                         try
                         {
+                            if (enable != null)
+                            {
+                                object vendorPlugin = FormatterServices.GetUninitializedObject(plugin);
+                                enable.SetValue(vendorPlugin, enabled);
+                                instance!.SetValue(null, vendorPlugin);
+                            }
                             Type vendor = teleport.GetType("TeleportEverything.Patches.CharacterPatches", true)!;
                             new Harmony(Fixture + ".Vendor").Patch(AccessTools.Method(typeof(Character), "TakeInput"),
                                 postfix: new HarmonyMethod(AccessTools.Method(vendor, "Postfix")));
@@ -308,12 +321,20 @@ internal static class OdinShipTests
                                 Check((bool)Invoke(input, "Pressed", key)!, "closing the panel restores " + key);
                                 open.SetValue(null, true, null);
                             }
+                            if (enable != null)
+                            {
+                                enabled.Value = false;
+                                Check((bool)Invoke(input, "Pressed", KeyCode.T)!, "disabled vendor leaves gameplay input available before its panel closes");
+                                enabled.Value = true;
+                            }
                             open.SetValue(null, false, null); allowInput = false;
                             Check(!(bool)Invoke(input, "Pressed", KeyCode.T)!, "closed panel retains an existing input denial");
                         }
                         finally
                         {
                             open.SetValue(null, previous, null);
+                            instance?.SetValue(null, previousInstance);
+                            if (File.Exists(configPath)) File.Delete(configPath);
                             new Harmony("DeepNorthCompat.UI.TeleportEverything").UnpatchSelf();
                         }
                     });

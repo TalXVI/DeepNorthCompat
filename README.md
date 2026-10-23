@@ -48,7 +48,7 @@ Each fix is written against one exact build of the mods it touches:
 - OdinShip 0.8.7
 - BetterMap 1.1.0
 - CartographySkill 3.2.0 (for BetterMap's exploration integration)
-- TeleportEverything 3.0.9 and 3.0.10 (configuration-panel input fix on Valheim 1.0.17 and 1.0.20 Windows clients)
+- TeleportEverything 3.0.9, 3.0.10, and 3.0.11 (configuration-panel input fix on Valheim 1.0.17 and 1.0.20 Windows clients)
 - PlantEasily 2.3.0 (grid cost fix on Valheim 1.0.17 and 1.0.20 Windows clients)
 - PlantEverything 1.21.3 and 1.21.4 with NoCultivatorDust 1.0.7 or NoBuildDust 1.0.7 (placement dust fix on Valheim 1.0.17 and 1.0.20 Windows clients)
 - My Little UI 1.2.31 (ammo count redraw fix on Valheim 1.0.17 and 1.0.20 Windows clients)

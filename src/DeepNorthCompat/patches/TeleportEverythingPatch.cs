@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
@@ -9,7 +8,7 @@ namespace DeepNorthCompat
     {
         internal const string Guid = "odinplus.TeleportEverything";
         internal const string Owner = Plugin.Guid + ".UI.TeleportEverything";
-        private static Func<bool> panelOpen = null!;
+        private static MethodInfo blockInput = null!;
         private static MethodInfo target = null!;
         private static bool pending;
 
@@ -21,11 +20,11 @@ namespace DeepNorthCompat
             Guard.Build(typeof(Player).Assembly,
                 "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
                 ExpectedBuilds.Valheim1020Client);
-            panelOpen = (Func<bool>)Delegate.CreateDelegate(typeof(Func<bool>),
-                Guard.Method(Guard.Type(assembly, "TeleportEverything.ConfigurationUi.ConfigurationPanel"), "get_IsOpen", typeof(bool)));
+            blockInput = Guard.Method(Guard.Type(assembly, "TeleportEverything.Patches.CharacterPatches"),
+                "Postfix", typeof(void), typeof(Character), typeof(bool).MakeByRefType());
             target = Guard.Method(typeof(Player), "TakeInput", typeof(bool));
             // Upstream patches Character.TakeInput, which Player overrides without calling it.
-            new Harmony(Owner).Patch(target, postfix: Guard.Hook(typeof(TeleportEverythingPatch), nameof(BlockInput), Priority.Last));
+            new Harmony(Owner).Patch(target, postfix: new HarmonyMethod(blockInput) { priority = Priority.Last });
             Guard.Registered(target);
             pending = true;
             CompatibilityInstaller.Info($"UI.TeleportEverything: {assembly.GetName().Version.ToString(3)} build verified; awaiting Player input hook verification.");
@@ -36,18 +35,13 @@ namespace DeepNorthCompat
             if (!pending) return;
             pending = false;
             if (Harmony.GetPatchInfo(target)?.Postfixes.Count(p => p.owner == Owner
-                && p.PatchMethod == AccessTools.Method(typeof(TeleportEverythingPatch), nameof(BlockInput))) != 1)
+                && p.PatchMethod == blockInput) != 1)
             {
                 new Harmony(Owner).UnpatchSelf();
                 CompatibilityInstaller.Error("UI.TeleportEverything: NOT APPLIED; Player input hook registration did not match; vendor behavior retained.");
                 return;
             }
             CompatibilityInstaller.Info("UI.TeleportEverything: APPLIED; the configuration panel blocks Player gameplay input.");
-        }
-
-        private static void BlockInput(Player __instance, ref bool __result)
-        {
-            if (__result && __instance == Player.m_localPlayer && panelOpen()) __result = false;
         }
     }
 }

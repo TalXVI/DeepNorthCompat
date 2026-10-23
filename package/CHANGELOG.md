@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.3
+
+- Supports TeleportEverything 3.0.11. The panel input fix now uses TeleportEverything's own input check, so its new Enable Mod switch also releases gameplay hotkeys when disabled. Support for 3.0.9 and 3.0.10 remains.
+- The dedicated server and every client must run the same DeepNorthCompat version.
+
 ## 1.5.2
 
 - Fixes a slowdown with AAA Crafting 2.1.11 on Valheim 1.0.20 Windows clients. Each time the Upgrade list refreshed, AAA Crafting hid the recipe rows outside the current page but never deleted them. In one long session they grew into the thousands, and game code that scans the interface had to walk through all of them. This likely caused the stutters of about 200 ms when opening inventories, chests, and crafting stations. Those rows are now deleted. Pages, filters, favorites, and the selected recipe work as before.
