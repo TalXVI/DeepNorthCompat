@@ -25,7 +25,11 @@ namespace DeepNorthCompat
             "313D57D5D9DF2A27BFF04AB184487D544A0749BBBE2C10CB1C41A0AE964CAC62",
             "AE6F90220AC138E9CC90DEEFA530E934007DE4BF899B4AC51712525E268F6147"
         };
-        internal const string PlantEasily = "D5AD697931C97E86DBC72AFA3B9BCAC90F3AE249C3A50FE7AD94302C4C2B8416";
+        internal static readonly string[] PlantEasily =
+        {
+            "D5AD697931C97E86DBC72AFA3B9BCAC90F3AE249C3A50FE7AD94302C4C2B8416",
+            "9D56DAE0117798E504B0BAE000E4C848AEAF8642648E19CE99E36D59FA173ECB"
+        };
         internal const string NoCultivatorDust = "D3761A25915D573207BF529C7DEF9372E2CABFEBEBFDC932D799837126F4EEB3";
         internal const string NoBuildDust = "80329CE6E96341F59D2CE9C77E4F1826E19B8D171473332A007B68AEA0963604";
         // BetterMap integration was audited against these 1.0.17 and 1.0.20 client/server builds.
@@ -156,6 +160,7 @@ namespace DeepNorthCompat
             InstallGroup("UI.TeleportEverything", () => TeleportEverythingPatch.Prepare(resolve(TeleportEverythingPatch.Guid)));
             InstallGroup("MyLittleUI.AmmoCount", () => MyLittleUiAmmoPatch.Prepare(resolve(MyLittleUiAmmoPatch.Guid)));
             InstallGroup("PlantEasily.GridCost", () => PlantEasilyCostPatch.Prepare(resolve(PlantEasilyCostPatch.Guid)));
+            InstallGroup("NoSmokeStayLit.Controls", () => NoSmokeStayLitPatch.Prepare(resolve(NoSmokeStayLitPatch.Guid)));
             InstallGroup("PlantEverything.Dust", () => PlantEverythingDustPatch.Prepare(resolve(PlantEverythingDustPatch.Guid),
                 resolve(PlantEverythingDustPatch.CultivatorDust), resolve(PlantEverythingDustPatch.BuildDust)));
             InstallGroup("Tune.Client", () => TuneClientPatch.Prepare(resolve("akoozie.valheimtune")));
@@ -197,6 +202,7 @@ namespace DeepNorthCompat
             TeleportEverythingPatch.Verify();
             MyLittleUiAmmoPatch.Verify();
             PlantEasilyCostPatch.Verify();
+            NoSmokeStayLitPatch.Verify();
             PlantEverythingDustPatch.Verify();
             TuneClientPatch.Verify();
             HearthTerrainPatch.Verify();

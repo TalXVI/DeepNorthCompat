@@ -38,7 +38,7 @@ namespace DeepNorthCompat
             harmony.Patch(ghost, prefix: Guard.Hook(typeof(PlantEasilyCostPatch), nameof(Scale)));
             Guard.Registered(ghost);
             pending = true;
-            CompatibilityInstaller.Info("PlantEasily.GridCost: 2.3.0 build verified; awaiting grid hook verification.");
+            CompatibilityInstaller.Info($"PlantEasily.GridCost: {assembly.GetName().Version.ToString(3)} build verified; awaiting grid hook verification.");
         }
 
         internal static void Verify()

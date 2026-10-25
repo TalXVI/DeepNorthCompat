@@ -7,7 +7,7 @@ using ConditionalConfigSync;
 
 namespace DeepNorthCompat
 {
-    [BepInPlugin(Guid, "DeepNorthCompat", "1.5.3")]
+    [BepInPlugin(Guid, "DeepNorthCompat", "1.5.4")]
     [BepInDependency("_shudnal.ConditionalConfigSync", "1.0.11")]
     [BepInDependency(CompatibilityInstaller.ImpactGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(CompatibilityInstaller.CraftyGuid, BepInDependency.DependencyFlags.SoftDependency)]
@@ -28,6 +28,7 @@ namespace DeepNorthCompat
     [BepInDependency(TeleportEverythingPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(MyLittleUiAmmoPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(PlantEasilyCostPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(NoSmokeStayLitPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(PlantEverythingDustPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(PlantEverythingDustPatch.CultivatorDust, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(PlantEverythingDustPatch.BuildDust, BepInDependency.DependencyFlags.SoftDependency)]

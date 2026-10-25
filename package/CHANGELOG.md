@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.4
+
+- Supports PlantEasily 2.3.1. Planting grids still check every ingredient of a multi-ingredient recipe.
+- Fixes NoSmokeStayLit 2.4.3 fireplace mode controls on fires owned by another peer. The control now claims ownership before changing the mode, as the mod's smelter control already does.
+- Skips unchanged transform synchronization for remote objects that have settled. New network data, local movement, or a waking rigidbody resumes normal synchronization.
+- The dedicated server and every client must run the same DeepNorthCompat version.
+
 ## 1.5.3
 
 - Supports TeleportEverything 3.0.11. The panel input fix now uses TeleportEverything's own input check, so its new Enable Mod switch also releases gameplay hotkeys when disabled. Support for 3.0.9 and 3.0.10 remains.
