@@ -21,7 +21,8 @@ namespace DeepNorthCompat
             + "`generated` is the height before any edit, `stored` is the saved terrain edit and `applied` is how much of it this peer's terrain "
             + "shows. `LIMITED` marks a peer that applies less than it stores, which happens when its terrain height limit is lower than the one "
             + "used to make the edit. `owner` is `self`, `server`, `none` or a peer ID. A creature line ends with `BELOW GROUND` when the "
-            + "creature is more than 1 m under this peer's terrain.";
+            + "creature is more than 1 m under this peer's terrain. In the synced-object census, `settled` means the next vanilla sync would change "
+            + "nothing, and `skipped` counts sync calls the patch avoided.";
 
         private const float AreaRange = 150f, CreatureRange = 64f;
         private const int AreaLimit = 30, CreatureLimit = 25;
@@ -46,6 +47,7 @@ namespace DeepNorthCompat
             Part(lines, "workbench mod", () => lines.Add("workbench mod: " + Mod(BenchGuid, key => key.StartsWith("WorkBenchRange", StringComparison.Ordinal))));
             Part(lines, "base protection", () => Areas(lines, point, ground));
             Part(lines, "creatures", () => Creatures(lines, point, looked));
+            Part(lines, "synced objects", () => Synced(lines));
             return lines.ToArray();
         }
 
@@ -211,6 +213,89 @@ namespace DeepNorthCompat
                 : "known but not instantiated on this peer; owner=" + Owner(record.GetOwner()) + " position=" + Text(record.GetPosition())));
         }
 
+        private static void Synced(List<string> lines)
+        {
+            var totals = new SyncedCounts();
+            var prefabs = new Dictionary<string, SyncedCounts>(StringComparer.Ordinal);
+            foreach (IMonoUpdater updater in ZSyncTransform.Instances)
+            {
+                ZSyncTransform? sync = updater as ZSyncTransform;
+                if (!sync) continue;
+
+                ZNetView? view = sync.GetComponent<ZNetView>();
+                ZDO? zdo = view ? view.GetZDO() : null;
+                string? name = zdo == null ? null : ZNetScene.instance?.GetPrefab(zdo.GetPrefab())?.name;
+                name ??= Utils.GetPrefabName(sync.gameObject);
+                if (!prefabs.TryGetValue(name, out SyncedCounts? counts))
+                {
+                    counts = new SyncedCounts();
+                    prefabs.Add(name, counts);
+                }
+
+                Rigidbody? body = sync.GetComponent<Rigidbody>();
+                bool hasBody = body;
+                bool sleeping = body && body.IsSleeping();
+                Floating? floating = sync.GetComponent<Floating>();
+                bool hasFloating = floating;
+                bool inLiquid = floating && floating.HaveLiquidLevel();
+                bool settled = IdleSyncPatch.IsSettled(sync);
+                OwnerBucket owner = Bucket(zdo == null ? 0 : zdo.GetOwner());
+                Add(totals, owner, hasBody, sleeping, hasFloating, inLiquid, settled);
+                Add(counts, owner, hasBody, sleeping, hasFloating, inLiquid, settled);
+            }
+
+            if (totals.Count == 0)
+            {
+                lines.Add("synced objects: none loaded");
+                return;
+            }
+
+            string idle = IdleSyncPatch.Active
+                ? IdleSyncPatch.Settled.ToString(CultureInfo.InvariantCulture) + " settled now, skipped "
+                    + IdleSyncPatch.Skipped.ToString(CultureInfo.InvariantCulture) + " of "
+                    + IdleSyncPatch.Checked.ToString(CultureInfo.InvariantCulture) + " checks since start"
+                : "inactive on this peer";
+            lines.Add("synced objects: " + totals.Count.ToString(CultureInfo.InvariantCulture) + " loaded; owner self "
+                + totals.Self + ", server " + totals.Server + ", other " + totals.Other + ", none " + totals.None
+                + "; bodies " + totals.Bodies + ", sleeping " + totals.Sleeping + "; floating " + totals.Floating
+                + ", in liquid " + totals.InLiquid + "; idle sync: " + idle);
+
+            foreach (KeyValuePair<string, SyncedCounts> prefab in prefabs.OrderByDescending(entry => entry.Value.Count)
+                .ThenBy(entry => entry.Key, StringComparer.Ordinal).Take(15))
+            {
+                SyncedCounts count = prefab.Value;
+                lines.Add("synced prefab " + prefab.Key + ": " + count.Count + "; owner self/server/other/none "
+                    + count.Self + "/" + count.Server + "/" + count.Other + "/" + count.None
+                    + "; sleeping " + count.Sleeping + " of " + count.Bodies + " bodies; in liquid " + count.InLiquid
+                    + "; settled " + count.Settled);
+            }
+        }
+
+        private static void Add(SyncedCounts counts, OwnerBucket owner, bool hasBody, bool sleeping, bool floating, bool inLiquid, bool settled)
+        {
+            counts.Count++;
+            switch (owner)
+            {
+                case OwnerBucket.Self: counts.Self++; break;
+                case OwnerBucket.Server: counts.Server++; break;
+                case OwnerBucket.Other: counts.Other++; break;
+                case OwnerBucket.None: counts.None++; break;
+            }
+            if (hasBody) counts.Bodies++;
+            if (sleeping) counts.Sleeping++;
+            if (floating) counts.Floating++;
+            if (inLiquid) counts.InLiquid++;
+            if (settled) counts.Settled++;
+        }
+
+        private static OwnerBucket Bucket(long owner) => Owner(owner) switch
+        {
+            "self" => OwnerBucket.Self,
+            "server" => OwnerBucket.Server,
+            "none" => OwnerBucket.None,
+            _ => OwnerBucket.Other
+        };
+
         private static string Id(ZNetView? view) => view != null && view.GetZDO() != null ? view.GetZDO().m_uid.ToString() : "none";
 
         private static string Owner(ZNetView? view) => view != null && view.GetZDO() != null ? Owner(view.GetZDO().GetOwner()) : "no network object";
@@ -231,5 +316,12 @@ namespace DeepNorthCompat
         private static string Number(float value) => value.ToString("0.##", CultureInfo.InvariantCulture);
         private static string Signed(float value) => value.ToString("+0.##;-0.##;0", CultureInfo.InvariantCulture);
         internal static string Text(Vector3 value) => "(" + Number(value.x) + ", " + Number(value.y) + ", " + Number(value.z) + ")";
+
+        private enum OwnerBucket { Self, Server, Other, None }
+
+        private sealed class SyncedCounts
+        {
+            internal int Count, Self, Server, Other, None, Bodies, Sleeping, Floating, InLiquid, Settled;
+        }
     }
 }

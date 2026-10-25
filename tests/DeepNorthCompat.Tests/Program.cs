@@ -39,7 +39,7 @@ internal static class Program
     }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static void RunServer() { TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); ChestTests.Run(Lab, Test); TabAudioTests.RunServer(Test); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); ReportUploadTests.Run(Test); MyLittleUiAmmoTests.RunServer(Lab, Test); }
+    private static void RunServer() { TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); ChestTests.Run(Lab, Test); TabAudioTests.RunServer(Test); IdleSyncTests.RunServer(Test); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); ReportUploadTests.Run(Test); MyLittleUiAmmoTests.RunServer(Lab, Test); }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void RunChests() => ChestTests.Run(Lab, Test);
@@ -385,7 +385,7 @@ internal static class Program
             Check(errors.Count == 0, string.Join(Environment.NewLine, errors));
             // ImpactfulSkills 0.25.0 fixes the bow drain upstream, so the two Bow targets are not registered.
             bool bowFixedUpstream = impact.GetName().Version >= new System.Version(0, 25, 0, 0);
-            Check(applied.Count == (bowFixedUpstream ? 8 : 10), "expected Harmony target count");
+            Check(applied.Count == (bowFixedUpstream ? 10 : 12), "expected Harmony target count");
             Check(Harmony.GetAllPatchedMethods().Any(m => Harmony.GetPatchInfo(m)!.Owners.Contains("DeepNorthCompat.Bow")) != bowFixedUpstream,
                 "Bow hooks are installed only for builds that still double the skill factor");
             Check(verified.Count == 2, "expected parser transpiler count");
@@ -466,6 +466,7 @@ internal static class Program
         PipelineTests.Run(impact, assemblies["Azumatt.AzuCraftyBoxes"], Test);
         PreviewTests.Run(Lab, Test);
         TabAudioTests.Run(Test);
+        IdleSyncTests.Run(Test);
 
         foreach (string owner in Harmony.GetAllPatchedMethods().SelectMany(m => Harmony.GetPatchInfo(m)!.Owners)
             .Where(id => id.StartsWith("DeepNorthCompat.")).Distinct().ToArray())

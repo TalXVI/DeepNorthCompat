@@ -149,6 +149,7 @@ namespace DeepNorthCompat
                 AzuEpiPreviewPatch.Prepare(resolve(AzuEpiPreviewPatch.Owner));
             });
             InstallGroup("VPO.Burst", () => VpoBurstPatch.Prepare(resolve("dev.ontrigger.vpo")));
+            InstallGroup("Performance.IdleSync", IdleSyncPatch.Prepare);
             InstallGroup("RuneMagic.Ice", () => RuneIcePatch.Prepare(resolve(HearthTerrainPatch.RuneGuid)));
             InstallGroup("RuneMagic.SpriteMaterials", () => RuneSpritePatch.Prepare(resolve(HearthTerrainPatch.RuneGuid)));
             InstallGroup("UI.TabAudio", TabAudioPatch.Prepare);
@@ -189,6 +190,7 @@ namespace DeepNorthCompat
             ReforgedPotentialPatch.Verify();
             AzuEpiPreviewPatch.Verify();
             VpoBurstPatch.Verify();
+            IdleSyncPatch.Verify();
             RuneIcePatch.Verify();
             RuneSpritePatch.Verify();
             TabAudioPatch.Verify();
