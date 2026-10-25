@@ -1,8 +1,8 @@
 {
   "pluginGUID": "DeepNorthCompat",
   "pluginName": "DeepNorthCompat",
-  "version": "1.5.4",
-  "sha256": "3b5511492c832ec31709c2e0b0a9f9c2833c3b7d141904c69d96e778ae93b789",
+  "version": "1.5.5",
+  "sha256": "97b23d5d0a53a642d3d7abc10e91cc72ce8982c26e6a83e794c753e5af97d044",
   "offlineTestsPassed": 396,
   "offlineValidation": {
     "roles": {
@@ -63,12 +63,12 @@
     ".gitignore": "9d38957cb217a0af36f309d9954a700e544c6165643e7bd033f0da9b7a3dcbb4",
     "Directory.Build.props": "71269911e5cc1a5914868565b28040e601fcda19149f3bcdb28213734f2d60bb",
     "LICENSE": "966986d1e900bc9df9931249a795c872f0abdbabcca90cbf687b1b134dc0abb4",
-    "README.md": "56898ef10577f4e4326de1932a8cab51eb71d968b137f0291c82cfc29bd00027",
+    "README.md": "16f294794394c5ad3ac14fbe04e915638ad3959a4ae6f6984a452f68cc10a441",
     "global.json": "3df4ce55234dc6fd7b966086616b126278aa90858a78d9c2a7f5445f14712d29",
     "justfile": "5567e41c2d448eb02a5be34faf21831cf40441d65cb244df09b7ab2b29aa71b4",
-    "package/CHANGELOG.md": "770fd42f8960493bf303f9bf74b84c75303fda8a3b995f13e0024963dc095e80",
+    "package/CHANGELOG.md": "597105b576cb3fa81d515f0de3961a541360995b30f6ab612af1a22c4e25a867",
     "package/icon.png": "3f96bea2b17d577d0d6ed352fafbbd89a438a9795fbdb825aac588fd95b2b584",
-    "package/manifest.json": "add84e27fd129a3adb364d8bb1091ebfffe576076cca09417bc5faf5dbf5bd4e",
+    "package/manifest.json": "801fd8f728ce164af48c0d925b638314744ce430330e3048537bcf3d07c8a852",
     "scripts/build-and-test.py": "25eb4f13ec6e05bd190c4de32c31a4e5917cb1f2f8f1f47f7e26d7fefb2c720d",
     "scripts/package.py": "3efadf9a30fc05bcd3813828bddfad0a894dd6bf227171110f1714f83e09bca7",
     "scripts/prepare-local-server.py": "03dc4ed36ade534b3a27d89b833a129dc1824c19719de9ad035d196716bea580",
@@ -84,12 +84,12 @@
     "scripts/validation.py": "f0fdbdca1677b48c36b2e0d1ae0eae379547ad16f92a65ed820306aca7cf494a",
     "src/DeepNorthCompat/Calculations.cs": "be7832c58ce042f384c7cd7440fd68296f4d3ac75c581bdb46b8258ce5231588",
     "src/DeepNorthCompat/ChestDiagnostics.cs": "0dd8da57fcc57627c90b9afd88aa77b5c25307013e3f63e3754b09ed98d57681",
-    "src/DeepNorthCompat/CompatibilityInstaller.cs": "85f58870582ccc33b8e1d93b35f59ee9789b97e8489971e4525c31e97db1bff6",
-    "src/DeepNorthCompat/DeepNorthCompat.csproj": "5958a27e86d0cc9d4439bd7c4f58154aabef7309c5e67378ac8536c34b67f1ea",
+    "src/DeepNorthCompat/CompatibilityInstaller.cs": "884e6e5296f74147f134e918bc247db3706628c3063376ba36d64d8808afedb2",
+    "src/DeepNorthCompat/DeepNorthCompat.csproj": "712d87b5549c4d404c10aa9ef7b69682c3e6614ffc8cf425b3097ccf3b97a2f6",
     "src/DeepNorthCompat/DiagnosticReport.cs": "e42bd28a9a8335b630886096fec5ba0389d1c1372600d7035d4e2a538ab588ff",
     "src/DeepNorthCompat/ILMatch.cs": "35cc7e3601c6a0013761f60c195d7fce6a7cb1eedaacec95e17639f11977b03c",
     "src/DeepNorthCompat/ItemLedger.cs": "7ede1fcb73a9e0fa47e74f370013ccae39017b4b4bff930b5c882279da560347",
-    "src/DeepNorthCompat/Plugin.cs": "1aab939b3c0e4dc2f6a91a7f5d4772fbe3875bbb9ade921a97becf68dec0ad3d",
+    "src/DeepNorthCompat/Plugin.cs": "6741d222355f35d2517ac60d3e934a4484d31d78c44173336e4a40e04e982928",
     "src/DeepNorthCompat/ReportUpload.cs": "6953adc2423afe9edbc8643bab3c325f4706dd31f91fc602d79dcf6250d6ff73",
     "src/DeepNorthCompat/WorldProbe.cs": "2214a7272c725c9759a89c3bdddb8ca88256b69e686a65a717051a668f41b19c",
     "src/DeepNorthCompat/patches/AaaRecipeRowsPatch.cs": "c016b31c4d9938aa02936b079735509d14fff755253f6505a810538217bdeaa8",
@@ -118,7 +118,7 @@
     "src/DeepNorthCompat/patches/OdinShipPatch.cs": "590d9e5a676af95e6d3b3d89bf95613b76fb46cc9132baab27263327bf81675c",
     "src/DeepNorthCompat/patches/PlantEasilyCostPatch.cs": "27da8fb0dadb28172e4d42dee37df0b7f761ba103150f4ba7e3031d8a3ca8602",
     "src/DeepNorthCompat/patches/PlantEverythingDustPatch.cs": "343a8a9fcd0c7b979cb71fd60e60f8b5546ae6cb8089e93b8b8555817e052105",
-    "src/DeepNorthCompat/patches/QualityPatch.cs": "8494248241825738c8f91abbc4b31f4f1d3400eeb79c7fe21d7af84d5c3a3eb0",
+    "src/DeepNorthCompat/patches/QualityPatch.cs": "abc0642c04264b7caf04e91b2aab42607eca750d10695ee4ec4a24f47b654f16",
     "src/DeepNorthCompat/patches/ReforgedPotentialPatch.cs": "95c4adebe45d35930d1abfbd4fcfc0e88ab2c9b41a600649b9189aa3d0c51cca",
     "src/DeepNorthCompat/patches/RuneIcePatch.cs": "e63c9e3b0041fdabfde19f0c34c8836fdc69e2151c9fa905428a4f9530013ca1",
     "src/DeepNorthCompat/patches/RuneSpritePatch.cs": "d0b141bc3b9f15c3bed0950666aecc0201421e376e731344dcc4c93edc640644",
@@ -150,5 +150,5 @@
     "tests/DeepNorthCompat.Tests/VpoBurstTests.cs": "06ae26b49d4ca35bbea4e74825c503bc6c30553369773de32a038aea742f835f",
     "tests/DeepNorthCompat.Tests/WorldProbeTests.cs": "6c01be7d97300c28d977a06e7110ac470a4cfa7f670a658d18fad5b43c92f546"
   },
-  "sourceSha256": "efee70160ad9201863017879ddf8b15dcb3f224e6e1dd63cac46c0bbbc2b4807"
+  "sourceSha256": "d809c6eaebe231db648e86fc6a34ff4cf4ceecb13451b0f335fc3df15eade6c5"
 }

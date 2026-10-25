@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.5
+
+- Supports AAA Crafting 2.1.12. Quality-aware crafting, Forge of Potential speed, and recipe row cleanup still apply. Support for 2.1.11 remains.
+- The dedicated server and every client must run the same DeepNorthCompat version.
+
 ## 1.5.4
 
 - Supports PlantEasily 2.3.1. Planting grids still check every ingredient of a multi-ingredient recipe.
