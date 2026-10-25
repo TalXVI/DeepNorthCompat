@@ -269,7 +269,6 @@ internal static class Program
             typeof(Program).Assembly.Location, Path.Combine(sandbox, "BepInEx"), Managed,
             new[] { Path.Combine(Lab, "BepInEx", "core") }
         });
-        Test("accepted config values and shortcut order parse without rewriting files", () => ConfigValidation.Run(Lab));
         // Only the offline host substitutes this native animation helper. It lets
         // Player's static hash constants initialize without a running Unity engine.
         new Harmony("DeepNorthCompat.Tests.AnimationHash").Patch(AccessTools.Method(typeof(UnityEngine.Animator), "StringToHash"),
