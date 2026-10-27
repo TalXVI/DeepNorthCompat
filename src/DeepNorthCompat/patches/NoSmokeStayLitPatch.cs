@@ -18,7 +18,11 @@ namespace DeepNorthCompat
             if (assembly == null) { CompatibilityInstaller.Info("NoSmokeStayLit.Controls: optional mod absent; inactive."); return; }
             if (Guard.KnownServerBuild()) { CompatibilityInstaller.Info("NoSmokeStayLit.Controls: client-only; inactive on dedicated server."); return; }
 
-            Guard.Build(assembly, "933361CCDE2BD3BC74CA940F87F498DC8E2B48208748EDF6DEF1AF10384CFD00");
+            Guard.Build(assembly, new[]
+            {
+                "933361CCDE2BD3BC74CA940F87F498DC8E2B48208748EDF6DEF1AF10384CFD00",
+                "59F3F524CCF88D36FC35A634DDDCB2E895301DFFD37E0FFBFA7AA2D560895AD2"
+            });
             Guard.Build(typeof(Fireplace).Assembly, ExpectedBuilds.Valheim1020Client);
             target = Guard.Method(Guard.Type(assembly, "NoSmokeStayLit.TastyUtils"), "ToggleFireplaceMode", typeof(void), typeof(Fireplace));
             new Harmony(Owner).Patch(target, prefix: Guard.Hook(typeof(NoSmokeStayLitPatch), nameof(Claim)));

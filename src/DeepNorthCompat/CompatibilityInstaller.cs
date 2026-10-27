@@ -52,10 +52,14 @@ namespace DeepNorthCompat
             "5B9CD6A20531E33BCE52E4EFD37631A82B0F0AA40D66860D8E1CDDC597736F66",
             "C87ACCAF7E710BD2A13E4F766E4EBFACE9495EFDBC7CADB7C847C3707581ADB4"
         };
-        // 0.25.0 divides its bow reduction by the skill factor, so vanilla's multiplication applies it once.
-        internal const string ImpactfulSkillsBowFixed = "928DF592E04F489826DD823619FEDED6A04195CA38103855ED0C3F01C9EFC050";
+        // 0.25.0 and 0.26.0 divide their bow reduction by the skill factor, so vanilla applies it once.
+        internal static readonly string[] ImpactfulSkillsBowFixed =
+        {
+            "928DF592E04F489826DD823619FEDED6A04195CA38103855ED0C3F01C9EFC050",
+            "19B9E4268C68AF645A2812574797EA9579DFBF5E1B3D8AD9FCA3A23F07DF8164"
+        };
         internal static readonly string[] ImpactfulSkills =
-            ImpactfulSkillsBowDefect.Concat(new[] { ImpactfulSkillsBowFixed }).ToArray();
+            ImpactfulSkillsBowDefect.Concat(ImpactfulSkillsBowFixed).ToArray();
         internal static readonly string[] CraftyBoxes =
         {
             "432285A08AA0D43BBD89B36330BEDC19CB6EA93AED439E493D0287EDAECEDEB4",
@@ -121,7 +125,7 @@ namespace DeepNorthCompat
                 if (impact == null) { Info("Bow: ImpactfulSkills absent; inactive."); return; }
                 if (Guard.KnownServerBuild()) { Info("Bow: client-only patch; inactive on dedicated server."); return; }
                 Guard.Build(impact, ExpectedBuilds.ImpactfulSkills);
-                if (Guard.Sha256(impact.Location) == ExpectedBuilds.ImpactfulSkillsBowFixed)
+                if (ExpectedBuilds.ImpactfulSkillsBowFixed.Contains(Guard.Sha256(impact.Location)))
                 {
                     Info("Bow: fixed upstream in this ImpactfulSkills build; inactive.");
                     return;

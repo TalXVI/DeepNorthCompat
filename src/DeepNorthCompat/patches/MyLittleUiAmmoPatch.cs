@@ -13,7 +13,11 @@ namespace DeepNorthCompat
     {
         internal const string Guid = "shudnal.MyLittleUI";
         internal const string Owner = Plugin.Guid + ".MyLittleUI.AmmoCount";
-        private const string Build = "AF4A568F13719421D0FDB3A7984D8A89B05A7672BDD9E3F230A0542E6D978FE2";
+        private static readonly string[] Builds =
+        {
+            "AF4A568F13719421D0FDB3A7984D8A89B05A7672BDD9E3F230A0542E6D978FE2",
+            "22413D8E16C194BF97B566279F3BCF2E9525D3CC487CF2BAC33E9520219D48A6"
+        };
         private static readonly string[] GameHashes =
         {
             "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
@@ -33,7 +37,7 @@ namespace DeepNorthCompat
             if (pending || enabled) return;
             if (assembly == null) { CompatibilityInstaller.Info("MyLittleUI.AmmoCount: optional mod absent; inactive."); return; }
             if (Guard.KnownServerBuild()) { CompatibilityInstaller.Info("MyLittleUI.AmmoCount: client-only; inactive on dedicated server."); return; }
-            Guard.Build(assembly, Build);
+            Guard.Build(assembly, Builds);
             Guard.Build(typeof(Player).Assembly, GameHashes);
             Guard.Build(typeof(TMP_Text).Assembly, TmpHash);
             target = Guard.Method(Guard.Type(assembly, "MyLittleUI.AmmoCountIcon+ElementExtraData"), "UpdateState",
@@ -41,7 +45,7 @@ namespace DeepNorthCompat
             rewritten = null;
             new Harmony(Owner).Patch(target, transpiler: Guard.Hook(typeof(MyLittleUiAmmoPatch), nameof(Rewrite)));
             pending = true;
-            CompatibilityInstaller.Info("MyLittleUI.AmmoCount: 1.2.31 build verified; awaiting transpiler verification.");
+            CompatibilityInstaller.Info("MyLittleUI.AmmoCount: audited build verified; awaiting transpiler verification.");
         }
 
         internal static void Verify()

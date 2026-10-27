@@ -34,7 +34,7 @@ Requires ConditionalConfigSync 1.0.11 or newer. Install the same DeepNorthCompat
 
 Each fix is written against one exact build of the mods it touches:
 
-- ImpactfulSkills 0.21.1, 0.21.3, 0.22.0, 0.22.1, 0.23.0, 0.24.0, and 0.25.0
+- ImpactfulSkills 0.21.1, 0.21.3, 0.22.0, 0.22.1, 0.23.0, 0.24.0, 0.25.0, and 0.26.0
 - AzuCraftyBoxes 1.8.27 and 1.8.28
 - AAA Crafting 2.1.11 and 2.1.12 (forge speed and recipe row fixes on Valheim 1.0.20 Windows clients only)
 - ReforgedPotential 2.0.8 (chest crafting wait fix on Valheim 1.0.20 Windows clients)
@@ -51,9 +51,9 @@ Each fix is written against one exact build of the mods it touches:
 - CartographySkill 3.2.0 (for BetterMap's exploration integration)
 - TeleportEverything 3.0.9, 3.0.10, and 3.0.11 (configuration-panel input fix on Valheim 1.0.17 and 1.0.20 Windows clients)
 - PlantEasily 2.3.0 and 2.3.1 (grid cost fix on Valheim 1.0.17 and 1.0.20 Windows clients)
-- NoSmokeStayLit 2.4.3 (fireplace mode controls on Valheim 1.0.20 Windows clients)
+- NoSmokeStayLit 2.4.3 and 2.4.4 (fireplace mode controls on Valheim 1.0.20 Windows clients)
 - PlantEverything 1.21.3 and 1.21.4 with NoCultivatorDust 1.0.7 or NoBuildDust 1.0.7 (placement dust fix on Valheim 1.0.17 and 1.0.20 Windows clients)
-- My Little UI 1.2.31 (ammo count redraw fix on Valheim 1.0.17 and 1.0.20 Windows clients)
+- My Little UI 1.2.31 and 1.2.32 (ammo count redraw fix on Valheim 1.0.17 and 1.0.20 Windows clients)
 - HearthBelow 0.7.0, with RuneMagic 1.5.1 for the Foundation Rune (cut filling on Valheim 1.0.17 and 1.0.20 Windows clients and Windows/Linux dedicated servers)
 
 Mod patches only activate if the corresponding mod and supported version are present.

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.6
+
+- Supports ImpactfulSkills 0.26.0, My Little UI 1.2.32, and NoSmokeStayLit 2.4.4. Earlier supported builds remain supported.
+- The dedicated server and every client must run the same DeepNorthCompat version.
+
 ## 1.5.5
 
 - Supports AAA Crafting 2.1.12. Quality-aware crafting, Forge of Potential speed, and recipe row cleanup still apply. Support for 2.1.11 remains.
