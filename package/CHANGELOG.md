@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.7
+
+- Supports My Little UI 1.2.33 while retaining earlier supported builds.
+- Preserves Craft and Upgrade button vibration and sound timers with ValheimCommunityPatch 0.39.0's double-click fix.
+- The dedicated server and every client must run the same DeepNorthCompat version.
+
 ## 1.5.6
 
 - Supports ImpactfulSkills 0.26.0, My Little UI 1.2.32, and NoSmokeStayLit 2.4.4. Earlier supported builds remain supported.

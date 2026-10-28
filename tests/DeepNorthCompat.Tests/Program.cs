@@ -467,6 +467,7 @@ internal static class Program
         PipelineTests.Run(impact, assemblies["Azumatt.AzuCraftyBoxes"], Test);
         PreviewTests.Run(Lab, Test);
         TabAudioTests.Run(Test);
+        TabAudioTests.RunVcp(Lab, Test);
         IdleSyncTests.Run(Test);
 
         foreach (string owner in Harmony.GetAllPatchedMethods().SelectMany(m => Harmony.GetPatchInfo(m)!.Owners)

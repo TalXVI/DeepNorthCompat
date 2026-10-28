@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -150,6 +151,96 @@ internal static class TabAudioTests
         Check(!Harmony.GetAllPatchedMethods().Any(m => Harmony.GetPatchInfo(m)!.Owners.Contains(Ours)), "server has no UI hooks");
         Cleanup();
     });
+
+    internal static void RunVcp(string profile, Action<string, Action> test)
+    {
+        string? path = Directory.GetFiles(Path.Combine(profile, "BepInEx", "plugins"), "ValheimCommunityPatch.dll", SearchOption.AllDirectories).SingleOrDefault();
+        if (path == null) return;
+
+        Assembly vendor = Assembly.LoadFrom(path);
+        Type? group = vendor.GetType("ValheimCommunityPatch.Patches.Correctness.DoubleClickSoundPatch");
+        if (group == null) return;
+
+        test("tab audio preserves vibration and the sound timer with VCP's double-click fix", () =>
+        {
+            const string owner = "MidnightsFX.ValheimCommunityPatch";
+            string configPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".cfg");
+            var config = new BepInEx.Configuration.ConfigFile(configPath, false);
+            Type settings = vendor.GetType("ValheimCommunityPatch.ValConfig", true)!;
+            FieldInfo configField = AccessTools.Field(settings, "cfg");
+            object? previousConfig = configField.GetValue(null);
+            Player? previousPlayer = Player.m_localPlayer;
+
+            Cleanup();
+            try
+            {
+                configField.SetValue(null, config);
+                AccessTools.Method(group, "BindConfig").Invoke(null, null);
+                new Harmony(owner).CreateClassProcessor(group).Patch();
+                Prepare(); Verify();
+                new Harmony(Fixture).Patch(instantiate, prefix: Hook(nameof(Instantiate)));
+
+                var button = Fake<ButtonSfx>(1); var sound = Fake<GameObject>(2); var vibration = Fake<GameObject>(3);
+                button.m_sfxPrefab = sound;
+                Player.m_localPlayer = Fake<Player>(4);
+                var gui = Fake<InventoryGui>(5);
+                gui.m_setActiveGroupEffects = new EffectList
+                {
+                    m_effectPrefabs = new[] { new EffectList.EffectData { m_enabled = true, m_prefab = sound } }
+                };
+                AccessTools.Method(group, "SetActiveGroupPostfix").Invoke(null, new object[] { gui, true, true });
+                AccessTools.Field(Patch, "ticket").SetValue(null, NewTicket(button, sound, Time.frameCount));
+                SetTimer("m_sfxTimer", -100); SetTimer("m_vibrationTimer", -100);
+
+                play.Invoke(button, new object[] { sound, vibration });
+
+                Check(created.SequenceEqual(new[] { vibration }), "duplicate audio is skipped and vibration is retained");
+                Check(LastFrame("m_sfxTimer") == Time.frameCount && LastFrame("m_vibrationTimer") == Time.frameCount,
+                    "both original timers reset");
+            }
+            finally
+            {
+                new Harmony(owner).UnpatchSelf();
+                configField.SetValue(null, previousConfig);
+                Player.m_localPlayer = previousPlayer!;
+                Cleanup();
+                if (File.Exists(configPath)) File.Delete(configPath);
+            }
+        });
+
+        test("tab audio rejects duplicate VCP click hooks without removing them", () =>
+        {
+            const string owner = "MidnightsFX.ValheimCommunityPatch";
+            MethodInfo hook = AccessTools.Method(group, "PlaySfxPrefix");
+            Type installer = typeof(Plugin).Assembly.GetType("DeepNorthCompat.CompatibilityInstaller", true)!;
+            FieldInfo errorField = AccessTools.Field(installer, "Error");
+            object previousError = errorField.GetValue(null);
+            var errors = new List<string>();
+
+            Cleanup();
+            try
+            {
+                errorField.SetValue(null, new Action<string>(errors.Add));
+                var harmony = new Harmony(owner);
+                harmony.Patch(play, prefix: new HarmonyMethod(hook));
+                harmony.Patch(play, prefix: new HarmonyMethod(hook));
+                Prepare(); Verify();
+
+                Check(!(bool)AccessTools.Field(Patch, "enabled").GetValue(null), "ambiguous VCP hooks left the audio group enabled");
+                Check(errors.Count == 1 && errors[0].StartsWith("UI.TabAudio: NOT APPLIED"), "missing rejection diagnostic");
+                Check(Harmony.GetPatchInfo(play)!.Prefixes.Count(p => p.owner == owner && p.PatchMethod == hook) == 2,
+                    "rejection removed VCP hooks");
+                Check(!Harmony.GetAllPatchedMethods().Any(m => Harmony.GetPatchInfo(m)!.Owners.Contains(Ours)),
+                    "rejection left DNC hooks installed");
+            }
+            finally
+            {
+                new Harmony(owner).UnpatchSelf();
+                errorField.SetValue(null, previousError);
+                Cleanup();
+            }
+        });
+    }
 
     private static IEnumerable<CodeInstruction> Rewrite(IEnumerable<CodeInstruction> code) =>
         (IEnumerable<CodeInstruction>)AccessTools.Method(Patch,"Rewrite").Invoke(null,new object[]{code});

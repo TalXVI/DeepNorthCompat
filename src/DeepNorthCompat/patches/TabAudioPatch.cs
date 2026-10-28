@@ -20,7 +20,10 @@ namespace DeepNorthCompat
             ExpectedBuilds.Valheim1020Client
         };
         private const string GuiHash = "52846FCAE0C535D733711C13FDB8F214D303603B5DBF23D05B1ED6A8E475C9DD";
+        internal const string VcpOwner = "MidnightsFX.ValheimCommunityPatch";
+        private const string VcpHash = "C3726D510F6081D5BEAEAC4241E1AC107E2382069688055DECCF9E5418F58B46";
         private static readonly FieldInfo timer = AccessTools.Field(typeof(ButtonSfx), "m_sfxTimer");
+        private static readonly MethodInfo play = AccessTools.DeclaredMethod(typeof(ButtonSfx), "PlaySfx");
         private static readonly MethodInfo buttonSound = AccessTools.DeclaredMethod(typeof(TabAudioPatch), nameof(CreateButtonSound));
         private static bool pending, enabled;
         private static bool? rewritten;
@@ -73,8 +76,43 @@ namespace DeepNorthCompat
             }
 
             enabled = true;
+            try
+            {
+                InstallVcp();
+            }
+            catch (Exception error)
+            {
+                enabled = false;
+                new Harmony(Owner).UnpatchSelf();
+                scope = null; ticket = null;
+                CompatibilityInstaller.Error("UI.TabAudio: NOT APPLIED; VCP click compatibility could not be verified. " + error);
+                return;
+            }
+
             CompatibilityInstaller.Info("UI.TabAudio: APPLIED; Craft/Upgrade retain the active-group click and skip only its identical button click; timers and vibration retained.");
         }
+
+        private static void InstallVcp()
+        {
+            Patch[] matches = Harmony.GetPatchInfo(play)?.Prefixes.Where(p => p.owner == VcpOwner &&
+                p.PatchMethod.DeclaringType?.FullName == "ValheimCommunityPatch.Patches.Correctness.DoubleClickSoundPatch" &&
+                p.PatchMethod.Name == "PlaySfxPrefix").ToArray() ?? Array.Empty<Patch>();
+            if (matches.Length == 0) return;
+
+            if (matches.Length != 1) throw new InvalidOperationException("VCP registered the click prefix more than once.");
+            MethodInfo hook = matches[0].PatchMethod;
+            Guard.Build(hook.DeclaringType!.Assembly, VcpHash);
+            Guard.Method(hook.DeclaringType, hook.Name, typeof(void), typeof(ButtonSfx), typeof(GameObject).MakeByRefType(),
+                typeof(GameObject).MakeByRefType(), typeof(bool));
+            // VCP clears both prefabs. A matching ticket lets this group suppress only the duplicate audio.
+            MethodInfo replacement = AccessTools.DeclaredMethod(typeof(TabAudioPatch), nameof(SkipVcpDuplicate));
+            new Harmony(Owner).Patch(hook, prefix: new HarmonyMethod(replacement));
+            if (Harmony.GetPatchInfo(hook)?.Prefixes.Count(p => p.owner == Owner && p.PatchMethod == replacement) != 1)
+                throw new InvalidOperationException("The VCP click compatibility prefix did not install.");
+        }
+
+        private static bool SkipVcpDuplicate(ButtonSfx __0, ref GameObject __1) =>
+            !enabled || ticket == null || !ticket.Matches(__0, __1, Time.frameCount);
 
         private static void BeginCraft(InventoryGui __instance, out Scope? __state) => Begin(__instance, __instance.m_tabCraft, out __state);
         private static void BeginUpgrade(InventoryGui __instance, out Scope? __state) => Begin(__instance, __instance.m_tabUpgrade, out __state);
@@ -193,9 +231,11 @@ namespace DeepNorthCompat
         private bool consumed;
         internal TabAudioTicket(ButtonSfx button, GameObject prefab, int frame)
         { this.button = button; this.prefab = prefab; this.frame = frame; }
+        internal bool Matches(ButtonSfx source, GameObject effect, int currentFrame) =>
+            !consumed && frame == currentFrame && ReferenceEquals(button, source) && ReferenceEquals(prefab, effect);
         internal bool Consume(ButtonSfx source, GameObject effect, int currentFrame)
         {
-            if (consumed || frame != currentFrame || !ReferenceEquals(button, source) || !ReferenceEquals(prefab, effect)) return false;
+            if (!Matches(source, effect, currentFrame)) return false;
             consumed = true;
             return true;
         }
