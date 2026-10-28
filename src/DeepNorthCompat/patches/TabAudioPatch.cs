@@ -17,11 +17,20 @@ namespace DeepNorthCompat
         private static readonly string[] GameHashes =
         {
             "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
-            ExpectedBuilds.Valheim1020Client
+            ExpectedBuilds.Valheim1020Client,
+            GameBuilds.Valheim1021Client
         };
-        private const string GuiHash = "52846FCAE0C535D733711C13FDB8F214D303603B5DBF23D05B1ED6A8E475C9DD";
+        private static readonly string[] GuiHashes =
+        {
+            "52846FCAE0C535D733711C13FDB8F214D303603B5DBF23D05B1ED6A8E475C9DD",
+            "08A5AEA10B3E8BF20B60B3AB545B6CB8550DB8B12CFF05E32C90BDD9F45DC244"
+        };
         internal const string VcpOwner = "MidnightsFX.ValheimCommunityPatch";
-        private const string VcpHash = "C3726D510F6081D5BEAEAC4241E1AC107E2382069688055DECCF9E5418F58B46";
+        private static readonly string[] VcpHashes =
+        {
+            "C3726D510F6081D5BEAEAC4241E1AC107E2382069688055DECCF9E5418F58B46",
+            "640638095848ED8FDF770F7C876B4940D0081E5124D684E3B0B9118660FEB9E4"
+        };
         private static readonly FieldInfo timer = AccessTools.Field(typeof(ButtonSfx), "m_sfxTimer");
         private static readonly MethodInfo play = AccessTools.DeclaredMethod(typeof(ButtonSfx), "PlaySfx");
         private static readonly MethodInfo buttonSound = AccessTools.DeclaredMethod(typeof(TabAudioPatch), nameof(CreateButtonSound));
@@ -43,7 +52,7 @@ namespace DeepNorthCompat
             }
 
             Guard.Build(typeof(InventoryGui).Assembly, GameHashes);
-            Guard.Build(typeof(ButtonSfx).Assembly, GuiHash);
+            Guard.Build(typeof(ButtonSfx).Assembly, GuiHashes);
 
             var harmony = new Harmony(Owner);
             foreach (string tab in new[] { "Craft", "Upgrade" })
@@ -101,7 +110,7 @@ namespace DeepNorthCompat
 
             if (matches.Length != 1) throw new InvalidOperationException("VCP registered the click prefix more than once.");
             MethodInfo hook = matches[0].PatchMethod;
-            Guard.Build(hook.DeclaringType!.Assembly, VcpHash);
+            Guard.Build(hook.DeclaringType!.Assembly, VcpHashes);
             Guard.Method(hook.DeclaringType, hook.Name, typeof(void), typeof(ButtonSfx), typeof(GameObject).MakeByRefType(),
                 typeof(GameObject).MakeByRefType(), typeof(bool));
             // VCP clears both prefabs. A matching ticket lets this group suppress only the duplicate audio.

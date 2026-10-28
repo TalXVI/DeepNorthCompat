@@ -37,7 +37,7 @@ namespace DeepNorthCompat
                 return;
             }
 
-            Guard.Build(typeof(ZSyncTransform).Assembly, ExpectedBuilds.Valheim1020Client);
+            Guard.Build(typeof(ZSyncTransform).Assembly, ExpectedBuilds.Valheim1020Client, GameBuilds.Valheim1021Client);
             clientSync = Guard.Method(typeof(ZSyncTransform), "ClientSync", typeof(void), typeof(float));
             onDisable = Guard.Method(typeof(ZSyncTransform), "OnDisable", typeof(void));
             netView = AccessTools.FieldRefAccess<ZSyncTransform, ZNetView>(Field("m_nview", typeof(ZNetView)));

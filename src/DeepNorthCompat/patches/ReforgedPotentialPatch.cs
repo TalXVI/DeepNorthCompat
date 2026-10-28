@@ -32,7 +32,7 @@ namespace DeepNorthCompat
                 return;
             }
             Guard.Build(vendor, VendorHash);
-            Guard.Build(typeof(InventoryGui).Assembly, ExpectedBuilds.Valheim1020Client);
+            Guard.Build(typeof(InventoryGui).Assembly, ExpectedBuilds.Valheim1020Client, GameBuilds.Valheim1021Client);
             Type gui = Guard.Type(vendor, "ReforgedPotential.ReforgedPotential+InventoryGuiPatch");
             target = Guard.Method(typeof(InventoryGui), "DoCrafting", typeof(void), typeof(Player));
             vendorCraft = Guard.Method(gui, "DoCraftingPrefix", typeof(bool), typeof(InventoryGui), typeof(Player));

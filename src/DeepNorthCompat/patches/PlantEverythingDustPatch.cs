@@ -28,7 +28,7 @@ namespace DeepNorthCompat
             if (buildDust != null) Guard.Build(buildDust, ExpectedBuilds.NoBuildDust);
             Guard.Build(typeof(Piece).Assembly,
                 "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
-                ExpectedBuilds.Valheim1020Client);
+                ExpectedBuilds.Valheim1020Client, GameBuilds.Valheim1021Client);
             Type entry = Guard.Type(assembly, "Advize_PlantEverything.PieceDB");
             piece = Guard.Method(entry, "get_Piece", typeof(Piece));
             pieces = AccessTools.DeclaredField(Guard.Type(assembly, "Advize_PlantEverything.StaticMembers"), "pieceRefs");

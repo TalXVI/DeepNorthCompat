@@ -19,7 +19,7 @@ namespace DeepNorthCompat
             Guard.Build(assembly, ExpectedBuilds.TeleportEverything);
             Guard.Build(typeof(Player).Assembly,
                 "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
-                ExpectedBuilds.Valheim1020Client);
+                ExpectedBuilds.Valheim1020Client, GameBuilds.Valheim1021Client);
             blockInput = Guard.Method(Guard.Type(assembly, "TeleportEverything.Patches.CharacterPatches"),
                 "Postfix", typeof(void), typeof(Character), typeof(bool).MakeByRefType());
             target = Guard.Method(typeof(Player), "TakeInput", typeof(bool));

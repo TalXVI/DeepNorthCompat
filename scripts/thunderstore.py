@@ -32,8 +32,9 @@ def check_sources(manifest):
     except UnicodeDecodeError:
         require(False, "README.md must be UTF-8")
     # Uploaded versions are immutable, so the DLL and changelog must describe this exact version.
-    project = (ROOT / "src/DeepNorthCompat/DeepNorthCompat.csproj").read_text(encoding="utf-8")
-    require(f"<Version>{version}</Version>" in project, f"DeepNorthCompat.csproj <Version> is not {version}")
+    for name in ("DeepNorthCompat", "DeepNorthCompat.Preloader"):
+        project = (ROOT / "src" / name / (name + ".csproj")).read_text(encoding="utf-8")
+        require(f"<Version>{version}</Version>" in project, f"{name}.csproj <Version> is not {version}")
     plugin = (ROOT / "src/DeepNorthCompat/Plugin.cs").read_text(encoding="utf-8")
     require(f'"DeepNorthCompat", "{version}")]' in plugin, f"Plugin.cs BepInPlugin version is not {version}")
     changelog = (PACKAGE / "CHANGELOG.md").read_text(encoding="utf-8")

@@ -1,4 +1,4 @@
-"""Bind a validated DLL to source bytes without a self-referential commit field."""
+"""Bind validated DLLs to source bytes without a self-referential commit field."""
 import hashlib
 import json
 import subprocess

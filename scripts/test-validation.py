@@ -82,6 +82,9 @@ class ValidationTests(unittest.TestCase):
             (root / "package/manifest.json").write_text(json.dumps({"version_number": "1.2.3"}))
             built = root / "src/DeepNorthCompat/bin/Release/net48/DeepNorthCompat.dll"
             built.parent.mkdir(parents=True); built.write_bytes(b"owned candidate fixture")
+            preloader = root / "src/DeepNorthCompat.Preloader/bin/Release/net48/DeepNorthCompat.Preloader.dll"
+            preloader.parent.mkdir(parents=True)
+            preloader.write_bytes(b"owned preloader fixture")
             approval = root / "package/validated-build.json"
             with patch.object(build, "ROOT", root):
                 for evidence in invalid:

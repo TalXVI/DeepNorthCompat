@@ -10,6 +10,7 @@ It currently fixes bugs and incompatibilities involving:
 - ReforgedPotential Forge of Potential upgrades, which removed the item being upgraded before the chests holding the ingredients had handed over their contents.
 - ImpactfulSkills bow stamina scaling and tooltip reporting, in builds before 0.25.0.
 - SeaAnimals and AirAnimals custom creature drop ranges.
+- The removed Valheim 1.0.21 stats API used by AzuEPI, Unshamed, and BetterUI.
 - AzuEPI inventory character preview, which restarted its animation whenever a nearby creature or player changed equipment.
 - Deep North profile policy that disables ValheimTune on clients after its configuration binds.
 - VPO native water-wave initialization on Windows dedicated servers.
@@ -28,37 +29,40 @@ It currently fixes bugs and incompatibilities involving:
 
 Requires ConditionalConfigSync 1.0.11 or newer. Install the same DeepNorthCompat version and ConditionalConfigSync on the dedicated server and every client, then restart.
 
+Extract the complete package. Keep `DeepNorthCompat.dll` in `BepInEx/plugins/DeepNorthCompat/` and `DeepNorthCompat.Preloader.dll` in `BepInEx/patchers/DeepNorthCompat/`. The preloader restores the old stats API on audited 1.0.21 builds only when an installed plugin or patcher references it. It stays inactive when there is no consumer or the game already provides the API.
+
 ## Supported versions
 
-- Valheim 1.0.16, 1.0.17, and 1.0.20 on Windows clients and Windows/Linux dedicated servers
+- Valheim 1.0.16, 1.0.17, 1.0.20, and 1.0.21 on Windows clients and Windows/Linux dedicated servers
 
 Each fix is written against one exact build of the mods it touches:
 
 - ImpactfulSkills 0.21.1, 0.21.3, 0.22.0, 0.22.1, 0.23.0, 0.24.0, 0.25.0, and 0.26.0
 - AzuCraftyBoxes 1.8.27 and 1.8.28
-- AAA Crafting 2.1.11 and 2.1.12 (forge speed and recipe row fixes on Valheim 1.0.20 Windows clients only)
-- ReforgedPotential 2.0.8 (chest crafting wait fix on Valheim 1.0.20 Windows clients)
+- AAA Crafting 2.1.11 and 2.1.12 (forge speed and recipe row fixes on Valheim 1.0.20 and 1.0.21 Windows clients only)
+- ReforgedPotential 2.0.8 (chest crafting wait fix on Valheim 1.0.20 and 1.0.21 Windows clients)
 - SeaAnimals 0.3.9
 - AirAnimals 0.3.2
 - AzuEPI 2.6.3 and 2.6.4
 - ValheimTune 0.7.8, 0.7.9, and 0.7.10
 - ValheimPerformanceOptimizations 1.2.3
-- RuneMagic 1.5.1 for water-walking ice initialization and rune sprite materials on Valheim 1.0.20 Windows clients and Windows/Linux dedicated servers
+- RuneMagic 1.5.1 for water-walking ice initialization and rune sprite materials on Valheim 1.0.20 and 1.0.21 Windows clients and Windows/Linux dedicated servers
 - MultiUserChest 0.6.2
 - Quick Stack - Store - Sort - Trash - Restock 1.4.15 and 1.4.16
 - OdinShip 0.8.7
 - BetterMap 1.1.0
 - CartographySkill 3.2.0 (for BetterMap's exploration integration)
-- TeleportEverything 3.0.9, 3.0.10, and 3.0.11 (configuration-panel input fix on Valheim 1.0.17 and 1.0.20 Windows clients)
-- PlantEasily 2.3.0 and 2.3.1 (grid cost fix on Valheim 1.0.17 and 1.0.20 Windows clients)
-- NoSmokeStayLit 2.4.3 and 2.4.4 (fireplace mode controls on Valheim 1.0.20 Windows clients)
-- PlantEverything 1.21.3 and 1.21.4 with NoCultivatorDust 1.0.7 or NoBuildDust 1.0.7 (placement dust fix on Valheim 1.0.17 and 1.0.20 Windows clients)
-- My Little UI 1.2.31, 1.2.32 and 1.2.33 (ammo count redraw fix on Valheim 1.0.17 and 1.0.20 Windows clients)
-- HearthBelow 0.7.0, with RuneMagic 1.5.1 for the Foundation Rune (cut filling on Valheim 1.0.17 and 1.0.20 Windows clients and Windows/Linux dedicated servers)
+- TeleportEverything 3.0.9, 3.0.10, and 3.0.11 (configuration-panel input fix on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients)
+- PlantEasily 2.3.0 and 2.3.1 (grid cost fix on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients)
+- NoSmokeStayLit 2.4.3 and 2.4.4 (fireplace mode controls on Valheim 1.0.20 and 1.0.21 Windows clients)
+- PlantEverything 1.21.3 and 1.21.4 with NoCultivatorDust 1.0.7 or NoBuildDust 1.0.7 (placement dust fix on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients)
+- ValheimCommunityPatch 0.39.0 and 0.39.1 for Craft/Upgrade button audio, vibration, and timers
+- My Little UI 1.2.31, 1.2.32 and 1.2.33 (ammo count redraw fix on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients)
+- HearthBelow 0.7.0, with RuneMagic 1.5.1 for the Foundation Rune (cut filling on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients and Windows/Linux dedicated servers)
 
 Mod patches only activate if the corresponding mod and supported version are present.
 
-On Valheim 1.0.20 Windows clients with AAA Crafting 2.1.11 or 2.1.12, the Forge of Potential uses AAA Crafting's `Crafting Speed` when `Override Crafting Speed` is on. The existing crafting skill reduction still applies.
+On Valheim 1.0.20 and 1.0.21 Windows clients with AAA Crafting 2.1.11 or 2.1.12, the Forge of Potential uses AAA Crafting's `Crafting Speed` when `Override Crafting Speed` is on. The existing crafting skill reduction still applies.
 
 The `Forge of Potential speed` setting defaults to `true`. To disable it, set `Forge of Potential speed = false` in the `[Crafting]` section of `BepInEx/config/DeepNorthCompat.cfg`. With ReforgedPotential installed, turning it off makes the Forge of Potential use ReforgedPotential's upgrade crafting time instead.
 

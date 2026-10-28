@@ -23,7 +23,7 @@ namespace DeepNorthCompat
                 "933361CCDE2BD3BC74CA940F87F498DC8E2B48208748EDF6DEF1AF10384CFD00",
                 "59F3F524CCF88D36FC35A634DDDCB2E895301DFFD37E0FFBFA7AA2D560895AD2"
             });
-            Guard.Build(typeof(Fireplace).Assembly, ExpectedBuilds.Valheim1020Client);
+            Guard.Build(typeof(Fireplace).Assembly, ExpectedBuilds.Valheim1020Client, GameBuilds.Valheim1021Client);
             target = Guard.Method(Guard.Type(assembly, "NoSmokeStayLit.TastyUtils"), "ToggleFireplaceMode", typeof(void), typeof(Fireplace));
             new Harmony(Owner).Patch(target, prefix: Guard.Hook(typeof(NoSmokeStayLitPatch), nameof(Claim)));
             Guard.Registered(target);

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.8
+
+- Supports Valheim 1.0.21 Windows clients and Windows/Linux dedicated servers, and ValheimCommunityPatch 0.39.1. Earlier supported builds remain supported.
+- Restores the removed stats API used by AzuEPI, Unshamed, and BetterUI through a preloader DLL. It preserves the previous difficulty selection and stays inactive when no installed mod needs it or the game already provides the API. Extract the complete package to install both DLLs.
+- The dedicated server and every client must run the same DeepNorthCompat version.
+
 ## 1.5.7
 
 - Supports My Little UI 1.2.33 while retaining earlier supported builds.

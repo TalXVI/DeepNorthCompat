@@ -46,7 +46,7 @@ namespace DeepNorthCompat
                 return;
             }
             Guard.Build(assembly, ExpectedBuilds.AAACrafting);
-            Guard.Build(typeof(InventoryGui).Assembly, ExpectedBuilds.Valheim1020Client);
+            Guard.Build(typeof(InventoryGui).Assembly, ExpectedBuilds.Valheim1020Client, GameBuilds.Valheim1021Client);
             Type plugin = Guard.Type(assembly, "AzuAntiArthriticCrafting.AzuAntiArthriticCraftingPlugin");
             Type toggle = Guard.Type(assembly, plugin.FullName + "+Toggle");
             FieldInfo enabled = AccessTools.Field(plugin, "OverrideCraftingDuration");

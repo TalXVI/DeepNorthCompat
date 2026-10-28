@@ -2,10 +2,11 @@
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
     <AssemblyName>DeepNorthCompat</AssemblyName>
-    <Version>1.5.7</Version>
+    <Version>1.5.8</Version>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../GameBuilds.cs" Link="GameBuilds.cs" />
     <Reference Include="BepInEx"><HintPath>$(LabPath)\BepInEx\core\BepInEx.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="0Harmony"><HintPath>$(LabPath)\BepInEx\core\0Harmony.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="ConditionalConfigSync"><HintPath>$(LabPath)\BepInEx\plugins\shudnal-ConditionalConfigSync\ConditionalConfigSync.dll</HintPath><Private>false</Private></Reference>

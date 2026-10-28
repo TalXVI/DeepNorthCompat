@@ -10,7 +10,7 @@ namespace DeepNorthCompat
 {
     internal static class ExpectedBuilds
     {
-        // The audited Valheim 1.0.20 Windows client. Valheim also accepts the 1.0.16 and 1.0.17 clients.
+        // Exact audited Windows clients. Older supported builds remain in each group's guard.
         internal const string Valheim1020Client = "94998885B103D6E5F5480123EAEE0A093E82AF2DDEEEE37536C15BF555F24F3A";
         internal const string BetterMap = "BB0A0A2E4E9EA2B388CD55F486A61057BF57F982D5647AA649375D4B1E7BAE04";
         internal const string Cartography = "2379F6884BEC32843DAFA1306F693CAD8FC2FB1208E9D2BEE3D3745EFB2DC529";
@@ -32,7 +32,7 @@ namespace DeepNorthCompat
         };
         internal const string NoCultivatorDust = "D3761A25915D573207BF529C7DEF9372E2CABFEBEBFDC932D799837126F4EEB3";
         internal const string NoBuildDust = "80329CE6E96341F59D2CE9C77E4F1826E19B8D171473332A007B68AEA0963604";
-        // BetterMap integration was audited against these 1.0.17 and 1.0.20 client/server builds.
+        // BetterMap integration was audited against these 1.0.17, 1.0.20, and 1.0.21 client/server builds.
         internal static readonly string[] BetterMapGame =
         {
             "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
@@ -40,7 +40,10 @@ namespace DeepNorthCompat
             "E7220DC5D9CF9D38270E751352D94918308E59CCA86E56C4BDA0210016C847FA",
             Valheim1020Client,
             "EF8C8D3A1F45694EF7A701E8E2A25BF8A3874C951A2639C81DFE614CE3AA5FA3",
-            "C36B81C1733C48D00DD567E41010E6DC95F8DAC877E0701CDB6B8C213ADE7812"
+            "C36B81C1733C48D00DD567E41010E6DC95F8DAC877E0701CDB6B8C213ADE7812",
+            GameBuilds.Valheim1021Client,
+            GameBuilds.Valheim1021WindowsServer,
+            GameBuilds.Valheim1021LinuxServer
         };
         // Builds 0.21.1 through 0.24.0 apply the skill factor twice to the bow draw drain; BowPatch corrects it.
         internal static readonly string[] ImpactfulSkillsBowDefect =
@@ -72,12 +75,13 @@ namespace DeepNorthCompat
         };
         internal const string SeaAnimals = "3F57F6AD089D5616A924D5917851A0A7C99715CC0B2062EF23B2FA15D07C721A";
         internal const string AirAnimals = "B29905FFDA5204570D64958CB18D74E08D7CEE8AA361485E1D988B54242F2F85";
-        // Audited 1.0.16, 1.0.17, and 1.0.20 clients.
+        // Audited 1.0.16, 1.0.17, 1.0.20, and 1.0.21 clients.
         internal static readonly string[] Valheim =
         {
             "96CFC004F7F4A6F30D070BEF39EAFD79C466A137121C4665A2F19FB9C15C6127",
             "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
-            Valheim1020Client
+            Valheim1020Client,
+            GameBuilds.Valheim1021Client
         };
         internal static readonly string[] AzuEpi =
         {
@@ -85,7 +89,7 @@ namespace DeepNorthCompat
             "BA743704019F1C693A53A445162C95965854B55EDDC83C5EA45C8F66D938FA5F"
         };
         internal const string OdinShip = "5D5817BC169677DB49CAE55986B3F6A178AB3BF0B1D681A2ABA4ECC5DAC067D0";
-        // OdinShip integration was inspected against these 1.0.17 and 1.0.20 roles.
+        // OdinShip integration was inspected against these 1.0.17, 1.0.20, and 1.0.21 roles.
         internal static readonly string[] OdinShipGame =
         {
             "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
@@ -93,7 +97,10 @@ namespace DeepNorthCompat
             "E7220DC5D9CF9D38270E751352D94918308E59CCA86E56C4BDA0210016C847FA",
             Valheim1020Client,
             "EF8C8D3A1F45694EF7A701E8E2A25BF8A3874C951A2639C81DFE614CE3AA5FA3",
-            "C36B81C1733C48D00DD567E41010E6DC95F8DAC877E0701CDB6B8C213ADE7812"
+            "C36B81C1733C48D00DD567E41010E6DC95F8DAC877E0701CDB6B8C213ADE7812",
+            GameBuilds.Valheim1021Client,
+            GameBuilds.Valheim1021WindowsServer,
+            GameBuilds.Valheim1021LinuxServer
         };
         internal static readonly string[] Server =
         {
@@ -102,7 +109,9 @@ namespace DeepNorthCompat
             "0DFC7E81436F822121148EFED859BA1E661D58B9484BD45E3B6F33B6DD86BFAD",
             "E7220DC5D9CF9D38270E751352D94918308E59CCA86E56C4BDA0210016C847FA",
             "EF8C8D3A1F45694EF7A701E8E2A25BF8A3874C951A2639C81DFE614CE3AA5FA3",
-            "C36B81C1733C48D00DD567E41010E6DC95F8DAC877E0701CDB6B8C213ADE7812"
+            "C36B81C1733C48D00DD567E41010E6DC95F8DAC877E0701CDB6B8C213ADE7812",
+            GameBuilds.Valheim1021WindowsServer,
+            GameBuilds.Valheim1021LinuxServer
         };
     }
 

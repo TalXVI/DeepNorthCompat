@@ -10,7 +10,7 @@ import sys
 
 from thunderstore import check_sources
 from provenance import source_files, fingerprint
-from tooling import ROOT, child_environment, installation_paths, reference_assemblies
+from tooling import ARTIFACTS, ROOT, child_environment, installation_paths, reference_assemblies
 from validation import check_validation, read_summary
 
 
@@ -72,10 +72,11 @@ def approve(validation):
     """Record the DLL that just passed the full suite as the one packaging may ship."""
     check_validation(validation, require_server=True)
     manifest = json.loads((ROOT / "package/manifest.json").read_text(encoding="utf-8"))
-    built = ROOT / "src/DeepNorthCompat/bin/Release/net48/DeepNorthCompat.dll"
     approved = {"pluginGUID": "DeepNorthCompat", "pluginName": "DeepNorthCompat",
-                "version": manifest["version_number"], "sha256": hashlib.sha256(built.read_bytes()).hexdigest(),
+                "version": manifest["version_number"],
                 "offlineTestsPassed": validation["testCasesPassed"], "offlineValidation": validation}
+    approved.update({key: hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
+                     for key, (path, _) in ARTIFACTS.items()})
     files = source_files()
     approved["sourceFiles"] = files
     approved["sourceSha256"] = fingerprint(files)

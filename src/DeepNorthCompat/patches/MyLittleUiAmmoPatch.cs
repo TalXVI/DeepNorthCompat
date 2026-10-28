@@ -22,7 +22,8 @@ namespace DeepNorthCompat
         private static readonly string[] GameHashes =
         {
             "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
-            ExpectedBuilds.Valheim1020Client
+            ExpectedBuilds.Valheim1020Client,
+            GameBuilds.Valheim1021Client
         };
         private const string TmpHash = "719A2E22767F1A9C7B92F47AEA2F58550FAE2E76189F99181757B04A3595E181";
         private static readonly MethodInfo setText = AccessTools.Method(typeof(TMP_Text), nameof(TMP_Text.SetText), new[] { typeof(string) });

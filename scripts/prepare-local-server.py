@@ -56,14 +56,16 @@ def main():
         source = lab / "BepInEx" / name
         if source.is_dir():
             shutil.copytree(source, bepinex / name)
-    allowed = {"DeepNorthCompat": "DeepNorthCompat.dll", "Serverbound": "Serverbound.dll", "ValheimTune": "ValheimTune.dll"}
+    allowed = {"DeepNorthCompat": {"DeepNorthCompat.dll", "DeepNorthCompat.Preloader.dll"},
+               "Serverbound": {"Serverbound.dll"}, "ValheimTune": {"ValheimTune.dll"}}
     for package in args.extra_package:
         with zipfile.ZipFile(package) as archive:
             manifest = json.loads(archive.read("manifest.json"))
             name = manifest["name"]
             require(name in allowed, "Only the supported integration candidates may be overlaid")
             dlls = [entry for entry in archive.namelist() if entry.lower().endswith(".dll")]
-            require(len(dlls) == 1 and Path(dlls[0]).name == allowed[name], "Candidate package DLL does not match its identity")
+            require(len(dlls) == len(allowed[name]) and {Path(entry).name for entry in dlls} == allowed[name],
+                    "Candidate package DLLs do not match its identity")
             if name == "Serverbound":
                 for filename in ("Serverside_Simulations.dll", "Valheim_Serverside.dll", "SarkasticGG_Dedicated_Simulation.dll"):
                     for old in (bepinex / "plugins").rglob(filename):
@@ -71,11 +73,16 @@ def main():
                 legacy = bepinex / "config/MVP.Valheim_Serverside_Simulations.cfg"
                 if legacy.is_file():
                     shutil.copy2(legacy, bepinex / "config/org.serverbound.valheim.cfg")
-            for old in (bepinex / "plugins").rglob(allowed[name]):
-                old.unlink()
-            target = bepinex / "plugins" / name / allowed[name]
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(archive.read(dlls[0]))
+            for entry in dlls:
+                filename = Path(entry).name
+                directory = bepinex / ("patchers" if filename == "DeepNorthCompat.Preloader.dll" else "plugins")
+
+                for old in directory.rglob(filename):
+                    old.unlink()
+
+                target = directory / name / filename
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(archive.read(entry))
     for name in ("winhttp.dll", "doorstop_config.ini", ".doorstop_version"):
         if (lab / name).is_file():
             shutil.copy2(lab / name, runtime / name)

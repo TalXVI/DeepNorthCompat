@@ -11,12 +11,11 @@ import zipfile
 
 from thunderstore import check_sources
 from provenance import verify_sources
-from tooling import require
+from tooling import ARTIFACTS, require
 from validation import check_approval
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "package"
-DLL_MEMBER = "BepInEx/plugins/DeepNorthCompat/DeepNorthCompat.dll"
 
 
 def main():
@@ -26,16 +25,18 @@ def main():
     check_sources(manifest)
     verify_sources(approved)
     require(manifest["version_number"] == approved["version"], "Manifest version differs from the approved build")
-    built = ROOT / "src/DeepNorthCompat/bin/Release/net48/DeepNorthCompat.dll"
     require(approved["pluginGUID"] == manifest["name"] == "DeepNorthCompat", "Plugin identity changed")
-    require(hashlib.sha256(built.read_bytes()).hexdigest() == approved["sha256"],
-            "Build differs from the approved DLL. Revalidate before changing the package hash.")
-    payload = PACKAGE / DLL_MEMBER
-    payload.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(built, payload)
+    for key, (path, member) in ARTIFACTS.items():
+        built = ROOT / path
+        require(hashlib.sha256(built.read_bytes()).hexdigest() == approved[key],
+                f"{built.name} differs from the approved DLL. Revalidate before packaging.")
+        payload = PACKAGE / member
+        payload.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(built, payload)
+
     shutil.copyfile(ROOT / "README.md", PACKAGE / "README.md")
     shutil.copyfile(ROOT / "LICENSE", PACKAGE / "LICENSE")
-    members = ["manifest.json", "README.md", "CHANGELOG.md", "LICENSE", "icon.png", DLL_MEMBER]
+    members = ["manifest.json", "README.md", "CHANGELOG.md", "LICENSE", "icon.png"] + [member for _, member in ARTIFACTS.values()]
     output = ROOT / "dist" / (manifest["name"] + "-" + manifest["version_number"] + ".zip")
     output.parent.mkdir(exist_ok=True)
     with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
@@ -47,7 +48,8 @@ def main():
     with zipfile.ZipFile(output) as archive:
         require(archive.testzip() is None, "Package archive is corrupt")
         require(archive.namelist() == members, "Package members changed")
-        require(archive.read(DLL_MEMBER) == built.read_bytes(), "Packaged DLL differs from the build")
+        for path, member in ARTIFACTS.values():
+            require(archive.read(member) == (ROOT / path).read_bytes(), f"Packaged {member} differs from the build")
     print(json.dumps({"package": str(output), "sha256": hashlib.sha256(output.read_bytes()).hexdigest(),
                       "dllSHA256": approved["sha256"], "members": members}, indent=2))
 

@@ -34,7 +34,10 @@ namespace DeepNorthCompat
             Guard.Build(typeof(ZNet).Assembly,
                 ExpectedBuilds.Valheim1020Client,
                 "EF8C8D3A1F45694EF7A701E8E2A25BF8A3874C951A2639C81DFE614CE3AA5FA3",
-                "C36B81C1733C48D00DD567E41010E6DC95F8DAC877E0701CDB6B8C213ADE7812");
+                "C36B81C1733C48D00DD567E41010E6DC95F8DAC877E0701CDB6B8C213ADE7812",
+                GameBuilds.Valheim1021Client,
+                GameBuilds.Valheim1021WindowsServer,
+                GameBuilds.Valheim1021LinuxServer);
             Type fade = Guard.Type(rune, "ValheimMod.Monobehaviours.SpriteFadeInOut");
             awake = Guard.Method(fade, "Awake", typeof(void));
             sprite = AccessTools.DeclaredField(fade, "sprite");
