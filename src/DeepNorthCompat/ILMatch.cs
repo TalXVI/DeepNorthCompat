@@ -16,8 +16,15 @@ namespace DeepNorthCompat
         // The only index that matches, if no label or exception block starts there; otherwise -1.
         internal static int Site(List<CodeInstruction> code, Func<int, bool> matches)
         {
+            int site = Unique(code, matches);
+            return site >= 0 && Plain(code[site]) ? site : -1;
+        }
+
+        // The only index that matches, or -1. Enough for an in-place opcode or operand change, which keeps the instruction's labels and blocks.
+        internal static int Unique(List<CodeInstruction> code, Func<int, bool> matches)
+        {
             int[] sites = Enumerable.Range(0, code.Count).Where(matches).ToArray();
-            return sites.Length == 1 && Plain(code[sites[0]]) ? sites[0] : -1;
+            return sites.Length == 1 ? sites[0] : -1;
         }
 
         // True when nothing branches to or starts an exception block at the instruction, so code inserted before it always runs.

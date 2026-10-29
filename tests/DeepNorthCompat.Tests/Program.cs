@@ -35,6 +35,8 @@ internal static class Program
             RuneSpriteMaterialTests.Run(Lab, Test);
             RunForge();
             AaaRecipeRowsTests.Run(Lab, Test);
+            PerformanceLookupTests.Run(Lab, Test);
+            PerformanceLookupGuardTests.Run(Lab, Test);
             SysConsole.WriteLine($"PASS: {passed} test cases"); return 0;
         }
         catch (Exception exception) { SysConsole.Error.WriteLine(exception); return 1; }

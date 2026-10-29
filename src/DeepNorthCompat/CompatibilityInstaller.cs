@@ -12,6 +12,7 @@ namespace DeepNorthCompat
     {
         // Exact audited Windows clients. Older supported builds remain in each group's guard.
         internal const string Valheim1020Client = "94998885B103D6E5F5480123EAEE0A093E82AF2DDEEEE37536C15BF555F24F3A";
+        internal const string GuiUtils1021Client = "08A5AEA10B3E8BF20B60B3AB545B6CB8550DB8B12CFF05E32C90BDD9F45DC244";
         internal const string BetterMap = "BB0A0A2E4E9EA2B388CD55F486A61057BF57F982D5647AA649375D4B1E7BAE04";
         internal const string Cartography = "2379F6884BEC32843DAFA1306F693CAD8FC2FB1208E9D2BEE3D3745EFB2DC529";
         internal static readonly string[] TeleportEverything =
@@ -173,6 +174,8 @@ namespace DeepNorthCompat
             InstallGroup("Performance.IdleSync", IdleSyncPatch.Prepare);
             InstallGroup("RuneMagic.Ice", () => RuneIcePatch.Prepare(resolve(HearthTerrainPatch.RuneGuid)));
             InstallGroup("RuneMagic.SpriteMaterials", () => RuneSpritePatch.Prepare(resolve(HearthTerrainPatch.RuneGuid)));
+            InstallGroup(RuneRequirementPatch.Group.Name, () => RuneRequirementPatch.Prepare(resolve(HearthTerrainPatch.RuneGuid)));
+            InstallGroup(VisibleLocalizationPatch.Group.Name, VisibleLocalizationPatch.Prepare);
             InstallGroup("UI.TabAudio", TabAudioPatch.Prepare);
             InstallGroup("UI.TeleportEverything", () => TeleportEverythingPatch.Prepare(resolve(TeleportEverythingPatch.Guid)));
             InstallGroup("MyLittleUI.AmmoCount", () => MyLittleUiAmmoPatch.Prepare(resolve(MyLittleUiAmmoPatch.Guid)));
@@ -215,6 +218,8 @@ namespace DeepNorthCompat
             IdleSyncPatch.Verify();
             RuneIcePatch.Verify();
             RuneSpritePatch.Verify();
+            RuneRequirementPatch.Group.Verify();
+            VisibleLocalizationPatch.Group.Verify();
             TabAudioPatch.Verify();
             TeleportEverythingPatch.Verify();
             MyLittleUiAmmoPatch.Verify();

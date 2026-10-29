@@ -23,7 +23,7 @@ namespace DeepNorthCompat
         private static readonly string[] GuiHashes =
         {
             "52846FCAE0C535D733711C13FDB8F214D303603B5DBF23D05B1ED6A8E475C9DD",
-            "08A5AEA10B3E8BF20B60B3AB545B6CB8550DB8B12CFF05E32C90BDD9F45DC244"
+            ExpectedBuilds.GuiUtils1021Client
         };
         internal const string VcpOwner = "MidnightsFX.ValheimCommunityPatch";
         private static readonly string[] VcpHashes =

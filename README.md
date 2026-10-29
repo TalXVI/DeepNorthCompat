@@ -25,6 +25,8 @@ It currently fixes bugs and incompatibilities involving:
 - NoSmokeStayLit fireplace mode controls, which refused to change fires owned by another peer.
 - PlantEverything placement dust, which came back after joining a server with NoCultivatorDust or NoBuildDust installed.
 - My Little UI ammo counts, which redrew every hotbar update even when the number hadn't changed.
+- Visible UI localization on Valheim 1.0.21 Windows clients, which collected inactive labels before discarding them.
+- RuneMagic rune lookups on Valheim 1.0.21 Windows clients, which read the piece's name again for every rune in the list.
 - HearthBelow pickaxe cuts, which came back after Hoe leveling, raising, or smoothing, or a RuneMagic Foundation Rune, filled them.
 
 Requires ConditionalConfigSync 1.0.11 or newer. Install the same DeepNorthCompat version and ConditionalConfigSync on the dedicated server and every client, then restart.
