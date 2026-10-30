@@ -60,5 +60,3 @@ def check_validation(summary, require_server=False, allow_inactive=False):
 def check_approval(approved):
     summary = check_validation(approved.get("offlineValidation"), require_server=True)
     require(approved.get("offlineTestsPassed") == summary["testCasesPassed"], "approval count differs from validation evidence.")
-    require(isinstance(approved.get("preloaderSha256"), str) and re.fullmatch(r"[0-9a-f]{64}", approved["preloaderSha256"]),
-            "missing preloader DLL identity.")

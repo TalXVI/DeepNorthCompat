@@ -18,7 +18,7 @@ namespace DeepNorthCompat
         {
             "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
             ExpectedBuilds.Valheim1020Client,
-            GameBuilds.Valheim1021Client
+            ExpectedBuilds.Valheim1021Client
         };
         private static readonly string[] GuiHashes =
         {
@@ -29,7 +29,8 @@ namespace DeepNorthCompat
         private static readonly string[] VcpHashes =
         {
             "C3726D510F6081D5BEAEAC4241E1AC107E2382069688055DECCF9E5418F58B46",
-            "640638095848ED8FDF770F7C876B4940D0081E5124D684E3B0B9118660FEB9E4"
+            "640638095848ED8FDF770F7C876B4940D0081E5124D684E3B0B9118660FEB9E4",
+            "9C5AD1B055030C1124D19246DD757A0E2B4F5582580803E1E2BBBFF01303B235"
         };
         private static readonly FieldInfo timer = AccessTools.Field(typeof(ButtonSfx), "m_sfxTimer");
         private static readonly MethodInfo play = AccessTools.DeclaredMethod(typeof(ButtonSfx), "PlaySfx");

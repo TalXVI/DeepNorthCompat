@@ -30,7 +30,7 @@ namespace DeepNorthCompat
         private static readonly MethodInfo objectEquality = AccessTools.Method(typeof(Object), "op_Equality");
         private static readonly MethodInfo stringEquals = AccessTools.Method(typeof(string), nameof(string.Equals), new[] { typeof(string) });
         private static MethodInfo getEnumerator = null!, pieceNameGetter = null!;
-        private static FieldInfo pieceConfigs = null!;
+        private static FieldInfo pieceConfigsField = null!;
         private static Type configType = null!;
 
         internal static void Prepare(Assembly? rune)
@@ -50,12 +50,12 @@ namespace DeepNorthCompat
             }
 
             Guard.Build(rune, HearthTerrainPatch.RuneBuild);
-            Guard.Build(typeof(Player).Assembly, GameBuilds.Valheim1021Client);
+            Guard.Build(typeof(Player).Assembly, ExpectedBuilds.Valheim1021Client);
             MethodInfo isUnlockable = Guard.Method(Guard.Type(rune, "ValheimMod.UnlockManager"), "isUnlockable", typeof(bool), typeof(Piece));
             configType = Guard.Type(rune, "ValheimMod.RunemagicPieceConfig");
             Type list = typeof(List<>).MakeGenericType(configType);
-            pieceConfigs = AccessTools.DeclaredField(Guard.Type(rune, "ValheimMod.ValheimMod"), "runemagicPieceConfigs");
-            if (!isUnlockable.IsStatic || pieceConfigs == null || !pieceConfigs.IsStatic || pieceConfigs.FieldType != list)
+            pieceConfigsField = AccessTools.DeclaredField(Guard.Type(rune, "ValheimMod.ValheimMod"), "runemagicPieceConfigs");
+            if (!isUnlockable.IsStatic || pieceConfigsField == null || !pieceConfigsField.IsStatic || pieceConfigsField.FieldType != list)
                 throw new NotSupportedException("RuneMagic's membership signature or rune list changed.");
 
             getEnumerator = Guard.Method(list, "GetEnumerator", typeof(List<>.Enumerator).MakeGenericType(configType));
@@ -67,40 +67,44 @@ namespace DeepNorthCompat
             Group.Transpile(instructions, "isUnlockable no longer has the audited null check and name lookup loop", code =>
             {
                 // Reject rather than throw. Every index the edit uses below comes from a match that passed here.
-                int nameRead = NameRead(code);
-                if (nameRead < 0 || !Prologue(code)
+                int nameSite = NameReadSite(code);
+                if (nameSite < 0 || !Prologue(code)
                     || !Locals(__originalMethod, 3, (0, getEnumerator.ReturnType), (1, configType), (2, typeof(bool))))
                     return false;
 
-                // The loop compares config.pieceName with the local instead of piece.gameObject.name.
-                LocalBuilder name = generator.DeclareLocal(typeof(string));
-                code.RemoveRange(nameRead - 2, 3);
-                code.Insert(nameRead - 2, new CodeInstruction(OpCodes.Ldloc, name));
-
-                // string name = piece.gameObject.name; is the first statement after the null check, so the check's
-                // branch label moves onto it. Editing the loop first keeps nameRead valid.
-                CodeInstruction[] read =
-                {
-                    new CodeInstruction(OpCodes.Ldarg_0), new CodeInstruction(OpCodes.Callvirt, gameObjectGetter),
-                    new CodeInstruction(OpCodes.Callvirt, nameGetter), new CodeInstruction(OpCodes.Stloc, name)
-                };
-                read[0].MoveLabelsFrom(code[ListLoad]);
-                code.InsertRange(ListLoad, read);
+                CacheName(code, nameSite, generator.DeclareLocal(typeof(string)));
                 return true;
             });
+
+        private static void CacheName(List<CodeInstruction> code, int nameSite, LocalBuilder name)
+        {
+            // The loop compares config.pieceName with the local instead of piece.gameObject.name.
+            code.RemoveRange(nameSite - 2, 3);
+            code.Insert(nameSite - 2, new CodeInstruction(OpCodes.Ldloc, name));
+
+            // Read the name immediately after the null check. Move its branch label to the new first instruction.
+            // Editing the loop first keeps nameSite valid.
+            CodeInstruction[] read =
+            {
+                new CodeInstruction(OpCodes.Ldarg_0), new CodeInstruction(OpCodes.Callvirt, gameObjectGetter),
+                new CodeInstruction(OpCodes.Callvirt, nameGetter), new CodeInstruction(OpCodes.Stloc, name)
+            };
+            read[0].MoveLabelsFrom(code[ListLoad]);
+            code.InsertRange(ListLoad, read);
+        }
 
         // if (piece == null) return false; then the rune list's GetEnumerator. The null check branches to the list
         // load, and the name read goes in front of it, so no exception block may start there.
         private static bool Prologue(List<CodeInstruction> code) =>
             Shape(code, 0, Is(OpCodes.Ldarg_0), Is(OpCodes.Ldnull), Calls(objectEquality), BranchIfFalse,
-                Is(OpCodes.Ldc_I4_0), Is(OpCodes.Ret), Loads(pieceConfigs), Calls(getEnumerator), IsStore(0))
+                Is(OpCodes.Ldc_I4_0), Is(OpCodes.Ret), Loads(pieceConfigsField), Calls(getEnumerator), IsStore(0))
             && code[NullBranch].operand is Label notNull
             && code[ListLoad].labels.Contains(notNull)
             && code[ListLoad].blocks.Count == 0;
 
         // The loop's config.pieceName.Equals(piece.gameObject.name), the method's only name read. Returns the index
         // of get_name, or -1. The edit removes the three getter instructions, so none may carry a label or block.
-        private static int NameRead(List<CodeInstruction> code)
+        private static int NameReadSite(List<CodeInstruction> code)
         {
             int site = Site(code, i => code[i].Calls(nameGetter));
             bool matches = Shape(code, site - 4, IsLoad(1),

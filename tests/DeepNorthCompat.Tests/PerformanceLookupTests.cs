@@ -53,7 +53,7 @@ internal static class PerformanceLookupTests
 
         if (server)
         {
-            Case("performance lookups stay inactive on a dedicated server", () =>
+            test("performance lookups stay inactive on a dedicated server", () =>
             {
                 var messages = Install(rune);
                 foreach (TranspilerGroup group in groups)

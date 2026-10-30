@@ -56,7 +56,7 @@ def main():
         source = lab / "BepInEx" / name
         if source.is_dir():
             shutil.copytree(source, bepinex / name)
-    allowed = {"DeepNorthCompat": {"DeepNorthCompat.dll", "DeepNorthCompat.Preloader.dll"},
+    allowed = {"DeepNorthCompat": {"DeepNorthCompat.dll"},
                "Serverbound": {"Serverbound.dll"}, "ValheimTune": {"ValheimTune.dll"}}
     for package in args.extra_package:
         with zipfile.ZipFile(package) as archive:
@@ -66,6 +66,9 @@ def main():
             dlls = [entry for entry in archive.namelist() if entry.lower().endswith(".dll")]
             require(len(dlls) == len(allowed[name]) and {Path(entry).name for entry in dlls} == allowed[name],
                     "Candidate package DLLs do not match its identity")
+            if name == "DeepNorthCompat":
+                for old in (bepinex / "patchers").rglob("DeepNorthCompat.Preloader.dll"):
+                    old.unlink()
             if name == "Serverbound":
                 for filename in ("Serverside_Simulations.dll", "Valheim_Serverside.dll", "SarkasticGG_Dedicated_Simulation.dll"):
                     for old in (bepinex / "plugins").rglob(filename):
@@ -75,7 +78,7 @@ def main():
                     shutil.copy2(legacy, bepinex / "config/org.serverbound.valheim.cfg")
             for entry in dlls:
                 filename = Path(entry).name
-                directory = bepinex / ("patchers" if filename == "DeepNorthCompat.Preloader.dll" else "plugins")
+                directory = bepinex / "plugins"
 
                 for old in directory.rglob(filename):
                     old.unlink()

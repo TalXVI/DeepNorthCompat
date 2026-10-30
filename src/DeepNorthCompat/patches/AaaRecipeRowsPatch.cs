@@ -27,7 +27,7 @@ namespace DeepNorthCompat
             if (assembly == null) { CompatibilityInstaller.Info("UI.AAARecipeRows: optional mod absent; inactive."); return; }
             if (Guard.KnownServerBuild()) { CompatibilityInstaller.Info("UI.AAARecipeRows: client-only; inactive on dedicated server."); return; }
             Guard.Build(assembly, ExpectedBuilds.AAACrafting);
-            Guard.Build(typeof(InventoryGui).Assembly, ExpectedBuilds.Valheim1020Client, GameBuilds.Valheim1021Client);
+            Guard.Build(typeof(InventoryGui).Assembly, ExpectedBuilds.Valheim1020Client, ExpectedBuilds.Valheim1021Client);
             target = Guard.Method(Guard.Type(assembly,
                 "AzuAntiArthriticCrafting.Patches.PaginatorPatches+InventoryGuiUpdateRecipeListPatch"), "Postfix",
                 typeof(void), typeof(InventoryGui), typeof(List<Recipe>).MakeByRefType());

@@ -60,7 +60,9 @@ internal static class HearthTerrainTests
             threading.SetValue(null, Fake<BepInEx.ThreadingHelper>());
             oldLimit = limit.GetValue(null); oldRadius = carveRadius.GetValue(null);
             rune = Assembly.LoadFrom(Path.Combine(lab, "BepInEx/plugins/hyleanlegend-Rune_Magic/RuneMagic.dll"));
-            Guard.Build(typeof(VoxelWorld).Assembly, "99AB21C3D0923E1D7D4ED76B7EE14F76414E10CC81523BDBB1A3274A5DBCEB01");
+            Guard.Build(typeof(VoxelWorld).Assembly,
+                "99AB21C3D0923E1D7D4ED76B7EE14F76414E10CC81523BDBB1A3274A5DBCEB01",
+                "85E2F266C36EC916E714832C48B771F6FA61F80C7360DF095E813E21B372C5E1");
             Guard.Build(rune, "618B66574C52F5E9C953BF75066A21C0542C4AF1814616AF0527C3C548123856");
             limit.SetValue(null, settings.Bind("fixture", "operations", 20000));
             carveRadius.SetValue(null, settings.Bind("fixture", "carve radius", 3f));

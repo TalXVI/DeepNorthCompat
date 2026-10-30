@@ -8,8 +8,6 @@ TEST_EXECUTABLE = ROOT / "tests/DeepNorthCompat.Tests/bin/Release/net48/DeepNort
 ARTIFACTS = {
     "sha256": ("src/DeepNorthCompat/bin/Release/net48/DeepNorthCompat.dll",
                "BepInEx/plugins/DeepNorthCompat/DeepNorthCompat.dll"),
-    "preloaderSha256": ("src/DeepNorthCompat.Preloader/bin/Release/net48/DeepNorthCompat.Preloader.dll",
-                        "BepInEx/patchers/DeepNorthCompat/DeepNorthCompat.Preloader.dll"),
 }
 
 

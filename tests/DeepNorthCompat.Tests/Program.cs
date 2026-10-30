@@ -24,7 +24,7 @@ internal static class Program
         try
         {
             Test("selected game build passes its role guard", CheckGameBuild);
-            LegacyStatsTests.Run(Test);
+            GameApiTests.Run(Lab, Test);
             RunReforged();
             NoSmokeStayLitTests.Run(Lab, Test);
             if (Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_TEST_MODE") == "server") RunServer();

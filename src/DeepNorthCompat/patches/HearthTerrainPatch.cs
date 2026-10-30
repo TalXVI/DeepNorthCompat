@@ -20,7 +20,11 @@ namespace DeepNorthCompat
         internal const string RuneGuid = "hyleanlegend.RuneMagic";
         internal const string Owner = Plugin.Guid + ".Terrain.HearthBelow";
         internal const string ReplayOwner = Owner + ".Replay";
-        internal const string HearthBuild = "99AB21C3D0923E1D7D4ED76B7EE14F76414E10CC81523BDBB1A3274A5DBCEB01";
+        private static readonly string[] HearthBuilds =
+        {
+            "99AB21C3D0923E1D7D4ED76B7EE14F76414E10CC81523BDBB1A3274A5DBCEB01",
+            "85E2F266C36EC916E714832C48B771F6FA61F80C7360DF095E813E21B372C5E1"
+        };
         internal const string RuneBuild = "618B66574C52F5E9C953BF75066A21C0542C4AF1814616AF0527C3C548123856";
         // A fill record is a native operation with an unassigned type. HearthBelow saves, merges, restores,
         // and clears it like its own records, and replays it as a no-op without this decoder.
@@ -90,7 +94,7 @@ namespace DeepNorthCompat
             new Harmony(ReplayOwner).UnpatchSelf();
             replays.Clear(); replayPending = replayEnabled = enabled = false;
             if (hearth == null) { CompatibilityInstaller.Info("Terrain.HearthBelow.Replay: optional mod absent; inactive."); return; }
-            Guard.Build(hearth, HearthBuild);
+            Guard.Build(hearth, HearthBuilds);
             Guard.Build(typeof(TerrainComp).Assembly,
                 "25A0A107DCE4D834C44C2B72D0EAFD5CB7793933BDA81816ACCFA1EA9543DACE",
                 "0DFC7E81436F822121148EFED859BA1E661D58B9484BD45E3B6F33B6DD86BFAD",
@@ -98,9 +102,9 @@ namespace DeepNorthCompat
                 ExpectedBuilds.Valheim1020Client,
                 "EF8C8D3A1F45694EF7A701E8E2A25BF8A3874C951A2639C81DFE614CE3AA5FA3",
                 "C36B81C1733C48D00DD567E41010E6DC95F8DAC877E0701CDB6B8C213ADE7812",
-                GameBuilds.Valheim1021Client,
-                GameBuilds.Valheim1021WindowsServer,
-                GameBuilds.Valheim1021LinuxServer);
+                ExpectedBuilds.Valheim1021Client,
+                ExpectedBuilds.Valheim1021WindowsServer,
+                ExpectedBuilds.Valheim1021LinuxServer);
             Type world = Guard.Type(hearth, "HearthBelow.VoxelMagic.VoxelWorld"), zone = Guard.Type(hearth, "HearthBelow.VoxelMagic.VoxelZone"),
                 op = Guard.Type(hearth, "HearthBelow.VoxelMagic.CarveOp"), data = Guard.Type(hearth, "HearthBelow.VoxelMagic.CarveData"),
                 plugin = Guard.Type(hearth, "HearthBelow.HearthBelowPlugin");
@@ -167,7 +171,7 @@ namespace DeepNorthCompat
             rewrites.Clear(); pending = enabled = false;
             depth = 0; action = null;
             if (hearth == null) { CompatibilityInstaller.Info("Terrain.HearthBelow: optional mod absent; inactive."); return; }
-            Guard.Build(hearth, HearthBuild);
+            Guard.Build(hearth, HearthBuilds);
             if (!replayPending && !replayEnabled) throw new InvalidOperationException("HearthBelow repair decoder is unavailable.");
             MethodInfo level = Guard.Method(typeof(TerrainComp), "LevelTerrain", typeof(void), typeof(Vector3), typeof(float), typeof(bool));
             MethodInfo raise = Guard.Method(typeof(TerrainComp), "RaiseTerrain", typeof(void), typeof(Vector3), typeof(float), typeof(float), typeof(bool), typeof(float));

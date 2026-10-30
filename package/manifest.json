@@ -1,6 +1,6 @@
 {
   "name": "DeepNorthCompat",
-  "version_number": "1.5.8",
+  "version_number": "1.6.0",
   "website_url": "https://github.com/TalXVI/DeepNorthCompat",
   "description": "Fixes various vanilla/mod bugs and cross-mod incompatibilities.",
   "dependencies": [

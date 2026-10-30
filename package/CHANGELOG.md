@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.0
+
+- Supports AzuEPI 2.6.6, HearthBelow 0.7.1, ReforgedPotential 2.0.9, and ValheimCommunityPatch 0.40.0 with the existing fixes.
+- Removes the temporary stats API preloader. On Valheim 1.0.21, update AzuEPI to 2.6.6, Unshamed to 1.0.9, and BetterUI to 2.5.14 if installed. For a manual upgrade from 1.5.8, delete `BepInEx/patchers/DeepNorthCompat/DeepNorthCompat.Preloader.dll`.
+- Avoids collecting inactive UI labels during localization and repeats fewer piece-name lookups when RuneMagic checks rune requirements on Valheim 1.0.21 Windows clients.
+- The dedicated server and every client must run the same DeepNorthCompat version.
+
 ## 1.5.8
 
 - Supports Valheim 1.0.21 Windows clients and Windows/Linux dedicated servers, and ValheimCommunityPatch 0.39.1. Earlier supported builds remain supported.

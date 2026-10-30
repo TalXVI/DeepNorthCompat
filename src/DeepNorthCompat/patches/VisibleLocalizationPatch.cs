@@ -30,7 +30,7 @@ namespace DeepNorthCompat
             if (Group.Installed) return;
             if (Guard.KnownServerBuild()) { CompatibilityInstaller.Info($"{Group.Name}: client-only; inactive on dedicated server."); return; }
 
-            Guard.Build(typeof(Player).Assembly, GameBuilds.Valheim1021Client);
+            Guard.Build(typeof(Player).Assembly, ExpectedBuilds.Valheim1021Client);
             Guard.Build(typeof(Localization).Assembly, ExpectedBuilds.GuiUtils1021Client);
             Group.Patch(Guard.Method(typeof(Localization), nameof(Localization.ReLocalizeVisible), typeof(void), typeof(Transform)));
         }
