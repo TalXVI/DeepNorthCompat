@@ -31,7 +31,9 @@ namespace DeepNorthCompat
                 CompatibilityInstaller.Info($"{Group}: client-only crafting hook; inactive on dedicated server.");
                 return;
             }
-            Guard.Build(vendor, VendorHash, "A8682CC9B1B50BD6E9FFB12F6BB4B009C5A7AC84ECE06C42603BF5847637065D");
+            Guard.Build(vendor, VendorHash,
+                "A8682CC9B1B50BD6E9FFB12F6BB4B009C5A7AC84ECE06C42603BF5847637065D",
+                "DD9E88B6041C3D01712902178845C293898B3A49004F607EA90928D0069E60FB");
             Guard.Build(typeof(InventoryGui).Assembly, ExpectedBuilds.Valheim1020Client, ExpectedBuilds.Valheim1021Client);
             Type gui = Guard.Type(vendor, "ReforgedPotential.ReforgedPotential+InventoryGuiPatch");
             target = Guard.Method(typeof(InventoryGui), "DoCrafting", typeof(void), typeof(Player));

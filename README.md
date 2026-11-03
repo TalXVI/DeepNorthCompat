@@ -43,7 +43,7 @@ Each fix is written against one exact build of the mods it touches:
 - ImpactfulSkills 0.21.1, 0.21.3, 0.22.0, 0.22.1, 0.23.0, 0.24.0, 0.25.0, and 0.26.0
 - AzuCraftyBoxes 1.8.27 and 1.8.28
 - AAA Crafting 2.1.11 and 2.1.12 (forge speed and recipe row fixes on Valheim 1.0.20 and 1.0.21 Windows clients only)
-- ReforgedPotential 2.0.8 and 2.0.9 (chest crafting wait fix on Valheim 1.0.20 and 1.0.21 Windows clients)
+- ReforgedPotential 2.0.8, 2.0.9, and 2.0.10 (chest crafting wait fix on Valheim 1.0.20 and 1.0.21 Windows clients)
 - SeaAnimals 0.3.9
 - AirAnimals 0.3.2
 - AzuEPI 2.6.3, 2.6.4, and 2.6.6 for the character preview fix. On Valheim 1.0.21, use 2.6.6.
@@ -70,6 +70,8 @@ On Valheim 1.0.20 and 1.0.21 Windows clients with AAA Crafting 2.1.11 or 2.1.12,
 The `Forge of Potential speed` setting defaults to `true`. To disable it, set `Forge of Potential speed = false` in the `[Crafting]` section of `BepInEx/config/DeepNorthCompat.cfg`. With ReforgedPotential installed, turning it off makes the Forge of Potential use ReforgedPotential's upgrade crafting time instead.
 
 ConditionalConfigSync gives the server control of this setting by default. Server policy can allow per-client values. Changes made through a config manager or received from the server take effect immediately.
+
+With ReforgedPotential 2.0.10 and ImpactfulSkills forging bonuses, keep `Use Custom Chances from Json file` off in ReforgedPotential's `[Upgrade Settings]` section. Enabling it makes the upgrade roll use the JSON odds instead of ImpactfulSkills' forging odds.
 
 BetterMap pin categories survive local reloads and cartography-table sharing even when their map slots change. Automatic portal pins follow accepted portal tags while preserving their checked state and ownership. A place that already shows an automatic pin, including one read from a cartography table, gets no second pin. If a later table read removes a shared pin, the place is pinned again as your own the next time you pass it. An automatic pin you remove by hand stays removed. Older pins without category metadata are recovered only when their discovery records and labels identify one category. Ambiguous older pins retain their saved type.
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.1
+
+- Supports ReforgedPotential 2.0.10 with the existing chest crafting wait fix. Earlier supported builds remain supported.
+- When using ImpactfulSkills forging bonuses, keep ReforgedPotential's `Use Custom Chances from Json file` off so forging odds apply to upgrades.
+- The dedicated server and every client must run the same DeepNorthCompat version.
+
 ## 1.6.0
 
 - Supports AzuEPI 2.6.6, HearthBelow 0.7.1, ReforgedPotential 2.0.9, and ValheimCommunityPatch 0.40.0 with the existing fixes.
