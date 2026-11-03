@@ -1,6 +1,6 @@
 # DeepNorthCompat
 
-This is a Valheim mod for a personal Valheim modpack.
+A compatibility mod for Valheim and popular Valheim mods.
 
 It currently fixes bugs and incompatibilities involving:
 
@@ -11,7 +11,6 @@ It currently fixes bugs and incompatibilities involving:
 - ImpactfulSkills bow stamina scaling and tooltip reporting, in builds before 0.25.0.
 - SeaAnimals and AirAnimals custom creature drop ranges.
 - AzuEPI inventory character preview, which restarted its animation whenever a nearby creature or player changed equipment.
-- Deep North profile policy that disables ValheimTune on clients after its configuration binds.
 - VPO native water-wave initialization on Windows dedicated servers.
 - RuneMagic water-walking ice initialization, which can corrupt physics and saved vehicle positions on Linux dedicated servers.
 - RuneMagic Ocean Currents and Decumberance rune sprites, which each left a material loaded after they faded. Sailing with Ocean Currents added about a thousand materials a second, so Valheim Visuals' material scans stalled the game for longer the longer you played.
@@ -65,13 +64,13 @@ Each fix is written against one exact build of the mods it touches:
 
 Mod patches only activate if the corresponding mod and supported version are present.
 
+With ValheimTune installed, DeepNorthCompat turns off ValheimTune's client component and its client patches after ValheimTune loads its configuration. ValheimTune's dedicated-server patches stay active.
+
 On Valheim 1.0.20 and 1.0.21 Windows clients with AAA Crafting 2.1.11 or 2.1.12, the Forge of Potential uses AAA Crafting's `Crafting Speed` when `Override Crafting Speed` is on. The existing crafting skill reduction still applies.
 
 The `Forge of Potential speed` setting defaults to `true`. To disable it, set `Forge of Potential speed = false` in the `[Crafting]` section of `BepInEx/config/DeepNorthCompat.cfg`. With ReforgedPotential installed, turning it off makes the Forge of Potential use ReforgedPotential's upgrade crafting time instead.
 
 ConditionalConfigSync gives the server control of this setting by default. Server policy can allow per-client values. Changes made through a config manager or received from the server take effect immediately.
-
-With ReforgedPotential 2.0.10 and ImpactfulSkills forging bonuses, keep `Use Custom Chances from Json file` off in ReforgedPotential's `[Upgrade Settings]` section. Enabling it makes the upgrade roll use the JSON odds instead of ImpactfulSkills' forging odds.
 
 BetterMap pin categories survive local reloads and cartography-table sharing even when their map slots change. Automatic portal pins follow accepted portal tags while preserving their checked state and ownership. A place that already shows an automatic pin, including one read from a cartography table, gets no second pin. If a later table read removes a shared pin, the place is pinned again as your own the next time you pass it. An automatic pin you remove by hand stays removed. Older pins without category metadata are recovered only when their discovery records and labels identify one category. Ambiguous older pins retain their saved type.
 
