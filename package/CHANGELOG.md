@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.2
+
+- Supports ValheimCommunityPatch 0.41.0 with the existing Craft/Upgrade button audio, vibration, and timer fix.
+
 ## 1.6.1
 
 - Supports ReforgedPotential 2.0.10 with the existing chest crafting wait fix.
