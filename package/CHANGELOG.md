@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.3
+
+- Fixes AdvancedTerrainModifiers 1.6.1 heightmap precision raising with Heightmap Unlimited JvL, and precision raising and smoothing over HearthBelow cuts.
+- Fixes UsefulPaths 1.1.1 effect attachment and removal when other characters share its update interval, and preserves ImpactfulSkills' Hauling cart reduction.
+
 ## 1.6.2
 
 - Supports ValheimCommunityPatch 0.41.0 with the existing Craft/Upgrade button audio, vibration, and timer fix.

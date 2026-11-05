@@ -27,6 +27,7 @@ internal static class Program
             GameApiTests.Run(Lab, Test);
             RunReforged();
             NoSmokeStayLitTests.Run(Lab, Test);
+            UsefulPathsTests.Run(Lab, Test);
             if (Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_TEST_MODE") == "server") RunServer();
             else { Run(); TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); RunChests(); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); ReportUploadTests.Run(Test); MyLittleUiAmmoTests.Run(Lab, Test); }
             RunTerrain();

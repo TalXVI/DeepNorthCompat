@@ -191,6 +191,11 @@ namespace DeepNorthCompat
             Assembly? hearth = resolve(HearthTerrainPatch.Guid);
             InstallGroup("Terrain.HearthBelow.Replay", () => HearthTerrainPatch.PrepareReplay(hearth));
             InstallGroup("Terrain.HearthBelow", () => HearthTerrainPatch.Prepare(hearth, resolve(HearthTerrainPatch.RuneGuid)));
+            InstallGroup("Terrain.PrecisionLimits", () => PrecisionTerrainPatch.PrepareLimits(resolve(PrecisionTerrainPatch.Guid),
+                resolve(PrecisionTerrainPatch.UnlimitedGuid), resolve(PrecisionTerrainPatch.AdvancedHeightMapGuid)));
+            InstallGroup("Terrain.HearthBelow.Precision", () => PrecisionTerrainPatch.PrepareHearth(resolve(PrecisionTerrainPatch.Guid), hearth));
+            InstallGroup("UsefulPaths.Effects", () => UsefulPathsPatch.PrepareEffects(resolve(UsefulPathsPatch.Guid)));
+            InstallGroup("UsefulPaths.Cart", () => UsefulPathsPatch.PrepareCart(resolve(UsefulPathsPatch.Guid), impact));
             Assembly? odin = resolve("marlthon.OdinShip");
             InstallGroup("OdinShip.Core", () => OdinShipPatch.Prepare(odin));
             InstallGroup("OdinShip.Input", () => OdinShipInputPatch.Prepare(odin));
@@ -232,6 +237,9 @@ namespace DeepNorthCompat
             PlantEverythingDustPatch.Verify();
             TuneClientPatch.Verify();
             HearthTerrainPatch.Verify();
+            PrecisionTerrainPatch.Verify();
+            UsefulPathsPatch.VerifyEffects();
+            UsefulPathsPatch.VerifyCart();
             OdinShipPatch.Verify();
             OdinShipInputPatch.Verify();
             OdinShipFishPatch.Verify();

@@ -7,7 +7,7 @@ using ConditionalConfigSync;
 
 namespace DeepNorthCompat
 {
-    [BepInPlugin(Guid, "DeepNorthCompat", "1.6.2")]
+    [BepInPlugin(Guid, "DeepNorthCompat", "1.6.3")]
     [BepInDependency("_shudnal.ConditionalConfigSync", "1.0.11")]
     [BepInDependency(CompatibilityInstaller.ImpactGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(CompatibilityInstaller.CraftyGuid, BepInDependency.DependencyFlags.SoftDependency)]
@@ -26,6 +26,10 @@ namespace DeepNorthCompat
     [BepInDependency("advize.CartographySkill", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(HearthTerrainPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(HearthTerrainPatch.RuneGuid, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(PrecisionTerrainPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(PrecisionTerrainPatch.UnlimitedGuid, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(PrecisionTerrainPatch.AdvancedHeightMapGuid, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(UsefulPathsPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(TeleportEverythingPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(MyLittleUiAmmoPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(PlantEasilyCostPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]

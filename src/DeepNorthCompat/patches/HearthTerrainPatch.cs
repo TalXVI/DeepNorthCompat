@@ -66,6 +66,8 @@ namespace DeepNorthCompat
         private static AccessTools.FieldRef<object, Dictionary<TerrainComp, float[]>> bases = null!;
         private static int dataKey;
         private static bool pending, enabled, replayPending, replayEnabled, applying;
+        internal static bool PrecisionDecoderAvailable => replayPending || replayEnabled;
+        internal static bool PrecisionReady => replayEnabled && enabled;
         private static readonly HashSet<long> full = new HashSet<long>();
         private static ToolAction? action;
         private static int depth;
@@ -421,6 +423,19 @@ namespace DeepNorthCompat
             if (step > 0 && Floor(comp, x, z, out float floor)) Queue(comp, x, z, floor, Mathf.Min(target.y + step, floor + step), surface);
         }
 
+        // Precision tools supply the vendor-selected vertex index, so their square footprint stays intact.
+        internal static void PrecisionRaise(TerrainComp comp, Vector3 target, float step, int vertex, float surface)
+        {
+            int width = compWidth(comp) + 1;
+            RaiseFill(comp, target, vertex % width, vertex / width, step, surface);
+        }
+
+        internal static void PrecisionSmooth(TerrainComp comp, Vector3 target, int vertex, float surface)
+        {
+            int width = compWidth(comp) + 1, x = vertex % width, z = vertex / width;
+            if (Floor(comp, x, z, out float floor)) Queue(comp, x, z, floor, floor + Mathf.Clamp(target.y - floor, -1f, 1f), surface);
+        }
+
         private static float SmoothVertex(float height, float target, float blend, TerrainComp comp, Vector3 worldTarget, int x, int z)
         {
             float result = Mathf.Lerp(height, target, blend);
@@ -494,12 +509,12 @@ namespace DeepNorthCompat
             return true;
         }
 
-        private static void Begin()
+        internal static void Begin()
         {
             if (depth++ == 0) action = null;
         }
 
-        private static Exception? End(Exception? __exception)
+        internal static Exception? End(Exception? __exception)
         {
             if (--depth > 0) return __exception;
             ToolAction? done = action;

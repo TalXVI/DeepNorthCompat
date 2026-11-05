@@ -37,6 +37,8 @@ internal static class HearthTerrainTests
     private static ZDOMan man = null!;
     private static float[] levels = null!, smooths = null!;
     private static Assembly rune = null!;
+    private static Component precisionOwner = null!, precisionOverlay = null!;
+    private static Type precisionOverlayType = null!;
     private static bool owns { set => record.SetOwnerInternal(value ? ZDOMan.GetSessionID() : 99L); }
 
     internal static void Run(string lab, Action<string, Action> test)
@@ -99,6 +101,294 @@ internal static class HearthTerrainTests
                 Near(Top(), 9.25f, "Foundation leaves the same cut");
                 Apply(new CarveOp { Id = ++nextIdAsInt, Type = 5, Point = new Vector3(0, 9.25f, 0), Radius = 2, Depth = 1, FloorHeight = float.NegativeInfinity });
                 Check(Top() > 10, "explicit voxel Raise control works");
+            });
+            test("Precision terrain: configured height limits govern the vendor tool", () =>
+            {
+                Assembly terrain = Assembly.LoadFrom(Path.Combine(lab, "BepInEx/plugins/Searica-AdvancedTerrainModifiers/TerrainTools.dll"));
+                Assembly unlimited = Assembly.LoadFrom(Path.Combine(lab, "BepInEx/plugins/Digitalroot-Heightmap_Unlimited_JvL/Digitalroot.HeightmapUnlimitedJvL.dll"));
+                Type operations = terrain.GetType("TerrainTools.Core.TerrainOperations", true)!;
+                Type logger = terrain.GetType("Logging.Log", true)!;
+                Type main = unlimited.GetType("Digitalroot.HeightmapUnlimitedJvL.Main", true)!;
+                FieldInfo min = AccessTools.Field(main, "MinHeight"), max = AccessTools.Field(main, "MaxHeight");
+                object oldMin = min.GetValue(null), oldMax = max.GetValue(null);
+                var quiet = new Harmony("DeepNorthCompat.Tests.PrecisionLog");
+                try
+                {
+                    min.SetValue(null, settings.Bind("precision", "minimum", -100f));
+                    max.SetValue(null, settings.Bind("precision", "maximum", 100f));
+                    Hook(quiet, logger, "LogInfo", nameof(Skip));
+                    CompatibilityInstaller.Install(guid => guid == "Searica.Valheim.TerrainTools" ? terrain
+                        : guid == "digitalroot.mods.heightmapunlimitedjvl" ? unlimited : null, messages.Add, messages.Add, messages.Add);
+                    CompatibilityInstaller.Verify();
+                    Reset();
+                    Set(map, "m_heights", Enumerable.Repeat(17f, 289).ToList());
+                    for (int i = 0; i < levels.Length; i++) levels[i] = 7;
+                    Call(operations, "PreciseRaiseTerrain", comp, new Vector3(0, 17, 0), 2f);
+                    Near(levels[144], 9, "precision raise respects configured upper limit");
+                    Reset();
+                    Set(map, "m_heights", Enumerable.Repeat(3f, 289).ToList());
+                    for (int i = 0; i < levels.Length; i++) levels[i] = -7;
+                    Call(operations, "PreciseRaiseTerrain", comp, new Vector3(0, 3, 0), -2f);
+                    Near(levels[144], -9, "precision lowering respects configured lower limit");
+                }
+                finally { new Harmony("DeepNorthCompat.Terrain.PrecisionLimits").UnpatchSelf(); quiet.UnpatchSelf(); min.SetValue(null, oldMin); max.SetValue(null, oldMax); }
+            });
+            test("Precision terrain: repair follows the vendor square and survives replay", () =>
+            {
+                Assembly terrain = Assembly.LoadFrom(Path.Combine(lab, "BepInEx/plugins/Searica-AdvancedTerrainModifiers/TerrainTools.dll"));
+                Type operations = terrain.GetType("TerrainTools.Core.TerrainOperations", true)!;
+                Type logger = terrain.GetType("Logging.Log", true)!;
+                var quiet = new Harmony("DeepNorthCompat.Tests.PrecisionLog");
+                try
+                {
+                    Hook(quiet, logger, "LogInfo", nameof(Skip));
+                    CompatibilityInstaller.Install(guid => guid == "Searica.Valheim.TerrainTools" ? terrain
+                        : guid == "Azumatt.HearthBelow" ? typeof(VoxelWorld).Assembly
+                        : guid == "hyleanlegend.RuneMagic" ? rune : null, messages.Add, messages.Add, messages.Add);
+                    CompatibilityInstaller.Verify();
+                    Reset(); Cut(); Cave(); float[] before = (float[])zone.Density!.Clone();
+                    Call(operations, "PreciseRaiseTerrain", comp, new Vector3(0, 10, 0), 1f);
+                    Near(Top(), 10.25f, "precision raise fills the cut by one step");
+                    Near(Top(11, 9), 10f, "outside the two-meter square remains unchanged");
+                    Reload(); Near(Top(), 11f, "raised heightmap buries the finite cut on replay"); PreservedBelow(before, 9);
+                    Reset(); Cut(1.5f); Cave(); before = (float[])zone.Density!.Clone();
+                    Call(operations, "PreciseSmoothTerrain", comp, new Vector3(0, 10, 0));
+                    Near(Top(), 9.5f, "precision smooth fills one meter");
+                    Reload(); Near(Top(), 9.5f, "precision smooth repair replays"); PreservedBelow(before, 6);
+                }
+                finally { new Harmony("DeepNorthCompat.Terrain.HearthBelow.Precision").UnpatchSelf(); quiet.UnpatchSelf(); }
+            });
+            test("Precision terrain: exposed cut repair survives replay", () =>
+            {
+                Assembly terrain = Assembly.LoadFrom(Path.Combine(lab, "BepInEx/plugins/Searica-AdvancedTerrainModifiers/TerrainTools.dll"));
+                Type operations = terrain.GetType("TerrainTools.Core.TerrainOperations", true)!;
+                Type logger = terrain.GetType("Logging.Log", true)!;
+                var quiet = new Harmony("DeepNorthCompat.Tests.PrecisionLog");
+                try
+                {
+                    Hook(quiet, logger, "LogInfo", nameof(Skip));
+                    CompatibilityInstaller.Install(guid => guid == "Searica.Valheim.TerrainTools" ? terrain
+                        : guid == "Azumatt.HearthBelow" ? typeof(VoxelWorld).Assembly
+                        : guid == "hyleanlegend.RuneMagic" ? rune : null, messages.Add, messages.Add, messages.Add);
+                    CompatibilityInstaller.Verify();
+                    Reset(); Cut(3); float[] before = (float[])zone.Density!.Clone();
+                    Call(operations, "PreciseRaiseTerrain", comp, new Vector3(0, 8, 0), 1f);
+                    Near(Top(), 8f, "precision raise repairs the exposed cut");
+                    Check(levels.All(value => value == 0), "the heightmap stays unchanged");
+                    Reload(); Near(Top(), 8f, "exposed repair replays"); PreservedBelow(before, 6);
+                }
+                finally { new Harmony("DeepNorthCompat.Terrain.HearthBelow.Precision").UnpatchSelf(); quiet.UnpatchSelf(); }
+            });
+            test("Precision terrain: direct-cut placement uses the spinner and square footprint", () =>
+            {
+                Assembly terrain = Assembly.LoadFrom(Path.Combine(lab, "BepInEx/plugins/Searica-AdvancedTerrainModifiers/TerrainTools.dll"));
+                Type route = typeof(VoxelWorld).Assembly.GetType("HearthBelow.Patches.TerrainOp_Awake_Patch", true)!;
+                Type spinner = terrain.GetType("TerrainTools.Core.GroundLevelSpinner", true)!;
+                FieldInfo remove = AccessTools.Field(typeof(HearthBelowPlugin), "RemoveModsClearsCaves");
+                object oldRemove = remove.GetValue(null), oldValue = AccessTools.Property(spinner, "Value").GetValue(null);
+                bool oldDisabled = TerrainOp.m_forceDisableTerrainOps;
+                var environment = new Harmony("DeepNorthCompat.Tests.PrecisionPlacement");
+                try
+                {
+                    Hook(environment, typeof(PrivateArea), "CheckAccess", nameof(True), new[] { typeof(Vector3), typeof(float), typeof(bool), typeof(bool) });
+                    Hook(environment, typeof(Location), "IsInsideNoBuildLocation", nameof(False), new[] { typeof(Vector3) });
+                    Hook(environment, typeof(Time), "get_time", nameof(Zero));
+                    Hook(environment, typeof(Component), "GetComponentInChildren", nameof(PrecisionOverlay), new[] { typeof(Type) });
+                    MethodInfo awake = AccessTools.Method(typeof(TerrainOp), "Awake");
+                    environment.Patch(awake, prefix: new HarmonyMethod(AccessTools.Method(route, "Prefix")));
+                    environment.Patch(awake, prefix: new HarmonyMethod(AccessTools.Method(typeof(HearthTerrainTests), nameof(Skip))) { priority = Priority.Last });
+                    remove.SetValue(null, settings.Bind("precision", "remove caves", HearthBelowPlugin.Toggle.Off));
+                    AccessTools.Property(spinner, "Value").SetValue(null, .5f);
+                    TerrainOp.m_forceDisableTerrainOps = false;
+                    CompatibilityInstaller.Install(guid => guid == "Searica.Valheim.TerrainTools" ? terrain
+                        : guid == "Azumatt.HearthBelow" ? typeof(VoxelWorld).Assembly
+                        : guid == "hyleanlegend.RuneMagic" ? rune : null, messages.Add, messages.Add, messages.Add);
+                    CompatibilityInstaller.Verify();
+
+                    Reset(); Cut();
+                    var placement = Fake<TerrainOp>(); SetPosition(placement, new Vector3(0, 9.25f, 0));
+                    placement.m_settings = new TerrainOp.Settings { m_raise = true, m_raiseDelta = 1f,
+                        m_raiseRadius = 2f, m_raisePower = 2, m_square = false, m_paintCleared = false };
+                    precisionOwner = placement;
+                    precisionOverlayType = terrain.GetType("TerrainTools.Visualization.OverlayVisualizer", true)!;
+                    precisionOverlay = (Component)FormatterServices.GetUninitializedObject(terrain.GetType("TerrainTools.Visualization.RaiseGroundOverlayVisualizer", true)!);
+                    SetPointer(precisionOverlay);
+                    Call(placement, "Awake");
+                    Near(Top(), 9.5f, "placement applies the selected half-meter spinner step");
+                    Check(Top(10, 10) > 9.5f, "placement reaches the square corner");
+                    Near(Top(11, 9), 10f, "placement leaves the outside control");
+                    Reload(); Near(Top(), 9.5f, "placement survives replay");
+                }
+                finally
+                {
+                    environment.UnpatchSelf(); remove.SetValue(null, oldRemove);
+                    AccessTools.Property(spinner, "Value").SetValue(null, oldValue);
+                    TerrainOp.m_forceDisableTerrainOps = oldDisabled;
+                    precisionOwner = precisionOverlay = null!; precisionOverlayType = null!;
+                }
+            });
+            test("Precision terrain: direct-cut operations retain their square through game routing", () =>
+            {
+                Assembly terrain = Assembly.LoadFrom(Path.Combine(lab, "BepInEx/plugins/Searica-AdvancedTerrainModifiers/TerrainTools.dll"));
+                Type route = typeof(VoxelWorld).Assembly.GetType("HearthBelow.Patches.TerrainComp_InternalDoOperation_Patch", true)!;
+                FieldInfo painting = AccessTools.Field(typeof(HearthBelowPlugin), "UndergroundPainting");
+                object oldPainting = painting.GetValue(null);
+                var environment = new Harmony("DeepNorthCompat.Tests.PrecisionGameRoute");
+                try
+                {
+                    Hook(environment, typeof(PrivateArea), "CheckAccess", nameof(True), new[] { typeof(Vector3), typeof(float), typeof(bool), typeof(bool) });
+                    Hook(environment, typeof(Location), "IsInsideNoBuildLocation", nameof(False), new[] { typeof(Vector3) });
+                    Hook(environment, typeof(Time), "get_time", nameof(Zero));
+                    environment.Patch(AccessTools.Method(typeof(TerrainComp), "InternalDoOperation"), prefix: new HarmonyMethod(AccessTools.Method(route, "Prefix")));
+                    painting.SetValue(null, settings.Bind("precision", "underground", HearthBelowPlugin.Toggle.Off));
+                    CompatibilityInstaller.Install(guid => guid == "Searica.Valheim.TerrainTools" ? terrain
+                        : guid == "Azumatt.HearthBelow" ? typeof(VoxelWorld).Assembly
+                        : guid == "hyleanlegend.RuneMagic" ? rune : null, messages.Add, messages.Add, messages.Add);
+                    CompatibilityInstaller.Verify();
+
+                    Reset(); Cut();
+                    var modifier = new TerrainOp.Settings { m_raise = true, m_raiseDelta = .5f,
+                        m_raiseRadius = float.NegativeInfinity, m_raisePower = 2, m_square = false };
+                    Call(comp, "InternalDoOperation", new Vector3(0, 9.25f, 0), Vector3.zero, modifier);
+                    Check(Top(10, 10) > 9.5f, "precision raise reaches the square corner through game routing");
+                    Near(Top(11, 9), 10f, "precision raise leaves the outside control");
+                    Reload(); Check(Top(10, 10) > 9.5f, "routed precision raise survives replay");
+
+                    Reset(); Cut();
+                    modifier = new TerrainOp.Settings { m_raise = true, m_raiseDelta = .5f,
+                        m_raiseRadius = 1f, m_raisePower = 2, m_square = true };
+                    Call(comp, "InternalDoOperation", new Vector3(0, 9.25f, 0), Vector3.zero, modifier);
+                    Near(Top(), 9.5f, "finite square raise keeps the vendor center");
+                    Near(Top(10, 10), 9.555555f, "finite square raise keeps the vendor corner");
+                    Reload(); Near(Top(10, 10), 9.555555f, "finite square raise replays");
+
+                    Reset(); Cut();
+                    modifier = new TerrainOp.Settings { m_smooth = true, m_smoothRadius = float.NegativeInfinity,
+                        m_smoothPower = 3, m_levelOffset = .75f };
+                    Call(comp, "InternalDoOperation", new Vector3(0, 9.25f, 0), Vector3.zero, modifier);
+                    Check(Top(10, 10) > 9.8f, "precision smooth reaches the square corner through game routing");
+                    Near(Top(11, 9), 10f, "precision smooth leaves the outside control");
+                    Reload(); Check(Top(10, 10) > 9.8f, "routed precision smooth survives replay");
+                }
+                finally { environment.UnpatchSelf(); painting.SetValue(null, oldPainting); }
+            });
+            test("Precision terrain: zero-step direct raise leaves the cut unchanged", () =>
+            {
+                Assembly terrain = Assembly.LoadFrom(Path.Combine(lab, "BepInEx/plugins/Searica-AdvancedTerrainModifiers/TerrainTools.dll"));
+                Type route = typeof(VoxelWorld).Assembly.GetType("HearthBelow.Patches.TerrainComp_InternalDoOperation_Patch", true)!;
+                FieldInfo painting = AccessTools.Field(typeof(HearthBelowPlugin), "UndergroundPainting");
+                object oldPainting = painting.GetValue(null);
+                var environment = new Harmony("DeepNorthCompat.Tests.PrecisionZero");
+                try
+                {
+                    Hook(environment, typeof(PrivateArea), "CheckAccess", nameof(True), new[] { typeof(Vector3), typeof(float), typeof(bool), typeof(bool) });
+                    Hook(environment, typeof(Location), "IsInsideNoBuildLocation", nameof(False), new[] { typeof(Vector3) });
+                    Hook(environment, typeof(Time), "get_time", nameof(Zero));
+                    environment.Patch(AccessTools.Method(typeof(TerrainComp), "InternalDoOperation"), prefix: new HarmonyMethod(AccessTools.Method(route, "Prefix")));
+                    painting.SetValue(null, settings.Bind("precision", "underground", HearthBelowPlugin.Toggle.Off));
+                    CompatibilityInstaller.Install(guid => guid == "Searica.Valheim.TerrainTools" ? terrain
+                        : guid == "Azumatt.HearthBelow" ? typeof(VoxelWorld).Assembly
+                        : guid == "hyleanlegend.RuneMagic" ? rune : null, messages.Add, messages.Add, messages.Add);
+                    CompatibilityInstaller.Verify();
+                    Reset(); Cut(); float[] before = (float[])zone.Density!.Clone();
+                    var modifier = new TerrainOp.Settings { m_raise = true, m_raiseDelta = 0f,
+                        m_raiseRadius = float.NegativeInfinity, m_raisePower = 2, m_square = false };
+                    Call(comp, "InternalDoOperation", new Vector3(0, 9.5f, 0), Vector3.zero, modifier);
+                    Check(zone.Density!.SequenceEqual(before), "zero-step precision raise leaves voxel density unchanged");
+                    Check(Saved().Count == 1, "zero-step precision raise adds no saved operation");
+                    Reload(); Near(Top(), 9.25f, "zero-step precision raise leaves the cut unchanged after replay");
+                }
+                finally { environment.UnpatchSelf(); painting.SetValue(null, oldPainting); }
+            });
+            test("Precision terrain: direct-cut raise keeps a small selected step", () =>
+            {
+                Assembly terrain = Assembly.LoadFrom(Path.Combine(lab, "BepInEx/plugins/Searica-AdvancedTerrainModifiers/TerrainTools.dll"));
+                Type route = typeof(VoxelWorld).Assembly.GetType("HearthBelow.Patches.TerrainComp_InternalDoOperation_Patch", true)!;
+                FieldInfo painting = AccessTools.Field(typeof(HearthBelowPlugin), "UndergroundPainting");
+                object oldPainting = painting.GetValue(null);
+                var environment = new Harmony("DeepNorthCompat.Tests.PrecisionSmallStep");
+                try
+                {
+                    Hook(environment, typeof(PrivateArea), "CheckAccess", nameof(True), new[] { typeof(Vector3), typeof(float), typeof(bool), typeof(bool) });
+                    Hook(environment, typeof(Location), "IsInsideNoBuildLocation", nameof(False), new[] { typeof(Vector3) });
+                    Hook(environment, typeof(Time), "get_time", nameof(Zero));
+                    environment.Patch(AccessTools.Method(typeof(TerrainComp), "InternalDoOperation"), prefix: new HarmonyMethod(AccessTools.Method(route, "Prefix")));
+                    painting.SetValue(null, settings.Bind("precision", "underground", HearthBelowPlugin.Toggle.Off));
+                    CompatibilityInstaller.Install(guid => guid == "Searica.Valheim.TerrainTools" ? terrain
+                        : guid == "Azumatt.HearthBelow" ? typeof(VoxelWorld).Assembly
+                        : guid == "hyleanlegend.RuneMagic" ? rune : null, messages.Add, messages.Add, messages.Add);
+                    CompatibilityInstaller.Verify();
+                    Reset(); Cut();
+                    var modifier = new TerrainOp.Settings { m_raise = true, m_raiseDelta = .05f,
+                        m_raiseRadius = float.NegativeInfinity, m_raisePower = 2, m_square = false };
+                    Call(comp, "InternalDoOperation", new Vector3(0, 9.25f, 0), Vector3.zero, modifier);
+                    Near(Top(), 9.285714f, "the 0.05 m step uses the selected delta in the vendor density formula");
+                    Reload(); Near(Top(), 9.285714f, "small precision step replays");
+                }
+                finally { environment.UnpatchSelf(); painting.SetValue(null, oldPainting); }
+            });
+            test("Precision terrain: direct-cut square route persists", () =>
+            {
+                Assembly terrain = Assembly.LoadFrom(Path.Combine(lab, "BepInEx/plugins/Searica-AdvancedTerrainModifiers/TerrainTools.dll"));
+                Type route = typeof(VoxelWorld).Assembly.GetType("HearthBelow.Patches.TerrainComp_InternalDoOperation_Patch", true)!;
+                FieldInfo painting = AccessTools.Field(typeof(HearthBelowPlugin), "UndergroundPainting");
+                object oldPainting = painting.GetValue(null);
+                var environment = new Harmony("DeepNorthCompat.Tests.PrecisionDirectEnvironment");
+                try
+                {
+                    Hook(environment, typeof(PrivateArea), "CheckAccess", nameof(True), new[] { typeof(Vector3), typeof(float), typeof(bool), typeof(bool) });
+                    Hook(environment, typeof(Location), "IsInsideNoBuildLocation", nameof(False), new[] { typeof(Vector3) });
+                    Hook(environment, typeof(Time), "get_time", nameof(Zero));
+                    painting.SetValue(null, settings.Bind("precision", "underground", HearthBelowPlugin.Toggle.Off));
+                    CompatibilityInstaller.Install(guid => guid == "Searica.Valheim.TerrainTools" ? terrain
+                        : guid == "Azumatt.HearthBelow" ? typeof(VoxelWorld).Assembly
+                        : guid == "hyleanlegend.RuneMagic" ? rune : null, messages.Add, messages.Add, messages.Add);
+                    CompatibilityInstaller.Verify();
+                    Reset(); Cut();
+                    Check(Top(10, 10) < 9.5f, "corner is within the preexisting cut");
+                    Near(Top(11, 9), 10f, "outside control starts untouched");
+                    var modifier = new TerrainOp.Settings { m_raise = true, m_raiseDelta = .5f,
+                        m_raiseRadius = float.NegativeInfinity, m_raisePower = 2, m_square = false };
+                    Call(route, "Prefix", new Vector3(0, 9.25f, 0), modifier);
+                    Check(Top() > 9.4f, "precision raise updates the cut center");
+                    Check(Top(10, 10) > 9.5f, "precision raise updates a square corner");
+                    Near(Top(11, 9), 10f, "precision raise leaves the outside control");
+                    Reload();
+                    Check(Top(10, 10) > 9.5f, "square corner survives save and replay");
+                }
+                finally { environment.UnpatchSelf(); painting.SetValue(null, oldPainting); }
+            });
+            test("Precision terrain: a later incompatible rewrite stops writers and preserves saved repairs", () =>
+            {
+                Assembly terrain = Assembly.LoadFrom(Path.Combine(lab, "BepInEx/plugins/Searica-AdvancedTerrainModifiers/TerrainTools.dll"));
+                Type operations = terrain.GetType("TerrainTools.Core.TerrainOperations", true)!;
+                Type logger = terrain.GetType("Logging.Log", true)!;
+                var quiet = new Harmony("DeepNorthCompat.Tests.PrecisionLog");
+                var foreign = new Harmony("DeepNorthCompat.Tests.PrecisionChangedIL");
+                try
+                {
+                    Hook(quiet, logger, "LogInfo", nameof(Skip));
+                    CompatibilityInstaller.Install(guid => guid == "Searica.Valheim.TerrainTools" ? terrain
+                        : guid == "Azumatt.HearthBelow" ? typeof(VoxelWorld).Assembly
+                        : guid == "hyleanlegend.RuneMagic" ? rune : null, messages.Add, messages.Add, messages.Add);
+                    CompatibilityInstaller.Verify();
+                    Reset(); Cut(3);
+                    Call(operations, "PreciseRaiseTerrain", comp, new Vector3(0, 8, 0), 1f);
+                    Near(Top(), 8f, "repair exists before the foreign rewrite");
+
+                    int firstMessage = messages.Count;
+                    foreign.Patch(AccessTools.Method(typeof(VoxelWorld), "SmoothAt"),
+                        transpiler: new HarmonyMethod(typeof(HearthTerrainTests), nameof(AlterPrecisionRadius)) { priority = Priority.First });
+                    Check(messages.Skip(firstMessage).Any(message => message.Contains("Terrain.HearthBelow.Precision: NO LONGER APPLIED")),
+                        "a later incompatible rewrite is reported");
+                    Reload(); Near(Top(), 8f, "saved repair remains decodable");
+
+                    Reset(); Cut();
+                    Call(operations, "PreciseRaiseTerrain", comp, new Vector3(0, 10, 0), 1f);
+                    Near(Top(), 9.25f, "surface writer stops when the group loses its match");
+                    Check(Saved().Count == 1, "no new repair is written after the mismatch");
+                }
+                finally { foreign.UnpatchSelf(); quiet.UnpatchSelf(); new Harmony("DeepNorthCompat.Terrain.HearthBelow.Precision").UnpatchSelf(); }
             });
             test("Hearth terrain: absent and changed vendors install no hooks", () =>
             {
@@ -584,6 +874,20 @@ internal static class HearthTerrainTests
     private static void Near(float value, float expected, string message) => Check(Math.Abs(value - expected) < .001f, message + ": " + value + " != " + expected);
     private static bool TransformOf(Component __instance, ref Transform __result) { __result = transforms[__instance]; return false; }
     private static bool PositionOf(Transform __instance, ref Vector3 __result) { __result = positions[__instance]; return false; }
+    private static IEnumerable<CodeInstruction> AlterPrecisionRadius(IEnumerable<CodeInstruction> instructions)
+    {
+        var code = instructions.Select(instruction => new CodeInstruction(instruction)).ToList();
+        code.Single(instruction => instruction.opcode == OpCodes.Ldc_R4 && Equals(instruction.operand, .5f)).operand = .6f;
+        return code;
+    }
+    private static bool PrecisionOverlay(Component __instance, Type __0, ref Component __result)
+    {
+        if (__instance != precisionOwner || __0 != precisionOverlayType) return true;
+        __result = precisionOverlay;
+        return false;
+    }
+    private static bool False(ref bool __result) { __result = false; return false; }
+    private static bool Zero(ref float __result) { __result = 1; return false; }
     private static bool NoLava(ref float __result) { __result = 0; return false; }
     private static bool True(ref bool __result) { __result = true; return false; }
     private static bool Send(string __0) => throw new Exception("Owner fixture unexpectedly sent RPC " + __0);

@@ -25,6 +25,8 @@ It currently fixes bugs and incompatibilities involving:
 - My Little UI ammo counts, which redrew every hotbar update even when the number hadn't changed.
 - Visible UI localization on Valheim 1.0.21 Windows clients, which collected inactive labels before discarding them.
 - RuneMagic rune lookups on Valheim 1.0.21 Windows clients, which read the piece's name again for every rune in the list.
+- AdvancedTerrainModifiers precision raising, which ignored Heightmap Unlimited JvL heightmap limits, and precision raising and smoothing over HearthBelow cuts.
+- UsefulPaths status effects, which could fail to attach or clear around other characters, and cart mass calculations with ImpactfulSkills' Hauling reduction.
 - HearthBelow pickaxe cuts, which came back after Hoe leveling, raising, or smoothing, or a RuneMagic Foundation Rune, filled them.
 
 Requires ConditionalConfigSync 1.0.11 or newer. Install the same DeepNorthCompat version and ConditionalConfigSync on the dedicated server and every client, then restart.
@@ -61,8 +63,12 @@ Each fix is written against one exact build of the mods it touches:
 - ValheimCommunityPatch 0.39.0, 0.39.1, 0.40.0, and 0.41.0 for Craft/Upgrade button audio, vibration, and timers
 - My Little UI 1.2.31, 1.2.32 and 1.2.33 (ammo count redraw fix on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients)
 - HearthBelow 0.7.0 and 0.7.1, with RuneMagic 1.5.1 for the Foundation Rune (cut filling on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients and Windows/Linux dedicated servers)
+- AdvancedTerrainModifiers 1.6.1 with Heightmap Unlimited JvL 2.0.2 or HearthBelow 0.7.1 for precision terrain fixes on Valheim 1.0.21 Windows clients and Windows/Linux dedicated servers
+- UsefulPaths 1.1.1, with ImpactfulSkills 0.26.0 for cart mass ordering, on Valheim 1.0.21 Windows clients and Windows/Linux dedicated servers
 
 Mod patches only activate if the corresponding mod and supported version are present.
+
+The Heightmap Unlimited JvL integration applies to heightmap precision raising. HearthBelow's direct voxel edits retain HearthBelow's own limits.
 
 With ValheimTune installed, DeepNorthCompat turns off ValheimTune's client component and its client patches after ValheimTune loads its configuration. ValheimTune's dedicated-server patches stay active.
 
