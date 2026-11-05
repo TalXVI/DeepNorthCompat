@@ -60,8 +60,8 @@ Each fix is written against one exact build of the mods it touches:
 - PlantEasily 2.3.0 and 2.3.1 (grid cost fix on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients)
 - NoSmokeStayLit 2.4.3 and 2.4.4 (fireplace mode controls on Valheim 1.0.20 and 1.0.21 Windows clients)
 - PlantEverything 1.21.3 and 1.21.4 with NoCultivatorDust 1.0.7 or NoBuildDust 1.0.7 (placement dust fix on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients)
-- ValheimCommunityPatch 0.39.0, 0.39.1, 0.40.0, and 0.41.0 for Craft/Upgrade button audio, vibration, and timers
-- My Little UI 1.2.31, 1.2.32 and 1.2.33 (ammo count redraw fix on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients)
+- ValheimCommunityPatch 0.39.0, 0.39.1, 0.40.0, 0.41.0, and 0.42.0 for Craft/Upgrade button audio, vibration, and timers
+- My Little UI 1.2.31, 1.2.32, 1.2.33, and 1.2.34 (ammo count redraw fix on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients)
 - HearthBelow 0.7.0 and 0.7.1, with RuneMagic 1.5.1 for the Foundation Rune (cut filling on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients and Windows/Linux dedicated servers)
 - AdvancedTerrainModifiers 1.6.1 with Heightmap Unlimited JvL 2.0.2 or HearthBelow 0.7.1 for precision terrain fixes on Valheim 1.0.21 Windows clients and Windows/Linux dedicated servers
 - UsefulPaths 1.1.1, with ImpactfulSkills 0.26.0 for cart mass ordering, on Valheim 1.0.21 Windows clients and Windows/Linux dedicated servers

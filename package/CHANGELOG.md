@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.4
+
+- Supports My Little UI 1.2.34 with the existing ammo count redraw fix.
+- Supports ValheimCommunityPatch 0.42.0 with the existing Craft/Upgrade button audio, vibration, and timer fix.
+
 ## 1.6.3
 
 - Fixes AdvancedTerrainModifiers 1.6.1 heightmap precision raising with Heightmap Unlimited JvL, and precision raising and smoothing over HearthBelow cuts.
