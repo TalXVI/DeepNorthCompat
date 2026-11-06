@@ -18,6 +18,8 @@ namespace DeepNorthCompat
         internal const string GuiUtils1021Client = "08A5AEA10B3E8BF20B60B3AB545B6CB8550DB8B12CFF05E32C90BDD9F45DC244";
         internal const string BetterMap = "BB0A0A2E4E9EA2B388CD55F486A61057BF57F982D5647AA649375D4B1E7BAE04";
         internal const string Cartography = "2379F6884BEC32843DAFA1306F693CAD8FC2FB1208E9D2BEE3D3745EFB2DC529";
+        internal const string Vpo123 = "614CD643343E2E2D182BA4B50AA8C96D8FEDB8E09A16C6AA0018BAD222D6EE70";
+        internal const string Vpo200 = "5BC06CD13EECAFDE08384DD1DB6B3B56073B93E9EF2F6CB3835782B305E19AC7";
         internal static readonly string[] TeleportEverything =
         {
             "7E4B67FAEC0A475312745B3ED06FD7754C14AAC4D6BCECFE56FD93E439DE605B",
@@ -175,6 +177,8 @@ namespace DeepNorthCompat
                 AzuEpiPreviewPatch.Prepare(resolve(AzuEpiPreviewPatch.Owner));
             });
             InstallGroup("VPO.Burst", () => VpoBurstPatch.Prepare(resolve("dev.ontrigger.vpo")));
+            InstallGroup("VPO.Materials", () => VpoMaterialsPatch.Prepare(resolve("dev.ontrigger.vpo"), resolve(VpoMaterialsPatch.VisualsGuid)));
+            InstallGroup("VPO.Animation", () => VpoAnimationPatch.Prepare(resolve(VpoAnimationPatch.VpoGuid), resolve(VpoAnimationPatch.ZenGuid)));
             InstallGroup("Performance.IdleSync", IdleSyncPatch.Prepare);
             InstallGroup("RuneMagic.Ice", () => RuneIcePatch.Prepare(resolve(HearthTerrainPatch.RuneGuid)));
             InstallGroup("RuneMagic.SpriteMaterials", () => RuneSpritePatch.Prepare(resolve(HearthTerrainPatch.RuneGuid)));
@@ -224,6 +228,8 @@ namespace DeepNorthCompat
             ReforgedPotentialPatch.Verify();
             AzuEpiPreviewPatch.Verify();
             VpoBurstPatch.Verify();
+            VpoMaterialsPatch.Verify();
+            VpoAnimationPatch.Verify();
             IdleSyncPatch.Verify();
             RuneIcePatch.Verify();
             RuneSpritePatch.Verify();

@@ -101,6 +101,7 @@ def run_suite(runtime, game, executable):
             ("UnityEngine.Time::get_fixedTime", ctypes.CFUNCTYPE(ctypes.c_float)(lambda: 0)),
             ("UnityEngine.Time::get_deltaTime", ctypes.CFUNCTYPE(ctypes.c_float)(lambda: 1 / 60)),
             ("UnityEngine.Time::get_unscaledTime", ctypes.CFUNCTYPE(ctypes.c_float)(lambda: 0)),
+            ("UnityEngine.Time::get_realtimeSinceStartup", ctypes.CFUNCTYPE(ctypes.c_float)(lambda: 0)),
             ("UnityEngine.Time::get_time", ctypes.CFUNCTYPE(ctypes.c_float)(lambda: 0)),
             ("UnityEngine.Time::get_fixedDeltaTime", ctypes.CFUNCTYPE(ctypes.c_float)(lambda: 0.02)),
             ("UnityEngine.Screen::get_width", ctypes.CFUNCTYPE(integer)(lambda: 1920)),

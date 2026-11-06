@@ -7,7 +7,7 @@ using ConditionalConfigSync;
 
 namespace DeepNorthCompat
 {
-    [BepInPlugin(Guid, "DeepNorthCompat", "1.6.4")]
+    [BepInPlugin(Guid, "DeepNorthCompat", "1.6.5")]
     [BepInDependency("_shudnal.ConditionalConfigSync", "1.0.11")]
     [BepInDependency(CompatibilityInstaller.ImpactGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(CompatibilityInstaller.CraftyGuid, BepInDependency.DependencyFlags.SoftDependency)]
@@ -17,6 +17,8 @@ namespace DeepNorthCompat
     [BepInDependency("marlthon.AirAnimals", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Azumatt.AzuExtendedPlayerInventory", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("dev.ontrigger.vpo", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(VpoMaterialsPatch.VisualsGuid, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(VpoAnimationPatch.ZenGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(TabAudioPatch.VcpOwner, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("akoozie.valheimtune", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.maxsch.valheim.MultiUserChest", BepInDependency.DependencyFlags.SoftDependency)]

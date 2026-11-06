@@ -13,47 +13,62 @@ namespace DeepNorthCompat
     internal static class VpoBurstPatch
     {
         private const string Owner = Plugin.Guid + ".VPO.Burst";
-        private const string VpoHash = "614CD643343E2E2D182BA4B50AA8C96D8FEDB8E09A16C6AA0018BAD222D6EE70";
         private static readonly MethodInfo platform = AccessTools.PropertyGetter(typeof(Application), nameof(Application.platform));
         private static readonly MethodInfo libraryPlatform = AccessTools.DeclaredMethod(typeof(VpoBurstPatch), nameof(WindowsLibraryPlatform));
         private static Type? pending;
+        private static bool pendingUpstream;
         private static int rewrites;
 
         internal static void Prepare(Assembly? assembly)
         {
-            pending = null; rewrites = 0;
+            pending = null; pendingUpstream = false; rewrites = 0;
             if (assembly == null) { CompatibilityInstaller.Info("VPO.Burst: optional mod absent; inactive."); return; }
             if (Application.platform != RuntimePlatform.WindowsServer)
             { CompatibilityInstaller.Info("VPO.Burst: Windows dedicated-only patch; inactive."); return; }
             if (!Guard.KnownServerBuild())
                 throw new NotSupportedException("Windows dedicated game build changed; re-audit required.");
-            Guard.Build(assembly, VpoHash);
+            Guard.Build(assembly, ExpectedBuilds.Vpo123, ExpectedBuilds.Vpo200);
             string directory = Path.GetDirectoryName(assembly.Location)!;
-            RequireFile(Path.Combine(directory, "VPOBurst_Managed.dll"), "05AF1CA87068AC676B3CF56A02E1AA797ED1F4A703E95497C60FC5FBFC7B383D");
-            RequireFile(Path.Combine(directory, "VPOBurst_win_x86_64.dll"), "BC112B1A74FEF0D5028E7ABB3014026183175DF7724853DCCB44A188D57BDA46");
+            bool fixedUpstream = Guard.Sha256(assembly.Location) == ExpectedBuilds.Vpo200;
+            if (fixedUpstream)
+            {
+                RequireFile(Path.Combine(directory, "ValheimPerformanceOptimizations.Burst.dll"), "3310A393ED7C27F0F91B61A8EA114F2D080A6016EB0CDC895D02B8846C2BE4D1");
+                RequireFile(Path.Combine(directory, "ValheimPerformanceOptimizations.Burst_win_x86_64.dll"), "1CE566AE62822F19CF18D873BBB42D8E80DB0DC94CFAB194D5E01BE8B1510D47");
+            }
+            else
+            {
+                RequireFile(Path.Combine(directory, "VPOBurst_Managed.dll"), "05AF1CA87068AC676B3CF56A02E1AA797ED1F4A703E95497C60FC5FBFC7B383D");
+                RequireFile(Path.Combine(directory, "VPOBurst_win_x86_64.dll"), "BC112B1A74FEF0D5028E7ABB3014026183175DF7724853DCCB44A188D57BDA46");
+            }
+
             Type loader = Guard.Type(assembly, "ValheimPerformanceOptimizations.BurstLoader");
             MethodInfo initialize = Guard.Method(loader, "Initialize", typeof(void));
             foreach (string property in new[] { "LibraryLoaded", "JobsAreBursted" })
                 Guard.Method(loader, "get_" + property, typeof(bool));
-            new Harmony(Owner).Patch(initialize,
-                transpiler: new HarmonyMethod(AccessTools.Method(typeof(VpoBurstPatch), nameof(Transpiler))));
-            pending = loader;
+
+            if (!fixedUpstream)
+                new Harmony(Owner).Patch(initialize,
+                    transpiler: new HarmonyMethod(AccessTools.Method(typeof(VpoBurstPatch), nameof(Transpiler))));
+            pending = loader; pendingUpstream = fixedUpstream;
         }
 
         internal static void Verify()
         {
             Type? loader = pending; pending = null;
+            bool fixedUpstream = pendingUpstream; pendingUpstream = false;
             if (loader == null) return;
             try
             {
-                if (rewrites != 4) throw new NotSupportedException("VPO platform selection rewrite did not apply.");
+                if (!fixedUpstream && rewrites != 4) throw new NotSupportedException("VPO platform selection rewrite did not apply.");
                 // VPO initializes before this soft dependency. Retry after deferred patches apply.
-                if (!(bool)AccessTools.Property(loader, "LibraryLoaded").GetValue(null))
+                if (!fixedUpstream && !(bool)AccessTools.Property(loader, "LibraryLoaded").GetValue(null))
                     AccessTools.Method(loader, "Initialize").Invoke(null, null);
                 if (!(bool)AccessTools.Property(loader, "LibraryLoaded").GetValue(null) ||
                     !(bool)AccessTools.Property(loader, "JobsAreBursted").GetValue(null))
                     throw new InvalidOperationException("VPO Windows native library or Burst job probe failed.");
-                CompatibilityInstaller.Info("VPO.Burst: APPLIED; Windows dedicated native library loaded and Burst probe passed.");
+                CompatibilityInstaller.Info(fixedUpstream
+                    ? "VPO.Burst: fixed upstream; Windows dedicated native library loaded and Burst probe passed; inactive."
+                    : "VPO.Burst: APPLIED; Windows dedicated native library loaded and Burst probe passed.");
             }
             catch (Exception error)
             {

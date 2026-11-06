@@ -12,6 +12,8 @@ It currently fixes bugs and incompatibilities involving:
 - SeaAnimals and AirAnimals custom creature drop ranges.
 - AzuEPI inventory character preview, which restarted its animation whenever a nearby creature or player changed equipment.
 - VPO native water-wave initialization on Windows dedicated servers.
+- VPO 2.0.0 animation caching with Zen.ModLib's attack-animation fix.
+- Valheim Visuals normal-map boost and restoration on VPO 2.0.0 rendering materials.
 - RuneMagic water-walking ice initialization, which can corrupt physics and saved vehicle positions on Linux dedicated servers.
 - RuneMagic Ocean Currents and Decumberance rune sprites, which each left a material loaded after they faded. Sailing with Ocean Currents added about a thousand materials a second, so Valheim Visuals' material scans stalled the game for longer the longer you played.
 - MultiUserChest stale chest inventories after ownership changes.
@@ -49,7 +51,9 @@ Each fix is written against one exact build of the mods it touches:
 - AirAnimals 0.3.2
 - AzuEPI 2.6.3, 2.6.4, and 2.6.6 for the character preview fix. On Valheim 1.0.21, use 2.6.6.
 - ValheimTune 0.7.8, 0.7.9, and 0.7.10
-- ValheimPerformanceOptimizations 1.2.3
+- ValheimPerformanceOptimizations 1.2.3 and 2.0.0, with 2.0.0 support on Valheim 1.0.21
+- Zen.ModLib 1.14.22 with ValheimPerformanceOptimizations 2.0.0 for animation caching on Valheim 1.0.21 Windows clients
+- Valheim Visuals 1.4.6 with ValheimPerformanceOptimizations 2.0.0 for normal-map materials on Valheim 1.0.21 Windows clients
 - RuneMagic 1.5.1 for water-walking ice initialization and rune sprite materials on Valheim 1.0.20 and 1.0.21 Windows clients and Windows/Linux dedicated servers
 - MultiUserChest 0.6.2
 - Quick Stack - Store - Sort - Trash - Restock 1.4.15 and 1.4.16

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.5
+
+- Supports ValheimPerformanceOptimizations 2.0.0 on Valheim 1.0.21. VPO 2.0.0 fixes Windows dedicated native-library loading upstream.
+- Preserves Zen.ModLib's attack-animation fix when VPO 2.0.0 caches animation parameters.
+- Keeps Valheim Visuals' normal-map boost and restoration working on VPO 2.0.0 rendering materials.
+
 ## 1.6.4
 
 - Supports My Little UI 1.2.34 with the existing ammo count redraw fix.

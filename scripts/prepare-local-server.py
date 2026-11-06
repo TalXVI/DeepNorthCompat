@@ -126,8 +126,10 @@ def main():
                 "Removed ValheimCommunityPatch's zone-diff unload from ZNetScene.RemoveObjects")
     # Tune's load line names its version; accept each audited build the current pack can install.
     tune = tuple(f"[ValheimTune] {version} loaded" for version in ("0.7.9", "0.7.10"))
+    vpo = ()
     if os.name == "nt" and list((bepinex / "plugins").rglob("ValheimPerformanceOptimizations.dll")):
-        required += ("VPO.Burst: APPLIED",)
+        vpo = ("VPO.Burst: APPLIED; Windows dedicated native library loaded and Burst probe passed.",
+               "VPO.Burst: fixed upstream; Windows dedicated native library loaded and Burst probe passed; inactive.")
     ready = False
     with (runtime / "stdout.log").open("w", encoding="utf-8") as output:
         process = subprocess.Popen(command, cwd=runtime, env=environment, stdin=subprocess.PIPE, stdout=output, stderr=subprocess.STDOUT, text=True, **options)
@@ -138,6 +140,7 @@ def main():
                 text = log.read_text(encoding="utf-8", errors="replace") if log.exists() else ""
                 unity = (runtime / "unity.log").read_text(encoding="utf-8", errors="replace") if (runtime / "unity.log").exists() else ""
                 if all(message in text for message in required) and any(message in text for message in tune) \
+                        and (not vpo or any(message in text for message in vpo)) \
                         and "Game server connected" in text + unity:
                     ready = True
                     print("Required compatibility modules applied and Steam server initialized.", flush=True)
