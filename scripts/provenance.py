@@ -22,3 +22,11 @@ def verify_sources(record, root=ROOT):
     files = source_files(root)
     require(files == record["sourceFiles"] and fingerprint(files) == record["sourceSha256"],
             "Source changed after validation. Rerun the full suite before packaging or releasing.")
+
+
+def verify_committed_sources(record, root=ROOT):
+    files = {name: hashlib.sha256(subprocess.check_output(
+        ["git", "show", "HEAD:" + name], cwd=root)).hexdigest()
+        for name in record["sourceFiles"]}
+    require(files == record["sourceFiles"],
+            "Committed source bytes differ from the validated files. Check line endings before releasing.")

@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 
+from provenance import verify_committed_sources
 from tooling import ROOT, require
 
 
@@ -25,6 +26,7 @@ def main():
     commit = git("rev-parse", "HEAD")
     require(commit == git("rev-parse", "origin/main"), "Push main so it matches origin/main before releasing")
     require(not git("ls-remote", "--tags", "origin", "refs/tags/" + tag), f"{tag} already exists on GitHub")
+    verify_committed_sources(json.loads((ROOT / "package/validated-build.json").read_text(encoding="utf-8")), ROOT)
 
     subprocess.run([sys.executable, "-B", str(ROOT / "scripts/build-and-test.py")], cwd=ROOT, check=True)
     # A passing run rewrites validated-build.json; the release workflow trusts the committed copy.

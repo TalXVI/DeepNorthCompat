@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.6
+
+- Reissues the VPO 2.0.0 compatibility fixes from 1.6.5.
+
 ## 1.6.5
 
 - Supports ValheimPerformanceOptimizations 2.0.0 on Valheim 1.0.21. VPO 2.0.0 fixes Windows dedicated native-library loading upstream.
