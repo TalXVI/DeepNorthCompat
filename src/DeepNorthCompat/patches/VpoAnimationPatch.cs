@@ -22,7 +22,7 @@ namespace DeepNorthCompat
             if (vpo == null || zen == null) { CompatibilityInstaller.Info("VPO.Animation: optional mod absent; inactive."); return; }
             if (Guard.KnownServerBuild()) { CompatibilityInstaller.Info("VPO.Animation: client-only; inactive on dedicated server."); return; }
 
-            Guard.Build(vpo, ExpectedBuilds.Vpo123, ExpectedBuilds.Vpo200);
+            Guard.Build(vpo, ExpectedBuilds.Vpo);
             if (Guard.Sha256(vpo.Location) == ExpectedBuilds.Vpo123)
             { CompatibilityInstaller.Info("VPO.Animation: VPO 1.2.3 has no animation cache; inactive."); return; }
 

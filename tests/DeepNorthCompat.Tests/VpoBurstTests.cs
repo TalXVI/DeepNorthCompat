@@ -20,9 +20,9 @@ internal static class VpoBurstTests
     {
         Assembly vpo = Assembly.LoadFrom(Directory.GetFiles(Path.Combine(lab, "BepInEx/plugins"), "ValheimPerformanceOptimizations.dll", SearchOption.AllDirectories).Single());
         Type loader = vpo.GetType("ValheimPerformanceOptimizations.BurstLoader", true)!;
-        System.Version version = vpo.GetName().Version!;
-        bool fixedUpstream = version == new System.Version(2, 0, 0, 0);
-        Check(fixedUpstream || version == new System.Version(1, 2, 3, 0), "unsupported VPO fixture");
+        string build = Guard.Sha256(vpo.Location);
+        bool fixedUpstream = ExpectedBuilds.Vpo2.Contains(build);
+        Check(fixedUpstream || build == ExpectedBuilds.Vpo123, "unsupported VPO fixture");
         var fixture = new Harmony("DeepNorthCompat.Tests.Burst");
         void Cleanup()
         {

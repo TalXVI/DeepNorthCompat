@@ -15,6 +15,12 @@ namespace DeepNorthCompat
         private const string Owner = Plugin.Guid + ".VPO.Burst";
         private static readonly MethodInfo platform = AccessTools.PropertyGetter(typeof(Application), nameof(Application.platform));
         private static readonly MethodInfo libraryPlatform = AccessTools.DeclaredMethod(typeof(VpoBurstPatch), nameof(WindowsLibraryPlatform));
+        // The Windows native Burst library shipped with each upstream-fixed main DLL.
+        private static readonly Dictionary<string, string> WindowsNative = new Dictionary<string, string>
+        {
+            [ExpectedBuilds.Vpo200] = "1CE566AE62822F19CF18D873BBB42D8E80DB0DC94CFAB194D5E01BE8B1510D47",
+            [ExpectedBuilds.Vpo201] = "5275975C2B6BAD1CE67496D7076BA4EBCF4AB7134111BF255A51D69A0CDC8D88"
+        };
         private static Type? pending;
         private static bool pendingUpstream;
         private static int rewrites;
@@ -27,13 +33,14 @@ namespace DeepNorthCompat
             { CompatibilityInstaller.Info("VPO.Burst: Windows dedicated-only patch; inactive."); return; }
             if (!Guard.KnownServerBuild())
                 throw new NotSupportedException("Windows dedicated game build changed; re-audit required.");
-            Guard.Build(assembly, ExpectedBuilds.Vpo123, ExpectedBuilds.Vpo200);
+            Guard.Build(assembly, ExpectedBuilds.Vpo);
             string directory = Path.GetDirectoryName(assembly.Location)!;
-            bool fixedUpstream = Guard.Sha256(assembly.Location) == ExpectedBuilds.Vpo200;
+            string build = Guard.Sha256(assembly.Location);
+            bool fixedUpstream = build != ExpectedBuilds.Vpo123;
             if (fixedUpstream)
             {
                 RequireFile(Path.Combine(directory, "ValheimPerformanceOptimizations.Burst.dll"), "3310A393ED7C27F0F91B61A8EA114F2D080A6016EB0CDC895D02B8846C2BE4D1");
-                RequireFile(Path.Combine(directory, "ValheimPerformanceOptimizations.Burst_win_x86_64.dll"), "1CE566AE62822F19CF18D873BBB42D8E80DB0DC94CFAB194D5E01BE8B1510D47");
+                RequireFile(Path.Combine(directory, "ValheimPerformanceOptimizations.Burst_win_x86_64.dll"), WindowsNative[build]);
             }
             else
             {

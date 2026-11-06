@@ -25,7 +25,7 @@ internal static class VpoAnimationTests
         string plugins = Path.Combine(lab, "BepInEx/plugins");
         string? vpoPath = Directory.GetFiles(plugins, "ValheimPerformanceOptimizations.dll", SearchOption.AllDirectories).SingleOrDefault();
         string? zenPath = Directory.GetFiles(plugins, "Zen.ModLib.dll", SearchOption.AllDirectories).SingleOrDefault();
-        if (vpoPath == null || zenPath == null || Guard.Sha256(vpoPath) != ExpectedBuilds.Vpo200) return;
+        if (vpoPath == null || zenPath == null || !ExpectedBuilds.Vpo2.Contains(Guard.Sha256(vpoPath))) return;
 
         Assembly vpo = Assembly.LoadFrom(vpoPath), zen = Assembly.LoadFrom(zenPath);
         Type vpoType = vpo.GetType("ValheimPerformanceOptimizations.Patches.AnimatorParameterCachePatch", true)!;

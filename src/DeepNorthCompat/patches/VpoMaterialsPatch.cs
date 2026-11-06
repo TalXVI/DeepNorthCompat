@@ -33,7 +33,7 @@ namespace DeepNorthCompat
             { CompatibilityInstaller.Info($"{Group}: client-only patch; inactive."); return; }
             if (Guard.Sha256(vpo.Location) == ExpectedBuilds.Vpo123) { CompatibilityInstaller.Info($"{Group}: VPO 1.2.3 has no indirect materials; inactive."); return; }
 
-            Guard.Build(vpo, ExpectedBuilds.Vpo200);
+            Guard.Build(vpo, ExpectedBuilds.Vpo2);
             Guard.Build(visuals, Visuals);
             Guard.Build(typeof(ZNet).Assembly, ExpectedBuilds.Valheim1021Client);
             Type replacer = Guard.Type(vpo, "ValheimPerformanceOptimizations.Patches.IndirectRendering.PieceMaterialReplacer");
