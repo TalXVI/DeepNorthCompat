@@ -21,8 +21,10 @@ namespace DeepNorthCompat
         internal const string Vpo123 = "614CD643343E2E2D182BA4B50AA8C96D8FEDB8E09A16C6AA0018BAD222D6EE70";
         internal const string Vpo200 = "5BC06CD13EECAFDE08384DD1DB6B3B56073B93E9EF2F6CB3835782B305E19AC7";
         internal const string Vpo201 = "E7F44265DA04E5809530F1212980DB23BB00645CA51BD2B45907CBDAD82B4F1F";
+        internal const string Vpo210 = "749149620CC43ADF048B609DE057D6F8155DF65CE98620C670E0DB02417844E8";
+
         // VPO 2.x builds share the audited Burst loader, animation cache, and material copy paths.
-        internal static readonly string[] Vpo2 = { Vpo200, Vpo201 };
+        internal static readonly string[] Vpo2 = { Vpo200, Vpo201, Vpo210 };
         internal static readonly string[] Vpo = Vpo2.Prepend(Vpo123).ToArray();
         internal static readonly string[] TeleportEverything =
         {

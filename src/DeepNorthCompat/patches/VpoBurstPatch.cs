@@ -19,7 +19,8 @@ namespace DeepNorthCompat
         private static readonly Dictionary<string, string> WindowsNative = new Dictionary<string, string>
         {
             [ExpectedBuilds.Vpo200] = "1CE566AE62822F19CF18D873BBB42D8E80DB0DC94CFAB194D5E01BE8B1510D47",
-            [ExpectedBuilds.Vpo201] = "5275975C2B6BAD1CE67496D7076BA4EBCF4AB7134111BF255A51D69A0CDC8D88"
+            [ExpectedBuilds.Vpo201] = "5275975C2B6BAD1CE67496D7076BA4EBCF4AB7134111BF255A51D69A0CDC8D88",
+            [ExpectedBuilds.Vpo210] = "5275975C2B6BAD1CE67496D7076BA4EBCF4AB7134111BF255A51D69A0CDC8D88"
         };
         private static Type? pending;
         private static bool pendingUpstream;
