@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.9
+
+- Supports Valheim Visuals 1.4.7.
+
 ## 1.6.8
 
 - Supports ValheimPerformanceOptimizations 2.1.0 with the existing Zen.ModLib attack-animation and Valheim Visuals normal-map fixes.

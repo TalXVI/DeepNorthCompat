@@ -14,7 +14,12 @@ namespace DeepNorthCompat
         internal const string VisualsGuid = "ru.ivest.valheimvisuals";
         private const string Owner = Plugin.Guid + ".VPO.Materials";
         private const string Group = "VPO.Materials";
-        private const string Visuals = "52A6F18EB1B26930689177EC1780915BC8AA7E08A628A647142B87CC50A15D19";
+        private static readonly string[] Visuals =
+        {
+            "52A6F18EB1B26930689177EC1780915BC8AA7E08A628A647142B87CC50A15D19",
+            "536B2BEB1B6FA7FA08FFCE8C448B642B1CF51DC947A02042AC0FB8F72A9238AF"
+        };
+
         private static readonly string[] ShaderNames = { "VPO/Piece", "VPO/StaticRock", "VPO/Vegetation", "VPO/Creature", "VPO/Standard" };
         private static readonly MethodInfo copy = AccessTools.DeclaredMethod(typeof(VpoMaterialsPatch), nameof(CopyBaseline));
         private static readonly List<string> added = new List<string>();

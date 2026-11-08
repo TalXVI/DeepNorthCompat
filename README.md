@@ -53,7 +53,7 @@ Each fix is written against one exact build of the mods it touches:
 - ValheimTune 0.7.8, 0.7.9, and 0.7.10
 - ValheimPerformanceOptimizations 1.2.3, 2.0.0, 2.0.1, and 2.1.0, with 2.0.0, 2.0.1, and 2.1.0 support on Valheim 1.0.21
 - Zen.ModLib 1.14.22 with ValheimPerformanceOptimizations 2.0.0, 2.0.1, or 2.1.0 for animation caching on Valheim 1.0.21 Windows clients
-- Valheim Visuals 1.4.6 with ValheimPerformanceOptimizations 2.0.0, 2.0.1, or 2.1.0 for normal-map materials on Valheim 1.0.21 Windows clients
+- Valheim Visuals 1.4.6 and 1.4.7 with ValheimPerformanceOptimizations 2.0.0, 2.0.1, or 2.1.0 for normal-map materials on Valheim 1.0.21 Windows clients
 - RuneMagic 1.5.1 for water-walking ice initialization and rune sprite materials on Valheim 1.0.20 and 1.0.21 Windows clients and Windows/Linux dedicated servers
 - MultiUserChest 0.6.2
 - Quick Stack - Store - Sort - Trash - Restock 1.4.15 and 1.4.16
