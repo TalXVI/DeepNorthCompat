@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.10
+
+- Supports ValheimCommunityPatch 0.45.0.
+- Supports Valheim Visuals 1.4.9.
+
 ## 1.6.9
 
 - Supports Valheim Visuals 1.4.7.

@@ -17,7 +17,8 @@ namespace DeepNorthCompat
         private static readonly string[] Visuals =
         {
             "52A6F18EB1B26930689177EC1780915BC8AA7E08A628A647142B87CC50A15D19",
-            "536B2BEB1B6FA7FA08FFCE8C448B642B1CF51DC947A02042AC0FB8F72A9238AF"
+            "536B2BEB1B6FA7FA08FFCE8C448B642B1CF51DC947A02042AC0FB8F72A9238AF",
+            "5E974424DC800F4A3E70692797ED2F3EA5D61D91FDD0412FF59C7949D9949D98"
         };
 
         private static readonly string[] ShaderNames = { "VPO/Piece", "VPO/StaticRock", "VPO/Vegetation", "VPO/Creature", "VPO/Standard" };

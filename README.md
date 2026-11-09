@@ -53,7 +53,7 @@ Each fix is written against one exact build of the mods it touches:
 - ValheimTune 0.7.8, 0.7.9, and 0.7.10
 - ValheimPerformanceOptimizations 1.2.3, 2.0.0, 2.0.1, and 2.1.0, with 2.0.0, 2.0.1, and 2.1.0 support on Valheim 1.0.21
 - Zen.ModLib 1.14.22 with ValheimPerformanceOptimizations 2.0.0, 2.0.1, or 2.1.0 for animation caching on Valheim 1.0.21 Windows clients
-- Valheim Visuals 1.4.6 and 1.4.7 with ValheimPerformanceOptimizations 2.0.0, 2.0.1, or 2.1.0 for normal-map materials on Valheim 1.0.21 Windows clients
+- Valheim Visuals 1.4.6, 1.4.7, and 1.4.9 with ValheimPerformanceOptimizations 2.0.0, 2.0.1, or 2.1.0 for normal-map materials on Valheim 1.0.21 Windows clients
 - RuneMagic 1.5.1 for water-walking ice initialization and rune sprite materials on Valheim 1.0.20 and 1.0.21 Windows clients and Windows/Linux dedicated servers
 - MultiUserChest 0.6.2
 - Quick Stack - Store - Sort - Trash - Restock 1.4.15 and 1.4.16
@@ -64,7 +64,7 @@ Each fix is written against one exact build of the mods it touches:
 - PlantEasily 2.3.0 and 2.3.1 (grid cost fix on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients)
 - NoSmokeStayLit 2.4.3 and 2.4.4 (fireplace mode controls on Valheim 1.0.20 and 1.0.21 Windows clients)
 - PlantEverything 1.21.3 and 1.21.4 with NoCultivatorDust 1.0.7 or NoBuildDust 1.0.7 (placement dust fix on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients)
-- ValheimCommunityPatch 0.39.0, 0.39.1, 0.40.0, 0.41.0, 0.42.0, 0.43.0, and 0.43.1 for Craft/Upgrade button audio, vibration, and timers
+- ValheimCommunityPatch 0.39.0, 0.39.1, 0.40.0, 0.41.0, 0.42.0, 0.43.0, 0.43.1, and 0.45.0 for Craft/Upgrade button audio, vibration, and timers
 - My Little UI 1.2.31, 1.2.32, 1.2.33, and 1.2.34 (ammo count redraw fix on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients)
 - HearthBelow 0.7.0 and 0.7.1, with RuneMagic 1.5.1 for the Foundation Rune (cut filling on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients and Windows/Linux dedicated servers)
 - AdvancedTerrainModifiers 1.6.1 with Heightmap Unlimited JvL 2.0.2 or HearthBelow 0.7.1 for precision terrain fixes on Valheim 1.0.21 Windows clients and Windows/Linux dedicated servers

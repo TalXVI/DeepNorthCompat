@@ -7,7 +7,7 @@ using ConditionalConfigSync;
 
 namespace DeepNorthCompat
 {
-    [BepInPlugin(Guid, "DeepNorthCompat", "1.6.9")]
+    [BepInPlugin(Guid, "DeepNorthCompat", "1.6.10")]
     [BepInDependency("_shudnal.ConditionalConfigSync", "1.0.11")]
     [BepInDependency(CompatibilityInstaller.ImpactGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(CompatibilityInstaller.CraftyGuid, BepInDependency.DependencyFlags.SoftDependency)]
