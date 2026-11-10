@@ -14,6 +14,10 @@ It currently fixes bugs and incompatibilities involving:
 - VPO native water-wave initialization on Windows dedicated servers.
 - VPO 2.0.0 animation caching with Zen.ModLib's attack-animation fix.
 - Valheim Visuals normal-map boost and restoration on VPO 2.0.0 rendering materials.
+- SteadyFrame and FarLands grass construction over HearthBelow terrain, while retaining GPU drawing and grass-distance requests.
+- FarLands building visibility, LOD ranges, and source-material handling with VPO.
+- FarLands distant terrain and tree heights, which clamped extended terrain edits to vanilla limits.
+- SteadyFrame's structure support hold, which missed VPO's pending objects.
 - RuneMagic water-walking ice initialization, which can corrupt physics and saved vehicle positions on Linux dedicated servers.
 - RuneMagic Ocean Currents and Decumberance rune sprites, which each left a material loaded after they faded. Sailing with Ocean Currents added about a thousand materials a second, so Valheim Visuals' material scans stalled the game for longer the longer you played.
 - MultiUserChest stale chest inventories after ownership changes.
@@ -54,6 +58,10 @@ Each fix is written against one exact build of the mods it touches:
 - ValheimPerformanceOptimizations 1.2.3, 2.0.0, 2.0.1, and 2.1.0, with 2.0.0, 2.0.1, and 2.1.0 support on Valheim 1.0.21
 - Zen.ModLib 1.14.22 with ValheimPerformanceOptimizations 2.0.0, 2.0.1, or 2.1.0 for animation caching on Valheim 1.0.21 Windows clients
 - Valheim Visuals 1.4.6, 1.4.7, and 1.4.9 with ValheimPerformanceOptimizations 2.0.0, 2.0.1, or 2.1.0 for normal-map materials on Valheim 1.0.21 Windows clients
+- SteadyFrame 1.3.1 and FarLands 1.4.1 with HearthBelow 0.7.1 for GPU grass construction on Valheim 1.0.21 Windows clients; retains ValheimCommunityPatch 0.45.0 grass-memory handling when installed
+- FarLands 1.4.1 with ValheimPerformanceOptimizations 2.1.0 for rendering integration on Valheim 1.0.21 Windows clients
+- FarLands 1.4.1 with vanilla terrain limits or Heightmap Unlimited JvL 2.0.2 for distant terrain on Valheim 1.0.21 Windows clients. Reopen the world after changing height limits to rebuild its distant caches under the new limits.
+- SteadyFrame 1.3.1 with ValheimPerformanceOptimizations 2.1.0 for structure support holds on Valheim 1.0.21 Windows clients
 - RuneMagic 1.5.1 for water-walking ice initialization and rune sprite materials on Valheim 1.0.20 and 1.0.21 Windows clients and Windows/Linux dedicated servers
 - MultiUserChest 0.6.2
 - Quick Stack - Store - Sort - Trash - Restock 1.4.15 and 1.4.16

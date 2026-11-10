@@ -29,7 +29,12 @@ internal static class Program
             NoSmokeStayLitTests.Run(Lab, Test);
             UsefulPathsTests.Run(Lab, Test);
             if (Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_TEST_MODE") == "server") RunServer();
-            else { Run(); TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); VpoAnimationTests.Run(Lab, Test); VpoMaterialsTests.Run(Lab, Test); RunChests(); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); ReportUploadTests.Run(Test); MyLittleUiAmmoTests.Run(Lab, Test); }
+            else
+            {
+                Run(); TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); VpoAnimationTests.Run(Lab, Test); VpoMaterialsTests.Run(Lab, Test);
+                RunStreaming();
+                RunChests(); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); ReportUploadTests.Run(Test); MyLittleUiAmmoTests.Run(Lab, Test);
+            }
             RunTerrain();
             RunBetterMap();
             RuneIceInstallationTests.Run(Lab, Test);
@@ -44,7 +49,23 @@ internal static class Program
     }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static void RunServer() { TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); ChestTests.Run(Lab, Test); TabAudioTests.RunServer(Test); IdleSyncTests.RunServer(Test); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); ReportUploadTests.Run(Test); MyLittleUiAmmoTests.RunServer(Lab, Test); }
+    private static void RunServer()
+    {
+        TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); ChestTests.Run(Lab, Test); TabAudioTests.RunServer(Test); IdleSyncTests.RunServer(Test); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); ReportUploadTests.Run(Test); MyLittleUiAmmoTests.RunServer(Lab, Test);
+        GpuGrassTerrainTests.RunServer(Test);
+        FarLandsRenderingTests.Run(Lab, Test);
+        FarLandsTerrainTests.RunServer(Lab, Test);
+        SteadyFrameStructureTests.RunServer(Test);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void RunStreaming()
+    {
+        GpuGrassTerrainTests.RunClient(Lab, Test);
+        FarLandsRenderingTests.Run(Lab, Test);
+        FarLandsTerrainTests.RunClient(Lab, Test);
+        SteadyFrameStructureTests.RunClient(Lab, Test);
+    }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void RunChests() => ChestTests.Run(Lab, Test);

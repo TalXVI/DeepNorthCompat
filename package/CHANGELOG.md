@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.11
+
+- Fixes SteadyFrame and FarLands GPU grass placement over HearthBelow terrain while retaining GPU drawing.
+- Fixes FarLands building visibility, LOD updates, and source-material handling with Valheim Performance Optimizations.
+- Fixes SteadyFrame's structure support hold with Valheim Performance Optimizations.
+- Fixes FarLands distant terrain and tree heights with extended terrain limits, and rebuilds affected derived caches.
+
 ## 1.6.10
 
 - Supports ValheimCommunityPatch 0.45.0.

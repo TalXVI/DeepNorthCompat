@@ -22,6 +22,8 @@ namespace DeepNorthCompat
         internal const string Vpo200 = "5BC06CD13EECAFDE08384DD1DB6B3B56073B93E9EF2F6CB3835782B305E19AC7";
         internal const string Vpo201 = "E7F44265DA04E5809530F1212980DB23BB00645CA51BD2B45907CBDAD82B4F1F";
         internal const string Vpo210 = "749149620CC43ADF048B609DE057D6F8155DF65CE98620C670E0DB02417844E8";
+        internal const string SteadyFrame131 = "92AB5E64BE2827600A03321172AC3D085F63E15D87B2782C2C05C2230D05D2B0";
+        internal const string FarLands141 = "5840564ED6910B4648DBE13F2267B38EF609AA96D1D0EFE72B068031B6257BE6";
 
         // VPO 2.x builds share the audited Burst loader, animation cache, and material copy paths.
         internal static readonly string[] Vpo2 = { Vpo200, Vpo201, Vpo210 };
@@ -184,6 +186,10 @@ namespace DeepNorthCompat
             });
             InstallGroup("VPO.Burst", () => VpoBurstPatch.Prepare(resolve("dev.ontrigger.vpo")));
             InstallGroup("VPO.Materials", () => VpoMaterialsPatch.Prepare(resolve("dev.ontrigger.vpo"), resolve(VpoMaterialsPatch.VisualsGuid)));
+            InstallGroup("FarLands.Rendering", () => FarLandsRenderingPatch.Prepare(
+                resolve(FarLandsTerrainPatch.Guid), resolve("dev.ontrigger.vpo")));
+            InstallGroup(SteadyFrameStructurePatch.Name, () => SteadyFrameStructurePatch.Prepare(
+                resolve(SteadyFrameStructurePatch.Guid), resolve(SteadyFrameStructurePatch.VpoGuid)));
             InstallGroup("VPO.Animation", () => VpoAnimationPatch.Prepare(resolve(VpoAnimationPatch.VpoGuid), resolve(VpoAnimationPatch.ZenGuid)));
             InstallGroup("Performance.IdleSync", IdleSyncPatch.Prepare);
             InstallGroup("RuneMagic.Ice", () => RuneIcePatch.Prepare(resolve(HearthTerrainPatch.RuneGuid)));
@@ -199,11 +205,17 @@ namespace DeepNorthCompat
                 resolve(PlantEverythingDustPatch.CultivatorDust), resolve(PlantEverythingDustPatch.BuildDust)));
             InstallGroup("Tune.Client", () => TuneClientPatch.Prepare(resolve("akoozie.valheimtune")));
             Assembly? hearth = resolve(HearthTerrainPatch.Guid);
+            InstallGroup(GpuGrassTerrainPatch.Name, () => GpuGrassTerrainPatch.Prepare(hearth,
+                resolve(SteadyFrameStructurePatch.Guid), resolve(FarLandsTerrainPatch.Guid),
+                resolve(GpuGrassTerrainPatch.VcpGuid)));
+
             InstallGroup("Terrain.HearthBelow.Replay", () => HearthTerrainPatch.PrepareReplay(hearth));
             InstallGroup("Terrain.HearthBelow", () => HearthTerrainPatch.Prepare(hearth, resolve(HearthTerrainPatch.RuneGuid)));
             InstallGroup("Terrain.PrecisionLimits", () => PrecisionTerrainPatch.PrepareLimits(resolve(PrecisionTerrainPatch.Guid),
                 resolve(PrecisionTerrainPatch.UnlimitedGuid), resolve(PrecisionTerrainPatch.AdvancedHeightMapGuid)));
             InstallGroup("Terrain.HearthBelow.Precision", () => PrecisionTerrainPatch.PrepareHearth(resolve(PrecisionTerrainPatch.Guid), hearth));
+            InstallGroup("Terrain.FarLands", () => FarLandsTerrainPatch.Prepare(
+                resolve(FarLandsTerrainPatch.Guid), resolve(PrecisionTerrainPatch.UnlimitedGuid)));
             InstallGroup("UsefulPaths.Effects", () => UsefulPathsPatch.PrepareEffects(resolve(UsefulPathsPatch.Guid)));
             InstallGroup("UsefulPaths.Cart", () => UsefulPathsPatch.PrepareCart(resolve(UsefulPathsPatch.Guid), impact));
             Assembly? odin = resolve("marlthon.OdinShip");
@@ -235,6 +247,9 @@ namespace DeepNorthCompat
             AzuEpiPreviewPatch.Verify();
             VpoBurstPatch.Verify();
             VpoMaterialsPatch.Verify();
+            FarLandsRenderingPatch.Verify();
+            FarLandsTerrainPatch.Verify();
+            SteadyFrameStructurePatch.Verify();
             VpoAnimationPatch.Verify();
             IdleSyncPatch.Verify();
             RuneIcePatch.Verify();
@@ -248,6 +263,7 @@ namespace DeepNorthCompat
             NoSmokeStayLitPatch.Verify();
             PlantEverythingDustPatch.Verify();
             TuneClientPatch.Verify();
+            GpuGrassTerrainPatch.Verify();
             HearthTerrainPatch.Verify();
             PrecisionTerrainPatch.Verify();
             UsefulPathsPatch.VerifyEffects();
