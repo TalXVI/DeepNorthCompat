@@ -14,7 +14,11 @@ namespace DeepNorthCompat
     {
         private const string Group = "FarLands.Rendering";
         private const string Owner = Plugin.Guid + "." + Group;
-        private const string IndirectBuild = "1F978C5A5E005E2750D53A601E4CAEDFEF0328D851C55CEC6B6214DE040C0A4E";
+        private static readonly Dictionary<string, string> IndirectBuilds = new Dictionary<string, string>
+        {
+            [ExpectedBuilds.Vpo210] = "1F978C5A5E005E2750D53A601E4CAEDFEF0328D851C55CEC6B6214DE040C0A4E",
+            [ExpectedBuilds.Vpo220] = "3F98F7CC06CF5E9C5D4F2AEDA3D4F2C51BA5339F4B440898FAC1A7803F87373A"
+        };
         private static readonly MethodInfo forceOff = AccessTools.PropertySetter(typeof(Renderer), nameof(Renderer.forceRenderingOff));
         private static readonly MethodInfo visibility = AccessTools.DeclaredMethod(typeof(FarLandsRenderingPatch), nameof(SetHidden));
         private static readonly List<(MethodInfo Target, MethodInfo Hook, HarmonyPatchType Kind)> hooks = new List<(MethodInfo, MethodInfo, HarmonyPatchType)>();
@@ -38,14 +42,14 @@ namespace DeepNorthCompat
             if (Guard.KnownServerBuild()) { CompatibilityInstaller.Info($"{Group}: client-only patch; inactive."); return; }
 
             Guard.Build(farlands, ExpectedBuilds.FarLands141);
-            Guard.Build(vpo, ExpectedBuilds.Vpo210);
+            Guard.Build(vpo, ExpectedBuilds.VpoGrassAndStreaming);
             Guard.Build(typeof(ZNet).Assembly, ExpectedBuilds.Valheim1021Client);
             batched = Guard.Type(vpo, "ValheimPerformanceOptimizations.Patches.IndirectRendering.VPOBatchedPrefab");
             FieldInfo instanceField = AccessTools.DeclaredField(batched, "instances");
             if (instanceField == null || instanceField.IsStatic || !instanceField.FieldType.IsArray)
                 throw new MissingFieldException(batched.FullName, "instances");
             Assembly renderer = instanceField.FieldType.GetElementType()!.Assembly;
-            Guard.Build(renderer, IndirectBuild);
+            Guard.Build(renderer, IndirectBuilds[Guard.Sha256(vpo.Location)]);
             indirect = Guard.Type(renderer, "IndirectRendering.IndirectInstance");
             Field(batched, "instances", indirect.MakeArrayType(), false);
             fallback = AccessTools.FieldRefAccess<object, bool>(Field(batched, "fallback", typeof(bool), false));

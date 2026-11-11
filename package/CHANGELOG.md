@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.13
+
+- Supports ValheimPerformanceOptimizations 2.2.0.
+
 ## 1.6.12
 
 - Fixes grass generation using old ground while ValheimPerformanceOptimizations rebuilds a neighboring terrain collider.

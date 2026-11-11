@@ -36,7 +36,7 @@ internal static class VpoTerrainGrassTests
 
         Assembly vendor = Assembly.LoadFrom(path);
         Guard.Build(vendor, ExpectedBuilds.Vpo);
-        if (Guard.Sha256(path) != ExpectedBuilds.Vpo210)
+        if (!ExpectedBuilds.VpoGrassAndStreaming.Contains(Guard.Sha256(path)))
         {
             test("VPO terrain grass rejects a known older vendor without aborting other integrations", () => Reject(vendor));
             return;

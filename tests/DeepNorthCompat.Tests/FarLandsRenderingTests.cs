@@ -141,6 +141,7 @@ internal static class FarLandsRenderingTests
             hidden[renderer] = false;
             native[renderer] = true;
             active[instance] = false;
+            active[(Behaviour)batch] = true;
             object hider = FormatterServices.GetUninitializedObject(hiderType);
             AccessTools.Field(hiderType, "_clock").SetValue(hider, new System.Diagnostics.Stopwatch());
             AccessTools.Field(hiderType, "_budget").SetValue(hider, double.PositiveInfinity);
@@ -171,6 +172,24 @@ internal static class FarLandsRenderingTests
                 restore.Invoke(hider, new[] { zone });
                 Check(suspended && active[instance], "VPO re-enable escaped the current FarLands hide");
             });
+
+            if (Guard.Sha256(vpo.Location) == ExpectedBuilds.Vpo220)
+            {
+                test("FarLands retains a hidden piece across VPO component disable and enable", () =>
+                {
+                    hide.Invoke(hider, new[] { (object)renderer, zone });
+                    active[(Behaviour)batch] = false;
+                    AccessTools.DeclaredMethod(batchedType, "OnDisable").Invoke(batch, null);
+                    Check(hidden[renderer] && !active[instance], "disabling the batch exposed the hidden piece");
+
+                    active[(Behaviour)batch] = true;
+                    AccessTools.DeclaredMethod(batchedType, "OnEnable").Invoke(batch, null);
+                    Check(hidden[renderer] && !active[instance], "re-enabling the batch escaped the FarLands hide");
+
+                    restore.Invoke(hider, new[] { zone });
+                    Check(!hidden[renderer] && active[instance], "restoring the piece did not resume indirect drawing");
+                });
+            }
 
             test("FarLands can take a loaded zone before every VPO LOD is out of range", () =>
             {

@@ -42,7 +42,7 @@ namespace DeepNorthCompat
 
             Guard.Build(typeof(ZNetScene).Assembly, ExpectedBuilds.Valheim1021Client);
             Guard.Build(steadyFrame, ExpectedBuilds.SteadyFrame131);
-            Guard.Build(vpo, ExpectedBuilds.Vpo210);
+            Guard.Build(vpo, ExpectedBuilds.VpoGrassAndStreaming);
             Type guard = Guard.Type(steadyFrame, "SteadyFrame.Structures.StructureGuard");
             Type management = Guard.Type(vpo, "ValheimPerformanceOptimizations.Patches.ObjectManagement.ZNetSceneObjectManagementPatch");
             Type entry = Guard.Type(vpo, management.FullName + "+QueuedZDO");

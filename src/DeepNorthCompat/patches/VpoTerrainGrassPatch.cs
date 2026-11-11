@@ -24,7 +24,7 @@ namespace DeepNorthCompat
             if (vpo == null) { CompatibilityInstaller.Info($"{Name}: optional mod absent; inactive."); return; }
             if (Guard.KnownServerBuild()) { CompatibilityInstaller.Info($"{Name}: client-only; inactive on dedicated server."); return; }
 
-            Guard.Build(vpo, ExpectedBuilds.Vpo210);
+            Guard.Build(vpo, ExpectedBuilds.VpoGrassAndStreaming);
             Guard.Build(typeof(Heightmap).Assembly, ExpectedBuilds.Valheim1021Client);
             Type patches = Guard.Type(vpo, "ValheimPerformanceOptimizations.Patches.HeightmapGeneration.ThreadedHeightmapCollisionBakePatch");
             target = Guard.Method(patches, "IsHeightmapReady", typeof(bool), typeof(Vector3));

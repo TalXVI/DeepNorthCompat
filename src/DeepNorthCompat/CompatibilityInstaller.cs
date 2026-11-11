@@ -22,12 +22,14 @@ namespace DeepNorthCompat
         internal const string Vpo200 = "5BC06CD13EECAFDE08384DD1DB6B3B56073B93E9EF2F6CB3835782B305E19AC7";
         internal const string Vpo201 = "E7F44265DA04E5809530F1212980DB23BB00645CA51BD2B45907CBDAD82B4F1F";
         internal const string Vpo210 = "749149620CC43ADF048B609DE057D6F8155DF65CE98620C670E0DB02417844E8";
+        internal const string Vpo220 = "B44AA55759C0464ED10B0F1AC1E8FC8C5916A537E1FA1BD47A8B473ADFCFBE29";
         internal const string SteadyFrame131 = "92AB5E64BE2827600A03321172AC3D085F63E15D87B2782C2C05C2230D05D2B0";
         internal const string FarLands141 = "5840564ED6910B4648DBE13F2267B38EF609AA96D1D0EFE72B068031B6257BE6";
 
         // VPO 2.x builds share the audited Burst loader, animation cache, and material copy paths.
-        internal static readonly string[] Vpo2 = { Vpo200, Vpo201, Vpo210 };
+        internal static readonly string[] Vpo2 = { Vpo200, Vpo201, Vpo210, Vpo220 };
         internal static readonly string[] Vpo = Vpo2.Prepend(Vpo123).ToArray();
+        internal static readonly string[] VpoGrassAndStreaming = { Vpo210, Vpo220 };
         internal static readonly string[] TeleportEverything =
         {
             "7E4B67FAEC0A475312745B3ED06FD7754C14AAC4D6BCECFE56FD93E439DE605B",

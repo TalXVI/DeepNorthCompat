@@ -56,14 +56,14 @@ Each fix is written against one exact build of the mods it touches:
 - AirAnimals 0.3.2
 - AzuEPI 2.6.3, 2.6.4, and 2.6.6 for the character preview fix. On Valheim 1.0.21, use 2.6.6.
 - ValheimTune 0.7.8, 0.7.9, and 0.7.10
-- ValheimPerformanceOptimizations 1.2.3, 2.0.0, 2.0.1, and 2.1.0, with 2.0.0, 2.0.1, and 2.1.0 support on Valheim 1.0.21
-- ValheimPerformanceOptimizations 2.1.0 for grass readiness during threaded terrain collider updates on Valheim 1.0.21 Windows clients
-- Zen.ModLib 1.14.22 with ValheimPerformanceOptimizations 2.0.0, 2.0.1, or 2.1.0 for animation caching on Valheim 1.0.21 Windows clients
-- Valheim Visuals 1.4.6, 1.4.7, and 1.4.9 with ValheimPerformanceOptimizations 2.0.0, 2.0.1, or 2.1.0 for normal-map materials on Valheim 1.0.21 Windows clients
+- ValheimPerformanceOptimizations 1.2.3, 2.0.0, 2.0.1, 2.1.0, and 2.2.0, with the 2.x builds listed here supported on Valheim 1.0.21
+- ValheimPerformanceOptimizations 2.1.0 and 2.2.0 for grass readiness during threaded terrain collider updates on Valheim 1.0.21 Windows clients
+- Zen.ModLib 1.14.22 with ValheimPerformanceOptimizations 2.0.0, 2.0.1, 2.1.0, or 2.2.0 for animation caching on Valheim 1.0.21 Windows clients
+- Valheim Visuals 1.4.6, 1.4.7, and 1.4.9 with ValheimPerformanceOptimizations 2.0.0, 2.0.1, 2.1.0, or 2.2.0 for normal-map materials on Valheim 1.0.21 Windows clients
 - SteadyFrame 1.3.1 and FarLands 1.4.1 with HearthBelow 0.7.1 for GPU grass construction on Valheim 1.0.21 Windows clients; retains ValheimCommunityPatch 0.45.0 grass-memory handling when installed
-- FarLands 1.4.1 with ValheimPerformanceOptimizations 2.1.0 for rendering integration on Valheim 1.0.21 Windows clients
+- FarLands 1.4.1 with ValheimPerformanceOptimizations 2.1.0 or 2.2.0 for rendering integration on Valheim 1.0.21 Windows clients
 - FarLands 1.4.1 with vanilla terrain limits or Heightmap Unlimited JvL 2.0.2 for distant terrain on Valheim 1.0.21 Windows clients. Reopen the world after changing height limits to rebuild its distant caches under the new limits.
-- SteadyFrame 1.3.1 with ValheimPerformanceOptimizations 2.1.0 for structure support holds on Valheim 1.0.21 Windows clients
+- SteadyFrame 1.3.1 with ValheimPerformanceOptimizations 2.1.0 or 2.2.0 for structure support holds on Valheim 1.0.21 Windows clients
 - RuneMagic 1.5.1 for water-walking ice initialization and rune sprite materials on Valheim 1.0.20 and 1.0.21 Windows clients and Windows/Linux dedicated servers
 - MultiUserChest 0.6.2
 - Quick Stack - Store - Sort - Trash - Restock 1.4.15 and 1.4.16
