@@ -14,6 +14,7 @@ It currently fixes bugs and incompatibilities involving:
 - VPO native water-wave initialization on Windows dedicated servers.
 - VPO 2.0.0 animation caching with Zen.ModLib's attack-animation fix.
 - Valheim Visuals normal-map boost and restoration on VPO 2.0.0 rendering materials.
+- Grass built against old ground while VPO updates a neighboring terrain collider.
 - SteadyFrame and FarLands grass construction over HearthBelow terrain, while retaining GPU drawing and grass-distance requests.
 - FarLands building visibility, LOD ranges, and source-material handling with VPO.
 - FarLands distant terrain and tree heights, which clamped extended terrain edits to vanilla limits.
@@ -56,6 +57,7 @@ Each fix is written against one exact build of the mods it touches:
 - AzuEPI 2.6.3, 2.6.4, and 2.6.6 for the character preview fix. On Valheim 1.0.21, use 2.6.6.
 - ValheimTune 0.7.8, 0.7.9, and 0.7.10
 - ValheimPerformanceOptimizations 1.2.3, 2.0.0, 2.0.1, and 2.1.0, with 2.0.0, 2.0.1, and 2.1.0 support on Valheim 1.0.21
+- ValheimPerformanceOptimizations 2.1.0 for grass readiness during threaded terrain collider updates on Valheim 1.0.21 Windows clients
 - Zen.ModLib 1.14.22 with ValheimPerformanceOptimizations 2.0.0, 2.0.1, or 2.1.0 for animation caching on Valheim 1.0.21 Windows clients
 - Valheim Visuals 1.4.6, 1.4.7, and 1.4.9 with ValheimPerformanceOptimizations 2.0.0, 2.0.1, or 2.1.0 for normal-map materials on Valheim 1.0.21 Windows clients
 - SteadyFrame 1.3.1 and FarLands 1.4.1 with HearthBelow 0.7.1 for GPU grass construction on Valheim 1.0.21 Windows clients; retains ValheimCommunityPatch 0.45.0 grass-memory handling when installed

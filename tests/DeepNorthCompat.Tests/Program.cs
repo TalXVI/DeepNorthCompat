@@ -53,6 +53,7 @@ internal static class Program
     {
         TuneClientTests.Run(Lab, Test); VpoBurstTests.Run(Lab, Test); ChestTests.Run(Lab, Test); TabAudioTests.RunServer(Test); IdleSyncTests.RunServer(Test); OdinShipTests.Run(Lab, Test); PlantingTests.Run(Lab, Test); WorldProbeTests.Run(Test); ReportUploadTests.Run(Test); MyLittleUiAmmoTests.RunServer(Lab, Test);
         GpuGrassTerrainTests.RunServer(Test);
+        VpoTerrainGrassTests.RunServer(Test);
         FarLandsRenderingTests.Run(Lab, Test);
         FarLandsTerrainTests.RunServer(Lab, Test);
         SteadyFrameStructureTests.RunServer(Test);
@@ -61,6 +62,7 @@ internal static class Program
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void RunStreaming()
     {
+        VpoTerrainGrassTests.Run(Lab, Test);
         GpuGrassTerrainTests.RunClient(Lab, Test);
         FarLandsRenderingTests.Run(Lab, Test);
         FarLandsTerrainTests.RunClient(Lab, Test);

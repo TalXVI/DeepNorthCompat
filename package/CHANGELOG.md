@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.12
+
+- Fixes grass generation using old ground while ValheimPerformanceOptimizations rebuilds a neighboring terrain collider.
+
 ## 1.6.11
 
 - Fixes SteadyFrame and FarLands GPU grass placement over HearthBelow terrain while retaining GPU drawing.

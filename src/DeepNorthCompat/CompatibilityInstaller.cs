@@ -185,6 +185,7 @@ namespace DeepNorthCompat
                 AzuEpiPreviewPatch.Prepare(resolve(AzuEpiPreviewPatch.Owner));
             });
             InstallGroup("VPO.Burst", () => VpoBurstPatch.Prepare(resolve("dev.ontrigger.vpo")));
+            InstallGroup(VpoTerrainGrassPatch.Name, () => VpoTerrainGrassPatch.Prepare(resolve("dev.ontrigger.vpo")));
             InstallGroup("VPO.Materials", () => VpoMaterialsPatch.Prepare(resolve("dev.ontrigger.vpo"), resolve(VpoMaterialsPatch.VisualsGuid)));
             InstallGroup("FarLands.Rendering", () => FarLandsRenderingPatch.Prepare(
                 resolve(FarLandsTerrainPatch.Guid), resolve("dev.ontrigger.vpo")));
@@ -246,6 +247,7 @@ namespace DeepNorthCompat
             ReforgedPotentialPatch.Verify();
             AzuEpiPreviewPatch.Verify();
             VpoBurstPatch.Verify();
+            VpoTerrainGrassPatch.Verify();
             VpoMaterialsPatch.Verify();
             FarLandsRenderingPatch.Verify();
             FarLandsTerrainPatch.Verify();
