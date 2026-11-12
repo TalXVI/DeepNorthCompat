@@ -7,10 +7,12 @@ using ConditionalConfigSync;
 
 namespace DeepNorthCompat
 {
-    [BepInPlugin(Guid, "DeepNorthCompat", "1.6.13")]
+    [BepInPlugin(Guid, "DeepNorthCompat", "1.6.14")]
     [BepInDependency("_shudnal.ConditionalConfigSync", "1.0.11")]
     [BepInDependency(CompatibilityInstaller.ImpactGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(CompatibilityInstaller.CraftyGuid, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(MagicRevampInventoryPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency(MagicRevampInventoryPatch.BackpacksGuid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(ForgeCraftingPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency(ReforgedPotentialPatch.Guid, BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("marlthon.SeaAnimals", BepInDependency.DependencyFlags.SoftDependency)]

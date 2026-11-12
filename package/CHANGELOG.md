@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.14
+
+- Fixes MagicRevamp 1.5.1 spellbook consumption and spell eitr costs.
+- Fixes MagicRevamp crafted scroll duplication, failed crafting errors, and loss of item data when moving crafted scrolls into the spellbook.
+- Fixes MagicRevamp spell cycling and preview, native crosshair feedback, and return-home portals disappearing after rejected locally owned teleport requests.
+- Fixes My Little UI 1.2.34 hiding a selected spellbook spell's count while a spell staff is equipped.
+
 ## 1.6.13
 
 - Supports ValheimPerformanceOptimizations 2.2.0.

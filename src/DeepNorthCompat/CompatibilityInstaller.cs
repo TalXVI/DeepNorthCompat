@@ -25,6 +25,8 @@ namespace DeepNorthCompat
         internal const string Vpo220 = "B44AA55759C0464ED10B0F1AC1E8FC8C5916A537E1FA1BD47A8B473ADFCFBE29";
         internal const string SteadyFrame131 = "92AB5E64BE2827600A03321172AC3D085F63E15D87B2782C2C05C2230D05D2B0";
         internal const string FarLands141 = "5840564ED6910B4648DBE13F2267B38EF609AA96D1D0EFE72B068031B6257BE6";
+        internal const string MagicRevamp151 = "B8BD009ED03EEF3BB388ED603474C45F70339DB275564D28EAB6A2A4ABF0E385";
+        internal const string Backpacks1310 = "8B87E770095001271EED051065A83E589F8AECCDA46FB7BB0298B92323BA43F4";
 
         // VPO 2.x builds share the audited Burst loader, animation cache, and material copy paths.
         internal static readonly string[] Vpo2 = { Vpo200, Vpo201, Vpo210, Vpo220 };
@@ -202,6 +204,16 @@ namespace DeepNorthCompat
             InstallGroup("UI.TabAudio", TabAudioPatch.Prepare);
             InstallGroup("UI.TeleportEverything", () => TeleportEverythingPatch.Prepare(resolve(TeleportEverythingPatch.Guid)));
             InstallGroup("MyLittleUI.AmmoCount", () => MyLittleUiAmmoPatch.Prepare(resolve(MyLittleUiAmmoPatch.Guid)));
+            Assembly? magic = resolve(MagicRevampInventoryPatch.Guid);
+            Assembly? backpacks = resolve(MagicRevampInventoryPatch.BackpacksGuid);
+            InstallGroup(MagicRevampInventoryPatch.Group, () => MagicRevampInventoryPatch.Prepare(magic, backpacks));
+            InstallGroup(MagicRevampCraftingPatch.Group, () => MagicRevampCraftingPatch.Prepare(magic, backpacks));
+            InstallGroup(MagicRevampEitrPatch.Name, () => MagicRevampEitrPatch.Prepare(magic));
+            InstallGroup("MagicRevamp.Hud", () => MagicRevampHudPatch.Prepare(magic));
+            InstallGroup("MagicRevamp.Cycle", () => MagicRevampCyclePatch.Prepare(magic, backpacks));
+            InstallGroup("MagicRevamp.Portal", () => MagicRevampPortalPatch.Prepare(magic));
+            InstallGroup(MagicRevampAmmoDisplayPatch.Group, () => MagicRevampAmmoDisplayPatch.Prepare(magic, backpacks,
+                resolve(MyLittleUiAmmoPatch.Guid)));
             InstallGroup("PlantEasily.GridCost", () => PlantEasilyCostPatch.Prepare(resolve(PlantEasilyCostPatch.Guid)));
             InstallGroup("NoSmokeStayLit.Controls", () => NoSmokeStayLitPatch.Prepare(resolve(NoSmokeStayLitPatch.Guid)));
             InstallGroup("PlantEverything.Dust", () => PlantEverythingDustPatch.Prepare(resolve(PlantEverythingDustPatch.Guid),
@@ -263,6 +275,13 @@ namespace DeepNorthCompat
             TabAudioPatch.Verify();
             TeleportEverythingPatch.Verify();
             MyLittleUiAmmoPatch.Verify();
+            MagicRevampInventoryPatch.Verify();
+            MagicRevampCraftingPatch.Verify();
+            MagicRevampEitrPatch.Verify();
+            MagicRevampHudPatch.Verify();
+            MagicRevampCyclePatch.Verify();
+            MagicRevampPortalPatch.Verify();
+            MagicRevampAmmoDisplayPatch.Verify();
             PlantEasilyCostPatch.Verify();
             NoSmokeStayLitPatch.Verify();
             PlantEverythingDustPatch.Verify();

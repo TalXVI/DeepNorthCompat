@@ -28,6 +28,7 @@ internal static class Program
             RunReforged();
             NoSmokeStayLitTests.Run(Lab, Test);
             UsefulPathsTests.Run(Lab, Test);
+            RunMagicRevamp();
             if (Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_TEST_MODE") == "server") RunServer();
             else
             {
@@ -43,9 +44,32 @@ internal static class Program
             AaaRecipeRowsTests.Run(Lab, Test);
             PerformanceLookupTests.Run(Lab, Test);
             PerformanceLookupGuardTests.Run(Lab, Test);
+            RunMagicRevampCrafting();
             SysConsole.WriteLine($"PASS: {passed} test cases"); return 0;
         }
         catch (Exception exception) { SysConsole.Error.WriteLine(exception); return 1; }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void RunMagicRevampCrafting() => MagicRevampCraftingTests.Run(Lab, Test);
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void RunMagicRevamp()
+    {
+        MagicRevampInventoryTests.Run(Lab, Test);
+        MagicRevampHudTests.Run(Lab, Test);
+        MagicRevampCycleTests.Run(Lab, Test);
+        MagicRevampPortalTests.Run(Lab, Test);
+        if (Environment.GetEnvironmentVariable("DEEPNORTHCOMPAT_TEST_MODE") == "server")
+        {
+            MagicRevampEitrTests.RunServer(Lab, Test);
+            MagicRevampAmmoDisplayTests.RunServer(Lab, Test);
+        }
+        else
+        {
+            MagicRevampEitrTests.Run(Lab, Test);
+            MagicRevampAmmoDisplayTests.Run(Lab, Test);
+        }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]

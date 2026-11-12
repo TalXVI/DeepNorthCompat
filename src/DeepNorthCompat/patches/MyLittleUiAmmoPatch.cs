@@ -58,12 +58,19 @@ namespace DeepNorthCompat
             if (rewritten != true || Harmony.GetPatchInfo(target)?.Transpilers.Count(p => p.owner == Owner
                 && p.PatchMethod == rewrite) != 1)
             {
-                new Harmony(Owner).UnpatchSelf();
+                Reset();
                 CompatibilityInstaller.Error("MyLittleUI.AmmoCount: NOT APPLIED; ammo label IL or hook registration did not match; My Little UI behavior retained.");
                 return;
             }
             enabled = true;
             CompatibilityInstaller.Info("MyLittleUI.AmmoCount: APPLIED; ammo counts redraw only when the displayed number changes.");
+        }
+
+        internal static void Reset()
+        {
+            pending = enabled = false;
+            rewritten = null;
+            new Harmony(Owner).UnpatchSelf();
         }
 
         internal static IEnumerable<CodeInstruction> Rewrite(IEnumerable<CodeInstruction> instructions, MethodBase __originalMethod)

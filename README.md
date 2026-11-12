@@ -30,6 +30,8 @@ It currently fixes bugs and incompatibilities involving:
 - NoSmokeStayLit fireplace mode controls, which refused to change fires owned by another peer.
 - PlantEverything placement dust, which came back after joining a server with NoCultivatorDust or NoBuildDust installed.
 - My Little UI ammo counts, which redrew every hotbar update even when the number hadn't changed.
+- MagicRevamp spellbook item consumption and crafted scroll transfers, selected spell eitr costs, spell cycling, native crosshair feedback, and return-home portal use.
+- My Little UI's selected spellbook spell count while a MagicRevamp spell staff is equipped.
 - Visible UI localization on Valheim 1.0.21 Windows clients, which collected inactive labels before discarding them.
 - RuneMagic rune lookups on Valheim 1.0.21 Windows clients, which read the piece's name again for every rune in the list.
 - AdvancedTerrainModifiers precision raising, which ignored Heightmap Unlimited JvL heightmap limits, and precision raising and smoothing over HearthBelow cuts.
@@ -76,6 +78,7 @@ Each fix is written against one exact build of the mods it touches:
 - PlantEverything 1.21.3 and 1.21.4 with NoCultivatorDust 1.0.7 or NoBuildDust 1.0.7 (placement dust fix on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients)
 - ValheimCommunityPatch 0.39.0, 0.39.1, 0.40.0, 0.41.0, 0.42.0, 0.43.0, 0.43.1, and 0.45.0 for Craft/Upgrade button audio, vibration, and timers
 - My Little UI 1.2.31, 1.2.32, 1.2.33, and 1.2.34 (ammo count redraw fix on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients)
+- MagicRevamp 1.5.1 with the Hexium release of Backpacks 1.3.10 on Valheim 1.0.21 Windows clients; My Little UI 1.2.34 for spellbook ammo counts
 - HearthBelow 0.7.0 and 0.7.1, with RuneMagic 1.5.1 for the Foundation Rune (cut filling on Valheim 1.0.17, 1.0.20, and 1.0.21 Windows clients and Windows/Linux dedicated servers)
 - AdvancedTerrainModifiers 1.6.1 with Heightmap Unlimited JvL 2.0.2 or HearthBelow 0.7.1 for precision terrain fixes on Valheim 1.0.21 Windows clients and Windows/Linux dedicated servers
 - UsefulPaths 1.1.1, with ImpactfulSkills 0.26.0 for cart mass ordering, on Valheim 1.0.21 Windows clients and Windows/Linux dedicated servers
