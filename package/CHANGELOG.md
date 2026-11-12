@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.15
+
+- Supports Zen.ModLib 1.14.23.
+
 ## 1.6.14
 
 - Fixes MagicRevamp 1.5.1 spellbook consumption and spell eitr costs.

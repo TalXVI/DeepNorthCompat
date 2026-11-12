@@ -11,7 +11,8 @@ namespace DeepNorthCompat
         internal const string VpoGuid = "dev.ontrigger.vpo";
         internal const string ZenGuid = "ZenDragon.Zen.ModLib";
         private const string Owner = Plugin.Guid + ".VPO.Animation";
-        private const string ZenHash = "73703E097014D2488A893499714DE0B53775FE357BA3B421BFF6DCCD691438E7";
+        private const string Zen11422 = "73703E097014D2488A893499714DE0B53775FE357BA3B421BFF6DCCD691438E7";
+        private const string Zen11423 = "D57B327BC5A8A167ED62FD43D90FF904EEE90FB9072B8D96A60BACAAC847A30D";
         private static readonly MethodInfo order = AccessTools.DeclaredMethod(typeof(VpoAnimationPatch), nameof(Order));
         private static MethodInfo target = null!, vpoPrefix = null!, zenPrefix = null!;
         private static bool pending;
@@ -26,7 +27,7 @@ namespace DeepNorthCompat
             if (Guard.Sha256(vpo.Location) == ExpectedBuilds.Vpo123)
             { CompatibilityInstaller.Info("VPO.Animation: VPO 1.2.3 has no animation cache; inactive."); return; }
 
-            Guard.Build(zen, ZenHash);
+            Guard.Build(zen, Zen11422, Zen11423);
             Guard.Build(typeof(ZSyncAnimation).Assembly, ExpectedBuilds.Valheim1021Client);
             target = Guard.Method(typeof(ZSyncAnimation), "SetBool", typeof(void), typeof(int), typeof(bool));
             vpoPrefix = Guard.Method(Guard.Type(vpo, "ValheimPerformanceOptimizations.Patches.AnimatorParameterCachePatch"),

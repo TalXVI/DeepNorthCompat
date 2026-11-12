@@ -60,7 +60,7 @@ Each fix is written against one exact build of the mods it touches:
 - ValheimTune 0.7.8, 0.7.9, and 0.7.10
 - ValheimPerformanceOptimizations 1.2.3, 2.0.0, 2.0.1, 2.1.0, and 2.2.0, with the 2.x builds listed here supported on Valheim 1.0.21
 - ValheimPerformanceOptimizations 2.1.0 and 2.2.0 for grass readiness during threaded terrain collider updates on Valheim 1.0.21 Windows clients
-- Zen.ModLib 1.14.22 with ValheimPerformanceOptimizations 2.0.0, 2.0.1, 2.1.0, or 2.2.0 for animation caching on Valheim 1.0.21 Windows clients
+- Zen.ModLib 1.14.22 or 1.14.23 with ValheimPerformanceOptimizations 2.0.0, 2.0.1, 2.1.0, or 2.2.0 for animation caching on Valheim 1.0.21 Windows clients
 - Valheim Visuals 1.4.6, 1.4.7, and 1.4.9 with ValheimPerformanceOptimizations 2.0.0, 2.0.1, 2.1.0, or 2.2.0 for normal-map materials on Valheim 1.0.21 Windows clients
 - SteadyFrame 1.3.1 and FarLands 1.4.1 with HearthBelow 0.7.1 for GPU grass construction on Valheim 1.0.21 Windows clients; retains ValheimCommunityPatch 0.45.0 grass-memory handling when installed
 - FarLands 1.4.1 with ValheimPerformanceOptimizations 2.1.0 or 2.2.0 for rendering integration on Valheim 1.0.21 Windows clients
